@@ -14,11 +14,14 @@ import os.path as fs
 import sys
 import logging
 
+# PEP3102 (python 3.0) = keyword-only args
+
 
 logg = logging.getLogger(__name__.replace("/", "."))
 
 OK = True
 NIX = ""
+BACK = 27
 
 class StripHints(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
@@ -50,18 +53,33 @@ class StripHints(ast.NodeTransformer):
         annos = 0
         posonlyargs: List[ast.arg] = []
         functionargs: List[ast.arg] = []
+        kwonlyargs: List[ast.arg] = []
         vargarg = func.args.vararg
         kwarg = func.args.kwarg
+        kwdefaults: List[Optional[ast.expr]] = []
+        defaults: List[ast.expr] = []
         if OK:
             for arg in func.args.posonlyargs:
                 logg.debug("-pos arg: %s", ast.dump(arg))
-                posonlyargs.append(ast.arg(arg.arg))
+                if BACK <= 30:
+                    functionargs.append(ast.arg(arg.arg))
+                else:
+                    posonlyargs.append(ast.arg(arg.arg))
                 if arg.annotation: 
                     annos += 1
         if OK:
             for arg in func.args.args:
                 logg.debug("-fun arg: %s", ast.dump(arg))
                 functionargs.append(ast.arg(arg.arg))
+                if arg.annotation: 
+                    annos += 1
+        if OK:
+            for arg in func.args.kwonlyargs:
+                logg.debug("-kwo arg: %s", ast.dump(arg))
+                if BACK <= 30:
+                    functionargs.append(ast.arg(arg.arg))
+                else:
+                    kwonlyargs.append(ast.arg(arg.arg))
                 if arg.annotation: 
                     annos += 1
         if vargarg is not None:
@@ -72,10 +90,23 @@ class StripHints(ast.NodeTransformer):
             if kwarg.annotation:
                 annos += 1
             kwarg = ast.arg(kwarg.arg)
-        if not annos and not func.returns:
+        old = 0
+        if func.args.kw_defaults and BACK < 30:
+            old += 1
+        if not annos and not func.returns and not old:
             return self.generic_visit(node) # unchanged
-        args2 = ast.arguments(posonlyargs, functionargs, vargarg, # ..
-            func.args.kwonlyargs, func.args.kw_defaults, kwarg, func.args.defaults)
+        if OK:
+            for exp in func.args.defaults:
+                defaults.append(exp)
+        if OK:
+            for kwexp in func.args.kw_defaults:
+                if BACK < 30:
+                    if kwexp is not None:
+                        defaults.append(kwexp)
+                else:
+                    kwdefaults.append(kwexp)
+        args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
+            kwdefaults, kwarg, defaults)
         func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
         func2.lineno = func.lineno
         return self.generic_visit(func2)
@@ -89,15 +120,15 @@ class TypeHints:
             body: List[ast.stmt] = []
             for child in node.body:
                 if isinstance(child, ast.AnnAssign):
-                    assign: ast.AnnAssign = child
-                    logg.debug("assign: %s", ast.dump(assign))
-                    if assign.value is not None:
-                        assign2 = ast.Assign(targets=[assign.target], value=assign.value)
-                        assign2.lineno = assign.lineno
+                    assign1: ast.AnnAssign = child
+                    logg.debug("assign: %s", ast.dump(assign1))
+                    if assign1.value is not None:
+                        assign2 = ast.Assign(targets=[assign1.target], value=assign1.value)
+                        assign2.lineno = assign1.lineno
                         body.append(assign2)
                     else:
                         logg.debug("skip simple")
-                    assign3 = ast.AnnAssign(target=assign.target, annotation=assign.annotation, value=None, simple=assign.simple)
+                    assign3 = ast.AnnAssign(target=assign1.target, annotation=assign1.annotation, value=None, simple=assign1.simple)
                     self.pyi.append(assign3)
                 elif isinstance(child, ast.ClassDef):
                     logg.debug("class: %s", ast.dump(child))
@@ -121,18 +152,33 @@ class TypeHints:
                             annos = 0
                             posonlyargs: List[ast.arg] = []
                             functionargs: List[ast.arg] = []
+                            kwonlyargs: List[ast.arg] = []
                             vargarg = func.args.vararg
                             kwarg = func.args.kwarg
-                            for arg in func.args.posonlyargs:
-                                logg.debug("pos arg: %s", ast.dump(arg))
-                                posonlyargs.append(ast.arg(arg.arg))
-                                if arg.annotation: 
-                                    annos += 1
-                            for arg in func.args.args:
-                                logg.debug("fun arg: %s", ast.dump(arg))
-                                functionargs.append(ast.arg(arg.arg))
-                                if arg.annotation: 
-                                    annos += 1
+                            if OK:
+                                for arg in func.args.posonlyargs:
+                                    logg.debug("pos arg: %s", ast.dump(arg))
+                                    if BACK < 30:
+                                        functionargs.append(ast.arg(arg.arg))
+                                    else:
+                                        posonlyargs.append(ast.arg(arg.arg))
+                                    if arg.annotation: 
+                                        annos += 1
+                            if OK:
+                                for arg in func.args.args:
+                                    logg.debug("fun arg: %s", ast.dump(arg))
+                                    functionargs.append(ast.arg(arg.arg))
+                                    if arg.annotation: 
+                                        annos += 1
+                            if OK:
+                                for arg in func.args.kwonlyargs:
+                                    logg.debug("fun arg: %s", ast.dump(arg))
+                                    if BACK < 30:
+                                        functionargs.append(ast.arg(arg.arg))
+                                    else:
+                                        kwonlyargs.append(ast.arg(arg.arg))
+                                    if arg.annotation: 
+                                        annos += 1
                             if vargarg is not None:
                                 if vargarg.annotation:
                                     annos += 1
@@ -145,8 +191,8 @@ class TypeHints:
                                 stmt.append(func)
                             else:
                                 logg.debug("args: %s", ast.dump(func.args))
-                                args2 = ast.arguments(posonlyargs, functionargs, vargarg, # ..
-                                        func.args.kwonlyargs, func.args.kw_defaults, kwarg, func.args.defaults)
+                                args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
+                                        func.args.kw_defaults, kwarg, func.args.defaults)
                                 func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
                                 func2.lineno = func.lineno
                                 stmt.append(func2)
