@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,line-too-long,multiple-statements
 """ tests for strip_python3 """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.1.1087"
 
-from typing import Dict, List, Union, Optional, Iterator, NamedTuple
+from typing import List, Union, Optional, Iterator, NamedTuple
 import unittest
 from fnmatch import fnmatchcase as fnmatch
 import inspect
@@ -101,6 +101,26 @@ def grep(pattern: str, lines: Union[str, List[str]]) -> List[str]:
 def greps(lines: Union[str, List[str]], pattern: str) -> List[str]:
     return list(_grep(pattern, lines))
 
+def text4(content: str) -> str:
+    if content.startswith("\n"):
+        text = ""
+        x = re.match("(?s)\n( *)", content)
+        assert x is not None
+        indent = x.group(1)
+        for line in content[1:].split("\n"):
+            if line.startswith(indent):
+                if not line.strip():
+                    line = ""
+                else:
+                    line = line[len(indent):]
+            text += line + "\n"
+        if text.endswith("\n\n"):
+            return text[:-1]
+        else:
+            return text
+    else:
+        return content
+
 def text_file(filename: str, content: str) -> None:
     filedir = os.path.dirname(filename)
     if filedir not in ["", "."] and not os.path.isdir(filedir):
@@ -117,6 +137,8 @@ def text_file(filename: str, content: str) -> None:
     else:
         f.write(content)
     f.close()
+def file_text4(filename: str, delim: str = "\n") -> str:
+    return file_text(filename, delim)
 def file_text(filename: str, delim: str = "^") -> str:
     if os.path.isfile(filename):
         with open(filename, encoding="utf-8") as f:
@@ -325,7 +347,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    b = 2^") 
+        self.assertEqual(py, "class B:^    b = 2^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
@@ -344,7 +366,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    pass^") 
+        self.assertEqual(py, "class B:^    pass^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
@@ -363,12 +385,11 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp2.py"), file_text(F"{tmp}/tmp2.pyi")
-        self.assertEqual(py, "class B:^    pass^") 
+        self.assertEqual(py, "class B:^    pass^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
     def test_0114(self) -> None:
-        vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp3.py", """
@@ -382,7 +403,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
         py, pyi = file_text(F"{tmp}/tmp.py"), file_text(F"{tmp}/tmp.pyi")
-        self.assertEqual(py, "class B:^    pass^") 
+        self.assertEqual(py, "class B:^    pass^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
@@ -404,7 +425,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    b = 2^^    def __str__(self):^        return self.c^") 
+        self.assertEqual(py, "class B:^    b = 2^^    def __str__(self):^        return self.c^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __str__(self) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
@@ -426,7 +447,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^^    def __str__(self):^        return self.c^") 
+        self.assertEqual(py, "class B:^^    def __str__(self):^        return self.c^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __str__(self) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
@@ -448,7 +469,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    b = 2^^    def __add__(self, y):^        return self.c + y^") 
+        self.assertEqual(py, "class B:^    b = 2^^    def __add__(self, y):^        return self.c + y^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: str) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
@@ -470,7 +491,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^^    def __add__(self, y):^        return self.c + y^") 
+        self.assertEqual(py, "class B:^^    def __add__(self, y):^        return self.c + y^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: str) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
@@ -491,9 +512,22 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    b = 2^^    def __add__(self, y=1):^        return self.b + y^") 
-        self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: int=1) -> int:^        pass^")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+            b = 2
+            
+            def __add__(self, y=1):
+                return self.b + y"""))
+        self.assertEqual(pyi, text4("""
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: int=1) -> int:
+                pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0142(self) -> None:
@@ -513,9 +547,22 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    b = 2^^    def __add__(self, y=1):^        return self.b + y^") 
-        self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, *, y: int=1) -> int:^        pass^")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+            b = 2
+            
+            def __add__(self, y=1):
+                return self.b + y"""))
+        self.assertEqual(pyi, text4("""
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, *, y: int=1) -> int:
+                pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0143(self) -> None:
@@ -535,9 +582,22 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^    b = 2^^    def __add__(self, *, y=1):^        return self.b + y^") 
-        self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, *, y: int=1) -> int:^        pass^")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+            b = 2
+           
+            def __add__(self, *, y=1):
+                return self.b + y"""))
+        self.assertEqual(pyi, text4("""
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, *, y: int=1) -> int:
+                pass"""))
         self.coverage()
         self.rm_testdir()
 
@@ -561,9 +621,25 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^^    def __add__(self, y):^        x = 'v'^^        def twice(u):^            return u + u^        return self.c + double(x) + y^") 
-        self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: str) -> str:^        pass^")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+            
+            def __add__(self, y):
+                x = 'v'
+        
+                def twice(u):
+                    return u + u
+                return self.c + double(x) + y"""))
+        self.assertEqual(pyi, text4("""
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: str) -> str:
+                pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0151(self) -> None:
@@ -584,9 +660,23 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py, pyi = file_text(F"{tmp}/tmp1_2.py"), file_text(F"{tmp}/tmp1_2.pyi")
-        self.assertEqual(py, "class B:^^    def __add__(self, y):^        return [self.c] + y^") 
-        self.assertEqual(pyi, "from typing import List^a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: List[str]) -> List[str]:^        pass^")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+        
+            def __add__(self, y):
+                return [self.c] + y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: List[str]) -> List[str]:
+                pass"""))
         self.coverage()
         self.rm_testdir()
 
@@ -655,7 +745,7 @@ def runtests() -> None:
         logg.info("xml results into %s", opt.xmlresults)
     if not logfile:
         if xmlresults:
-            import xmlrunner # type: ignore[import-error] # pylint: disable=import-error,import-outside-toplevel
+            import xmlrunner # type: ignore[import-error,import-untyped] # pylint: disable=import-error,import-outside-toplevel
             TestRunner = xmlrunner.XMLTestRunner
             testresult = TestRunner(xmlresults, verbosity=opt.verbose).run(suite)
         else:
@@ -664,7 +754,7 @@ def runtests() -> None:
     else:
         TestRunner = unittest.TextTestRunner
         if xmlresults:
-            import xmlrunner # type: ignore[import-error] # pylint: disable=import-error,import-outside-toplevel
+            import xmlrunner # type: ignore[import-error,import-untyped] # pylint: disable=import-error,import-outside-toplevel
             TestRunner = xmlrunner.XMLTestRunner
         testresult = TestRunner(logfile.stream, verbosity=opt.verbose).run(suite) # type: ignore
     if not testresult.wasSuccessful():
