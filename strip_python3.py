@@ -254,9 +254,18 @@ if __name__ == "__main__":
     from optparse import OptionParser # pylint: disable=deprecated-module
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip())
     cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
+    cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set features by version")
+    cmdline.add_option("--py36", action="count", default=0, help="keep features available since python3.6")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
     cmdline.add_option("-y", "--pyi", action="count", default=0, help="generate file.pyi as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, logging.WARNING - 10 * opt.verbose))
+    if opt.py36:
+        BACK = 36
+    elif opt.python_version:
+        if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
+            BACK = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
+        else:
+            logg.error("unknown --python-version %s", opt.python_version)
     sys.exit(main(cmdline_args, remove3=opt.remove3, outfile=opt.outfile, pyi=opt.pyi))
