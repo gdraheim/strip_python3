@@ -15,22 +15,41 @@ import sys
 import logging
 
 # PEP3102 (python 3.0) = keyword-only args
-
+# PEP484 (python3.5) = typehints introduced
+# (python3.12) = type() statement
+# (python3.12) = support for generics
+# PEP675 (python3.11) = LiteralString
+# (python3.6) = NoReturn
+# (python3.11) = Never, Self
+# (python3.10) = a|b as union
+# (python3.5) = ClassVar
+# (python3.8) = Final
+# PEP593 (python3.9) = Annotated
+# PEP526 (python3.6) = variable annotations
+# (python3.8) = Protocol
+# (python3.11) = assert_type
+# (python3.5) = is.TYPE_CHECKING
+# PEP3107 (python3.0) = function annotations
 
 logg = logging.getLogger(__name__.replace("/", "."))
 
 OK = True
 NIX = ""
 BACK = 27
+KEEPTYPES = False
 
 class StripHints(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        if BACK >= 35 and KEEPTYPES:
+            return node
         imports: ast.ImportFrom = node
         logg.debug("-imports: %s", ast.dump(imports))
         if imports.module != "typing":
             return node # unchanged
         return None
     def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        if BACK >= 30 and KEEPTYPES:
+            return self.generic_visit(node)
         calls: ast.Call = node
         logg.debug("-calls: %s", ast.dump(calls))
         if calls.func != "cast":
@@ -40,6 +59,8 @@ class StripHints(ast.NodeTransformer):
         logg.error("-bad cast: %s", ast.dump(node))
         return ast.Constant(None)
     def visit_AnnAssign(self, node: ast.AnnAssign) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        if BACK >= 36 and KEEPTYPES:
+            return self.generic_visit(node)
         assign: ast.AnnAssign = node
         logg.debug("-assign: %s", ast.dump(assign))
         if assign.value is not None:
@@ -71,7 +92,7 @@ class StripHints(ast.NodeTransformer):
             for arg in func.args.args:
                 logg.debug("-fun arg: %s", ast.dump(arg))
                 functionargs.append(ast.arg(arg.arg))
-                if arg.annotation: 
+                if arg.annotation:
                     annos += 1
         if OK:
             for arg in func.args.kwonlyargs:
