@@ -1,5 +1,5 @@
 #! /usr/bin/env python3.11
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long
 """ easy way to transform and remove python3 typehints """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
@@ -7,12 +7,11 @@ __author__ = "Guido U. Draheim"
 __version__ = "0.1.1087"
 
 from typing import List, Optional
-# import ast
-import ast_comments as ast
-import os
-import os.path as fs
 import sys
 import logging
+# ........
+# import ast
+import ast_comments as ast
 
 # PEP3102 (python 3.0) = keyword-only args
 # PEP484 (python3.5) = typehints introduced
@@ -86,7 +85,7 @@ class StripHints(ast.NodeTransformer):
                     functionargs.append(ast.arg(arg.arg))
                 else:
                     posonlyargs.append(ast.arg(arg.arg))
-                if arg.annotation: 
+                if arg.annotation:
                     annos += 1
         if OK:
             for arg in func.args.args:
@@ -101,7 +100,7 @@ class StripHints(ast.NodeTransformer):
                     functionargs.append(ast.arg(arg.arg))
                 else:
                     kwonlyargs.append(ast.arg(arg.arg))
-                if arg.annotation: 
+                if arg.annotation:
                     annos += 1
         if vargarg is not None:
             if vargarg.annotation:
@@ -140,7 +139,14 @@ class TypeHints:
         if isinstance(node, ast.Module):
             body: List[ast.stmt] = []
             for child in node.body:
-                if isinstance(child, ast.AnnAssign):
+                if isinstance(child, ast.ImportFrom):
+                    imports = child
+                    body.append(child)
+                    if imports.module == "typing":
+                        imports3 = ast.ImportFrom(imports.module, imports.names, imports.level)
+                        imports3.lineno = imports.lineno
+                        self.pyi.append(imports3)
+                elif isinstance(child, ast.AnnAssign):
                     assign1: ast.AnnAssign = child
                     logg.debug("assign: %s", ast.dump(assign1))
                     if assign1.value is not None:
@@ -183,13 +189,13 @@ class TypeHints:
                                         functionargs.append(ast.arg(arg.arg))
                                     else:
                                         posonlyargs.append(ast.arg(arg.arg))
-                                    if arg.annotation: 
+                                    if arg.annotation:
                                         annos += 1
                             if OK:
                                 for arg in func.args.args:
                                     logg.debug("fun arg: %s", ast.dump(arg))
                                     functionargs.append(ast.arg(arg.arg))
-                                    if arg.annotation: 
+                                    if arg.annotation:
                                         annos += 1
                             if OK:
                                 for arg in func.args.kwonlyargs:
@@ -198,7 +204,7 @@ class TypeHints:
                                         functionargs.append(ast.arg(arg.arg))
                                     else:
                                         kwonlyargs.append(ast.arg(arg.arg))
-                                    if arg.annotation: 
+                                    if arg.annotation:
                                         annos += 1
                             if vargarg is not None:
                                 if vargarg.annotation:
@@ -236,7 +242,10 @@ class TypeHints:
             return ast.Module(body, type_ignores=node.type_ignores)
         return node
 
-def main(args: List[str], remove3: int = 0, append2: int = 0, outfile: str = "", pyi: int = 0) -> int:
+EACH_REMOVE3 = 1
+EACH_APPEND2 = 2
+EACH_INPLACE = 4
+def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
@@ -249,10 +258,12 @@ def main(args: List[str], remove3: int = 0, append2: int = 0, outfile: str = "",
         done = ast.unparse(tree3)
         if outfile:
             out = outfile
-        elif arg.endswith("3.py") and remove3:
+        elif arg.endswith("3.py") and eachfile & EACH_REMOVE3:
             out = arg[:-len("3.py")]+".py"
-        elif arg.endswith(".py") and append2:
+        elif arg.endswith(".py") and eachfile & EACH_APPEND2:
             out = arg[:-len(".py")]+"_2.py"
+        elif eachfile & EACH_INPLACE:
+            out = arg
         else:
             out = "-"
         if out not in written:
@@ -275,7 +286,7 @@ def main(args: List[str], remove3: int = 0, append2: int = 0, outfile: str = "",
                             done = ast.unparse(typehints)
                             w.write(done)
                             if done and not done.endswith("\n"):
-                               w.write("\n")
+                                w.write("\n")
 
     return 0
 
@@ -285,6 +296,7 @@ if __name__ == "__main__":
     cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
     cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set features by version")
     cmdline.add_option("--py36", action="count", default=0, help="keep features available since python3.6")
+    cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
     cmdline.add_option("-y", "--pyi", action="count", default=0, help="generate file.pyi as well")
@@ -298,4 +310,7 @@ if __name__ == "__main__":
             BACK = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
         else:
             logg.error("unknown --python-version %s", opt.python_version)
-    sys.exit(main(cmdline_args, remove3=opt.remove3, append2=opt.append2, outfile=opt.outfile, pyi=opt.pyi))
+    _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
+    _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
+    _EACHFILE |= EACH_INPLACE if opt.inplace else 0
+    sys.exit(main(cmdline_args, eachfile=_EACHFILE, outfile=opt.outfile, pyi=opt.pyi))
