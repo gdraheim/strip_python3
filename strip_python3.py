@@ -236,7 +236,8 @@ class TypeHints:
             return ast.Module(body, type_ignores=node.type_ignores)
         return node
 
-def main(args: List[str], remove3: int = 0, outfile: str = "", pyi: int = 0) -> int:
+def main(args: List[str], remove3: int = 0, append2: int = 0, outfile: str = "", pyi: int = 0) -> int:
+    written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
             text = f.read()
@@ -250,24 +251,31 @@ def main(args: List[str], remove3: int = 0, outfile: str = "", pyi: int = 0) -> 
             out = outfile
         elif arg.endswith("3.py") and remove3:
             out = arg[:-len("3.py")]+".py"
-        elif arg.endswith(".py"):
+        elif arg.endswith(".py") and append2:
             out = arg[:-len(".py")]+"_2.py"
-        if OK:
-            with open(out, "w", encoding="utf-8") as w:
-                w.write(done)
-                if done and not done.endswith("\n"):
-                    w.write("\n")
-            logg.info("written %s", out)
-        if pyi:
-            typehintsfile = out+"i"
-            logg.debug("--pyi => %s", typehintsfile)
-            if isinstance(tree1, ast.Module):
-                typehints = ast.Module(types.pyi, type_ignores=tree1.type_ignores)
-                with open(typehintsfile, "w", encoding="utf-8") as w:
-                    done = ast.unparse(typehints)
+        else:
+            out = "-"
+        if out not in written:
+            if out in ["-"]:
+                if done:
+                    print(done)
+            else:
+                with open(out, "w", encoding="utf-8") as w:
                     w.write(done)
                     if done and not done.endswith("\n"):
-                       w.write("\n")
+                        w.write("\n")
+                logg.info("written %s", out)
+                written.append(out)
+                if pyi:
+                    typehintsfile = out+"i"
+                    logg.debug("--pyi => %s", typehintsfile)
+                    if isinstance(tree1, ast.Module):
+                        typehints = ast.Module(types.pyi, type_ignores=tree1.type_ignores)
+                        with open(typehintsfile, "w", encoding="utf-8") as w:
+                            done = ast.unparse(typehints)
+                            w.write(done)
+                            if done and not done.endswith("\n"):
+                               w.write("\n")
 
     return 0
 
@@ -277,6 +285,7 @@ if __name__ == "__main__":
     cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
     cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set features by version")
     cmdline.add_option("--py36", action="count", default=0, help="keep features available since python3.6")
+    cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
     cmdline.add_option("-y", "--pyi", action="count", default=0, help="generate file.pyi as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
@@ -289,4 +298,4 @@ if __name__ == "__main__":
             BACK = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
         else:
             logg.error("unknown --python-version %s", opt.python_version)
-    sys.exit(main(cmdline_args, remove3=opt.remove3, outfile=opt.outfile, pyi=opt.pyi))
+    sys.exit(main(cmdline_args, remove3=opt.remove3, append2=opt.append2, outfile=opt.outfile, pyi=opt.pyi))

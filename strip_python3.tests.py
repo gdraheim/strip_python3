@@ -221,7 +221,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -235,7 +235,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1 # foo""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -249,7 +249,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -265,7 +265,7 @@ class StripTest(unittest.TestCase):
         text_file(F"{tmp}/tmp1.py", """
         a: int
         b: int = 2""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -282,7 +282,7 @@ class StripTest(unittest.TestCase):
         a: int # foo
         b: int = 2
         c: str """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -300,7 +300,7 @@ class StripTest(unittest.TestCase):
         # foo
         b: int = 2
         c: str # bar""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -319,7 +319,7 @@ class StripTest(unittest.TestCase):
         class B:
            b: int = 2
            c: str""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -338,7 +338,7 @@ class StripTest(unittest.TestCase):
         class B:
            b: int
            c: str""")
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -376,7 +376,7 @@ class StripTest(unittest.TestCase):
         class B:
            b: int
            c: str""")
-        run = sh(F"{strip} {tmp}/tmp3.py --pyi --remove3")
+        run = sh(F"{strip} -3 {tmp}/tmp3.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
@@ -398,7 +398,7 @@ class StripTest(unittest.TestCase):
            def __str__(self) -> str:
                return self.c 
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -420,7 +420,7 @@ class StripTest(unittest.TestCase):
            def __str__(self) -> str:
                return self.c 
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -442,7 +442,7 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: str) -> str:
                return self.c + y
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -464,7 +464,7 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: str) -> str:
                return self.c + y
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -486,7 +486,7 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: int = 1) -> int:
                return self.b + y
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -508,7 +508,7 @@ class StripTest(unittest.TestCase):
            def __add__(self, *, y: int = 1) -> int:
                return self.b + y
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -530,7 +530,7 @@ class StripTest(unittest.TestCase):
            def __add__(self, *, y: int = 1) -> int:
                return self.b + y
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv} --py36")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv} --py36")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -556,7 +556,7 @@ class StripTest(unittest.TestCase):
                    return u + u
                return self.c + double(x) + y
         """)
-        run = sh(F"{strip} {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
