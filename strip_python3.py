@@ -197,10 +197,10 @@ def main(args: List[str], remove3: int = 0, outfile: str = "", pyi: int = 0) -> 
 if __name__ == "__main__":
     from optparse import OptionParser # pylint: disable=deprecated-module
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip())
-    cmdline.add_option("-v", "--verbose", action="count", default=0, "increase logging level")
-    cmdline.add_option("-3", "--remove3", action="count", default=0, "file3.py becomes file.py")
-    cmdline.add_option("-y", "--pyi", action="count", default=0, "generate file.pyi as well")
-    cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, "explicit instead of file3_2.py")
+    cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
+    cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
+    cmdline.add_option("-y", "--pyi", action="count", default=0, help="generate file.pyi as well")
+    cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, logging.WARNING - 10 * opt.verbose))
     sys.exit(main(cmdline_args, remove3=opt.remove3, outfile=opt.outfile, pyi=opt.pyi))
