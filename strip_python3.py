@@ -51,6 +51,7 @@ class StripHints(ast.NodeTransformer):
         posonlyargs: List[ast.arg] = []
         functionargs: List[ast.arg] = []
         vargarg = func.args.vararg
+        kwarg = func.args.kwarg
         if OK:
             for arg in func.args.posonlyargs:
                 logg.debug("-pos arg: %s", ast.dump(arg))
@@ -67,10 +68,14 @@ class StripHints(ast.NodeTransformer):
             if vargarg.annotation:
                 annos += 1
             vargarg = ast.arg(vargarg.arg)
+        if kwarg is not None:
+            if kwarg.annotation:
+                annos += 1
+            kwarg = ast.arg(kwarg.arg)
         if not annos and not func.returns:
             return self.generic_visit(node) # unchanged
         args2 = ast.arguments(posonlyargs, functionargs, vargarg, # ..
-            func.args.kwonlyargs, func.args.kw_defaults, func.args.kwarg, func.args.defaults)
+            func.args.kwonlyargs, func.args.kw_defaults, kwarg, func.args.defaults)
         func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
         func2.lineno = func.lineno
         return self.generic_visit(func2)
@@ -117,6 +122,7 @@ class TypeHints:
                             posonlyargs: List[ast.arg] = []
                             functionargs: List[ast.arg] = []
                             vargarg = func.args.vararg
+                            kwarg = func.args.kwarg
                             for arg in func.args.posonlyargs:
                                 logg.debug("pos arg: %s", ast.dump(arg))
                                 posonlyargs.append(ast.arg(arg.arg))
@@ -131,12 +137,16 @@ class TypeHints:
                                 if vargarg.annotation:
                                     annos += 1
                                 vargarg = ast.arg(vargarg.arg)
+                            if kwarg is not None:
+                                if kwarg.annotation:
+                                    annos += 1
+                                kwarg = ast.arg(kwarg.arg)
                             if not annos and not func.returns:
                                 stmt.append(func)
                             else:
                                 logg.debug("args: %s", ast.dump(func.args))
                                 args2 = ast.arguments(posonlyargs, functionargs, vargarg, # ..
-                                        func.args.kwonlyargs, func.args.kw_defaults, func.args.kwarg, func.args.defaults)
+                                        func.args.kwonlyargs, func.args.kw_defaults, kwarg, func.args.defaults)
                                 func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
                                 func2.lineno = func.lineno
                                 stmt.append(func2)
