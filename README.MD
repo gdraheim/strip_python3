@@ -6,7 +6,8 @@ it is using `'ast_comments'` to keep the comments. The implementation wants to m
 it very easy so that you can add your own source code transformations.
 
 As a bonus, `'strip_python3'` can extract typehints to `'*.pyi'` file containing only
-the outer object-oriented interface.
+the outer object-oriented interface. That allows you to ship modern typed python3
+code to older systems, possibly even having only python2 preinstalled.
 
 
 # references
