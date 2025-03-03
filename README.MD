@@ -7,7 +7,9 @@ it very easy so that you can add your own source code transformations.
 
 As a bonus, `'strip_python3'` can extract typehints to `'*.pyi'` file containing only
 the outer object-oriented interface. That allows you to ship modern typed python3
-code to older systems, possibly even having only python2 preinstalled.
+code to older systems, possibly even having only python2 preinstalled. But even
+supporting systems with a base installation of python3.6 can be a challenge where
+this tool can help.
 
 
 # references
