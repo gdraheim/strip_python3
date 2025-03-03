@@ -43,8 +43,8 @@ Specifically for removing typehints, the "strip-hints" project shows how to use 
 standard python "tokenizer" module which is clearly better than using some grep/sed
 style text transformations. In both variants however you need to guess what kind of code
 you have on a specific line, which is where "ast"-based approaches have a much easier
-time. The standard python3 "unparse()" is however is producing source code that is 
-formatted good enough already for shipping via pypi and other distribution channels. 
+time. The standard python3 "unparse()" is however producing source code that is 
+formatted already good enough for shipping via pypi and other distribution channels. 
 The differences to the output of code beautyfiers have become minimal. Note however 
 that the code removal does sometimes make comments appear on lines where they don't 
 belong to.
