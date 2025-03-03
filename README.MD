@@ -21,14 +21,15 @@ the outer object-oriented interface.
 The "typed_ast" project was started in April 2016 showing a way to handle type comments.
 The "py-backwards" project delivered an "unparse()" function for "typed_ast" in May 2017.
 It also showed a generic approach to code transformers. However the syntactic sugar for
-python3 grew over time and withon only the standard"ast.arse()" to grok all features. Since 
-Python 3.8 in 2019 the "typed_ast" project was discontinued and archived in 2023. Since
-Python 3.9 in 2020 the standard "ast" module got its own "unparse()" function, basically
-taking over the approach from "py-backwards". The only missing part was that standard
-python does not even load comments. But in 2022 the "ast-comments" project showed how to 
-hook into the standard module - the standard python3 "ast.parse()" got an "enrich()" phase 
-for adding "Comment" nodes, and the standard python3 Unparser class got a "handle_Comment" 
-method to generate decent source code back from it.
+python3 grew over time and with only the standard "ast.parse()" to understand all features. 
+Since  Python 3.8 in 2019 the "typed_ast" project was officialy discontinued, and finally
+archived in 2023. Since Python 3.9 in 2020 the standard "ast" module got its own "unparse()" 
+function, basically taking over the approach from "py-backwards". That's nice. The only 
+missing part was that standard python does not even load comments. But in 2022 the 
+"ast-comments" project showed how to hook into the standard module for that - the 
+standard python3's "ast.parse()" got an "enrich()" phase for adding "Comment" nodes, 
+and the standard python3 Unparser class got a "handle_Comment" method to generate decent 
+source code back from it.
 
 Since then the standard python3 features a NodeTransformer class that is supposedly
 making it easy to rewrite python code. However we are missing examples - if it is
