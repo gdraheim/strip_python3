@@ -584,6 +584,44 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
         self.assertEqual(py, text4("""
+        a: int
+
+        class B:
+            b: int = 2
+            c: str
+           
+            def __add__(self, *, y=1):
+                return self.b + y"""))
+        self.assertEqual(pyi, text4("""
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, *, y: int=1) -> int:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_0144(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a: int 
+        class B:
+           b: int = 2
+           c: str
+           def __add__(self, *, y: int = 1) -> int:
+               return self.b + y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv} --python-version 3.5")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
         class B:
             b = 2
            

@@ -14,6 +14,7 @@ import logging
 import ast_comments as ast
 
 # PEP3102 (python 3.0) = keyword-only args
+# PEP0570 (python 3.8) = positional-only args
 # PEP484 (python3.5) = typehints introduced
 # (python3.12) = type() statement
 # (python3.12) = support for generics
@@ -34,10 +35,15 @@ logg = logging.getLogger(__name__.replace("/", "."))
 
 OK = True
 NIX = ""
-BACK = 27
 KEEPTYPES = False
 
 FORMATNUMBERED = False
+
+REMOVE_VAR_TYPEHINTS = False
+REMOVE_TYPEHINTS = False
+REMOVE_KEYWORDONLY = False
+REMOVE_POSITIONAL = False
+REMOVE_PYI_POSITIONAL = False
 
 class FStringToFormat(ast.NodeTransformer):
     def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name
@@ -128,7 +134,7 @@ class FStringToFormat(ast.NodeTransformer):
 
 class StripHints(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        if BACK >= 35 and KEEPTYPES:
+        if not REMOVE_TYPEHINTS:
             return node
         imports: ast.ImportFrom = node
         logg.debug("-imports: %s", ast.dump(imports))
@@ -136,7 +142,7 @@ class StripHints(ast.NodeTransformer):
             return node # unchanged
         return None
     def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        if BACK >= 30 and KEEPTYPES:
+        if not REMOVE_TYPEHINTS:
             return self.generic_visit(node)
         calls: ast.Call = node
         logg.debug("-calls: %s", ast.dump(calls))
@@ -147,7 +153,7 @@ class StripHints(ast.NodeTransformer):
         logg.error("-bad cast: %s", ast.dump(node))
         return ast.Constant(None)
     def visit_AnnAssign(self, node: ast.AnnAssign) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        if BACK >= 36 and KEEPTYPES:
+        if not REMOVE_TYPEHINTS and not REMOVE_VAR_TYPEHINTS:
             return self.generic_visit(node)
         assign: ast.AnnAssign = node
         logg.debug("-assign: %s", ast.dump(assign))
@@ -170,7 +176,7 @@ class StripHints(ast.NodeTransformer):
         if OK:
             for arg in func.args.posonlyargs:
                 logg.debug("-pos arg: %s", ast.dump(arg))
-                if BACK <= 30:
+                if REMOVE_POSITIONAL:
                     functionargs.append(ast.arg(arg.arg))
                 else:
                     posonlyargs.append(ast.arg(arg.arg))
@@ -185,7 +191,7 @@ class StripHints(ast.NodeTransformer):
         if OK:
             for arg in func.args.kwonlyargs:
                 logg.debug("-kwo arg: %s", ast.dump(arg))
-                if BACK <= 30:
+                if REMOVE_KEYWORDONLY:
                     functionargs.append(ast.arg(arg.arg))
                 else:
                     kwonlyargs.append(ast.arg(arg.arg))
@@ -200,7 +206,7 @@ class StripHints(ast.NodeTransformer):
                 annos += 1
             kwarg = ast.arg(kwarg.arg)
         old = 0
-        if func.args.kw_defaults and BACK < 30:
+        if func.args.kw_defaults and REMOVE_KEYWORDONLY:
             old += 1
         if not annos and not func.returns and not old:
             return self.generic_visit(node) # unchanged
@@ -209,7 +215,7 @@ class StripHints(ast.NodeTransformer):
                 defaults.append(exp)
         if OK:
             for kwexp in func.args.kw_defaults:
-                if BACK < 30:
+                if REMOVE_KEYWORDONLY:
                     if kwexp is not None:
                         defaults.append(kwexp)
                 else:
@@ -238,12 +244,15 @@ class TypeHints:
                 elif isinstance(child, ast.AnnAssign):
                     assign1: ast.AnnAssign = child
                     logg.debug("assign: %s", ast.dump(assign1))
-                    if assign1.value is not None:
-                        assign2 = ast.Assign(targets=[assign1.target], value=assign1.value)
-                        assign2.lineno = assign1.lineno
-                        body.append(assign2)
+                    if REMOVE_TYPEHINTS or REMOVE_VAR_TYPEHINTS:
+                        if assign1.value is not None:
+                            assign2 = ast.Assign(targets=[assign1.target], value=assign1.value)
+                            assign2.lineno = assign1.lineno
+                            body.append(assign2)
+                        else:
+                            logg.debug("remove simple typehint")
                     else:
-                        logg.debug("skip simple")
+                        body.append(assign1)
                     assign3 = ast.AnnAssign(target=assign1.target, annotation=assign1.annotation, value=None, simple=assign1.simple)
                     self.pyi.append(assign3)
                 elif isinstance(child, ast.ClassDef):
@@ -254,12 +263,15 @@ class TypeHints:
                         if isinstance(part, ast.AnnAssign):
                             assign: ast.AnnAssign = part
                             logg.debug("assign: %s", ast.dump(assign))
-                            if assign.value is not None:
-                                assign2 = ast.Assign(targets=[assign.target], value=assign.value)
-                                assign2.lineno = assign.lineno
-                                stmt.append(assign2)
+                            if REMOVE_TYPEHINTS or REMOVE_VAR_TYPEHINTS:
+                                if assign.value is not None:
+                                    assign2 = ast.Assign(targets=[assign.target], value=assign.value)
+                                    assign2.lineno = assign.lineno
+                                    stmt.append(assign2)
+                                else:
+                                    logg.debug("remove simple typehint")
                             else:
-                                logg.debug("skip simple")
+                                stmt.append(assign)
                             assign3 = ast.AnnAssign(target=assign.target, annotation=assign.annotation, value=None, simple=assign.simple)
                             decl.append(assign3)
                         elif isinstance(part, ast.FunctionDef):
@@ -274,10 +286,7 @@ class TypeHints:
                             if OK:
                                 for arg in func.args.posonlyargs:
                                     logg.debug("pos arg: %s", ast.dump(arg))
-                                    if BACK < 30:
-                                        functionargs.append(ast.arg(arg.arg))
-                                    else:
-                                        posonlyargs.append(ast.arg(arg.arg))
+                                    posonlyargs.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
                             if OK:
@@ -289,10 +298,7 @@ class TypeHints:
                             if OK:
                                 for arg in func.args.kwonlyargs:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    if BACK < 30:
-                                        functionargs.append(ast.arg(arg.arg))
-                                    else:
-                                        kwonlyargs.append(ast.arg(arg.arg))
+                                    kwonlyargs.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
                             if vargarg is not None:
@@ -307,12 +313,23 @@ class TypeHints:
                                 stmt.append(func)
                             else:
                                 logg.debug("args: %s", ast.dump(func.args))
-                                args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
-                                        func.args.kw_defaults, kwarg, func.args.defaults)
-                                func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
+                                if not REMOVE_TYPEHINTS:
+                                    rets2 = func.returns
+                                    args2 = func.args
+                                else:
+                                    rets2 = None
+                                    args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
+                                           func.args.kw_defaults, kwarg, func.args.defaults)
+                                func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list, rets2)
                                 func2.lineno = func.lineno
                                 stmt.append(func2)
-                                func3 = ast.FunctionDef(func.name, func.args, [ast.Pass()], func.decorator_list, func.returns)
+                                args3 = func.args
+                                if posonlyargs and REMOVE_PYI_POSITIONAL:
+                                    posonlyargs3 = posonlyargs if not REMOVE_PYI_POSITIONAL else []
+                                    functionargs3 = functionargs if not REMOVE_PYI_POSITIONAL else posonlyargs + functionargs
+                                    args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, kwonlyargs, # ..
+                                           func.args.kw_defaults, kwarg, func.args.defaults)
+                                func3 = ast.FunctionDef(func.name, args3, [ast.Pass()], func.decorator_list, func.returns)
                                 func3.lineno = func.lineno
                                 decl.append(func3)
                         else:
@@ -384,9 +401,16 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
 if __name__ == "__main__":
     from optparse import OptionParser # pylint: disable=deprecated-module
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip())
+    cmdline.formatter.max_help_position = 30
     cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
-    cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set features by version")
+    cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
+    cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set python features by version")
     cmdline.add_option("--py36", action="count", default=0, help="keep features available since python3.6")
+    cmdline.add_option("--remove-typehints", action="count", default=0, help="3.5 function annotations and cast operator")
+    cmdline.add_option("--remove-var-typehints", action="count", default=0, help="only 3.6 variable annotations (for typehints)")
+    cmdline.add_option("--remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
+    cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
+    cmdline.add_option("--remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
@@ -394,13 +418,31 @@ if __name__ == "__main__":
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, logging.WARNING - 10 * opt.verbose))
+    PYI_VERSION = 36
+    if opt.pyi_version:
+        if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
+            PYI_VERSION = int(opt.pyi_version[0]) * 10 + int(opt.pyi_version[2:])
+        else:
+            logg.error("unknown --pyi-version %s", opt.pyi_version)
+    BACK_VERSION = 27
     if opt.py36:
-        BACK = 36
+        BACK_VERSION = 36
     elif opt.python_version:
         if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
-            BACK = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
+            BACK_VERSION = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
         else:
             logg.error("unknown --python-version %s", opt.python_version)
+    logg.debug("BACK_VERSION %s PYI_VERSION %s", BACK_VERSION, PYI_VERSION)
+    if PYI_VERSION < 38 or opt.remove_pyi_positionalonly:
+        REMOVE_PYI_POSITIONAL = True
+    if BACK_VERSION < 38 or opt.remove_positionalonly:
+        REMOVE_POSITIONAL = True
+    if BACK_VERSION < 30 or opt.remove_keywordonly:
+        REMOVE_KEYWORDONLY = True
+    if BACK_VERSION < 36 or opt.remove_typehints or opt.remove_var_typehints:
+        REMOVE_VAR_TYPEHINTS = True
+    if BACK_VERSION < 35 or opt.remove_typehints:
+        REMOVE_TYPEHINTS = True
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0
