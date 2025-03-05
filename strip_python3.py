@@ -35,15 +35,14 @@ logg = logging.getLogger(__name__.replace("/", "."))
 
 OK = True
 NIX = ""
-KEEPTYPES = False
-
-FORMATNUMBERED = False
+FSTRING_NUMBERED = False
 
 REMOVE_VAR_TYPEHINTS = False
 REMOVE_TYPEHINTS = False
 REMOVE_KEYWORDONLY = False
 REMOVE_POSITIONAL = False
 REMOVE_PYI_POSITIONAL = False
+REPLACE_FSTRING = False
 
 class FStringToFormat(ast.NodeTransformer):
     def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name
@@ -69,7 +68,7 @@ class FStringToFormat(ast.NodeTransformer):
                         join: ast.JoinedStr = fmt.format_spec
                         for val in join.values:
                             if isinstance(val, ast.Constant):
-                                if FORMATNUMBERED:
+                                if FSTRING_NUMBERED:
                                     form += "{%i%s:%s}" % (num, conv, val.value)
                                 else:
                                     form += "{%s:%s}" % (conv, val.value)
@@ -78,7 +77,7 @@ class FStringToFormat(ast.NodeTransformer):
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
-                    if FORMATNUMBERED:
+                    if FSTRING_NUMBERED:
                         form += "{%i%s}" % (num, conv)
                     else:
                         form += "{%s}" %(conv)
@@ -111,7 +110,7 @@ class FStringToFormat(ast.NodeTransformer):
                         join: ast.JoinedStr = fmt.format_spec
                         for val in join.values:
                             if isinstance(val, ast.Constant):
-                                if FORMATNUMBERED:
+                                if FSTRING_NUMBERED:
                                     form += "{%i%s:%s}" % (num, conv, val.value)
                                 else:
                                     form += "{%s:%s}" % (conv, val.value)
@@ -120,7 +119,7 @@ class FStringToFormat(ast.NodeTransformer):
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
-                    if FORMATNUMBERED:
+                    if FSTRING_NUMBERED:
                         form += "{%i%s}" % (num, conv)
                     else:
                         form += "{%s}" % (conv)
@@ -361,8 +360,9 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
         tree = types.visit(tree1)
         strip = StripHints()
         tree = strip.visit(tree)
-        fstring = FStringToFormat()
-        tree = fstring.visit(tree)
+        if REPLACE_FSTRING:
+            fstring = FStringToFormat()
+            tree = fstring.visit(tree)
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -411,6 +411,7 @@ if __name__ == "__main__":
     cmdline.add_option("--remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
     cmdline.add_option("--remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
+    cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
@@ -443,6 +444,10 @@ if __name__ == "__main__":
         REMOVE_VAR_TYPEHINTS = True
     if BACK_VERSION < 35 or opt.remove_typehints:
         REMOVE_TYPEHINTS = True
+    if BACK_VERSION < 36 or opt.replace_fstring:
+        REPLACE_FSTRING = True
+        if opt.replace_fstring > 1:
+            FSTRING_NUMBERED = True
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0
