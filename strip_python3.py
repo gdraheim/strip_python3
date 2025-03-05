@@ -13,23 +13,34 @@ import logging
 # import ast
 import ast_comments as ast
 
-# PEP3102 (python 3.0) = keyword-only args
-# PEP0570 (python 3.8) = positional-only args
-# PEP484 (python3.5) = typehints introduced
 # (python3.12) = type() statement
 # (python3.12) = support for generics
-# PEP675 (python3.11) = LiteralString
 # (python3.6) = NoReturn
-# (python3.11) = Never, Self
-# (python3.10) = a|b as union
 # (python3.5) = ClassVar
 # (python3.8) = Final
-# PEP593 (python3.9) = Annotated
-# PEP526 (python3.6) = variable annotations
 # (python3.8) = Protocol
 # (python3.11) = assert_type
-# (python3.5) = is.TYPE_CHECKING
-# PEP3107 (python3.0) = function annotations
+# PEP3102 (python 3.0) keyword-only params
+# PEP3107 (python3.0) function annotations
+# PEP 484 (python 3.5) typehints and "typing" module (and tpying.TYPE_CHECKING)
+# PEP 498 (python3.6) formatted string literals
+# PEP 515 (python 3.6) underscores in numeric literals
+# PEP 526 (python 3.6) syntax for variable annotations (variable typehints)
+# PEP 563 (python 3.7) delayed typehints for "SelfClass" (from __future__ 3.10)
+# PEP 572 (python 3.8) walrus operator
+# PEP 570 (python 3.8) positional-only params
+# ....... (python 3.8) f-strings "{varname=}"
+# PEP 593 (python 3.9) typing.Annotated
+# PEP 604 (python 3.10) a|b union operator
+# PEP 613 (python 3.10) TypeAlias
+# PEP 647 (python 3.10) TypeGuard
+# PEP 654 (python 3.11) exception groups
+# PEP 678 (python 3.11) exception notes
+# PEP 646 (python 3.11) variadic generics
+# PEP 655 (python 3.11) TypeDict items required
+# PEP 673 (python 3.11) Self type (and Never)
+# PEP 675 (python 3.11) LiteralString
+
 
 logg = logging.getLogger(__name__.replace("/", "."))
 
