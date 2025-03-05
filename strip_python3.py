@@ -42,6 +42,7 @@ FORMATNUMBERED = False
 class FStringToFormat(ast.NodeTransformer):
     def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name
         """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
+        # NOTE: I did not manage to create a test case that triggers this visitor
         num: int = 0
         form: str = ""
         args: List[ast.expr] = []

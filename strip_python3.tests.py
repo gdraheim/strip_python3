@@ -721,6 +721,48 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
+    def test_0203(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a = 1.
+        b = 'x'
+        y = F"{a:.2}"
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        py = file_text4(F"{tmp}/tmp1_2.py")
+        self.assertEqual(py, text4("""
+        a = 1.0
+        b = 'x'
+        y = '{:.2}'.format(a)
+        """))
+        self.coverage()
+        self.rm_testdir()
+    def test_0204(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a = 1.
+        b = 'x'
+        y = F"{a}"
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        py = file_text4(F"{tmp}/tmp1_2.py")
+        self.assertEqual(py, text4("""
+        a = 1.0
+        b = 'x'
+        y = '{}'.format(a)
+        """))
+        self.coverage()
+        self.rm_testdir()
 
 
 
