@@ -37,6 +37,37 @@ NIX = ""
 BACK = 27
 KEEPTYPES = False
 
+class FStringToFormat(ast.NodeTransformer):
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.Call:  # pylint: disable=invalid-name
+        num: int = 0
+        form: str = ""
+        args: List[ast.expr] = []
+        for part in node.values:
+            if isinstance(part, ast.Constant):
+                con: ast.Constant = part
+                form += con.value
+            elif isinstance(part, ast.FormattedValue):
+                fmt: ast.FormattedValue = part
+                if fmt.format_spec:
+                    if isinstance(fmt.format_spec, ast.JoinedStr):
+                        join: ast.JoinedStr = fmt.format_spec
+                        for val in join.values:
+                            if isinstance(val, ast.Constant):
+                                form += "{%i:%s}" % (num, val.value)
+                            else:
+                                logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
+                    else:
+                        logg.error("unknown format_spec in f-string: %s", type(node))
+                else:
+                    form += "{%i}" % (num,)
+                num += 1
+                args += [fmt.value]
+                self.generic_visit(fmt.value)
+            else:
+                logg.error("unknown part of f-string: %s", type(node))
+        make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
+        return make
+
 class StripHints(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         if BACK >= 35 and KEEPTYPES:
@@ -252,10 +283,12 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             text = f.read()
         tree1 = ast.parse(text, type_comments=True)
         types = TypeHints()
-        tree2 = types.visit(tree1)
+        tree = types.visit(tree1)
         strip = StripHints()
-        tree3 = strip.visit(tree2)
-        done = ast.unparse(tree3)
+        tree = strip.visit(tree)
+        fstring = FStringToFormat()
+        tree = fstring.visit(tree)
+        done = ast.unparse(tree)
         if outfile:
             out = outfile
         elif arg.endswith("3.py") and eachfile & EACH_REMOVE3:
