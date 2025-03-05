@@ -4,7 +4,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "0.1.1092"
+__version__ = "0.1.1091"
 
 from typing import List, Optional
 import sys
@@ -37,6 +37,8 @@ NIX = ""
 BACK = 27
 KEEPTYPES = False
 
+FORMATNUMBERED = False
+
 class FStringToFormat(ast.NodeTransformer):
     def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.Call:  # pylint: disable=invalid-name
         num: int = 0
@@ -53,13 +55,19 @@ class FStringToFormat(ast.NodeTransformer):
                         join: ast.JoinedStr = fmt.format_spec
                         for val in join.values:
                             if isinstance(val, ast.Constant):
-                                form += "{%i:%s}" % (num, val.value)
+                                if FORMATNUMBERED:
+                                    form += "{%i:%s}" % (num, val.value)
+                                else:
+                                    form += "{:%s}" % (val.value)
                             else:
                                 logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
-                    form += "{%i}" % (num,)
+                    if FORMATNUMBERED:
+                        form += "{%i}" % (num,)
+                    else:
+                        form += "{}"
                 num += 1
                 args += [fmt.value]
                 self.generic_visit(fmt.value)

@@ -684,7 +684,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
-        a = 1
+        a = 1.
         b = 'x'
         y = F"{a:.2} {b}"
         """)
@@ -694,9 +694,9 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         py = file_text4(F"{tmp}/tmp1_2.py")
         self.assertEqual(py, text4("""
-        a = 1
+        a = 1.0
         b = 'x'
-        y = '{0:.2} {1}'.format(a, b)
+        y = '{:.2} {}'.format(a, b)
         """))
         self.coverage()
         self.rm_testdir()
