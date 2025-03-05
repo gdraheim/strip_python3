@@ -40,6 +40,46 @@ KEEPTYPES = False
 FORMATNUMBERED = False
 
 class FStringToFormat(ast.NodeTransformer):
+    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name
+        """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
+        num: int = 0
+        form: str = ""
+        args: List[ast.expr] = []
+        if OK:
+            if OK:
+                fmt: ast.FormattedValue = node
+                conv = ""
+                if fmt.conversion == 115:
+                    conv = "!s"
+                elif fmt.conversion == 114:
+                    conv = "!r"
+                elif fmt.conversion == 97:
+                    conv = "!a"
+                elif fmt.conversion != -1:
+                    logg.error("unknown conversion id in f-string: %s > %s", type(node), fmt.conversion)
+                if fmt.format_spec:
+                    if isinstance(fmt.format_spec, ast.JoinedStr):
+                        join: ast.JoinedStr = fmt.format_spec
+                        for val in join.values:
+                            if isinstance(val, ast.Constant):
+                                if FORMATNUMBERED:
+                                    form += "{%i:%s%s}" % (num, val.value, conv)
+                                else:
+                                    form += "{:%s%s}" % (val.value, conv)
+                            else:
+                                logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
+                    else:
+                        logg.error("unknown format_spec in f-string: %s", type(node))
+                else:
+                    if FORMATNUMBERED:
+                        form += "{%i%s}" % (num, conv)
+                    else:
+                        form += "{%s}" %(conv)
+                num += 1
+                args += [fmt.value]
+                self.generic_visit(fmt.value)
+        make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
+        return make
     def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.Call:  # pylint: disable=invalid-name
         num: int = 0
         form: str = ""
@@ -50,24 +90,33 @@ class FStringToFormat(ast.NodeTransformer):
                 form += con.value
             elif isinstance(part, ast.FormattedValue):
                 fmt: ast.FormattedValue = part
+                conv = ""
+                if fmt.conversion == 115:
+                    conv = "!s"
+                elif fmt.conversion == 114:
+                    conv = "!r"
+                elif fmt.conversion == 97:
+                    conv = "!a"
+                elif fmt.conversion != -1:
+                    logg.error("unknown conversion id in f-string: %s > %s", type(node), fmt.conversion)
                 if fmt.format_spec:
                     if isinstance(fmt.format_spec, ast.JoinedStr):
                         join: ast.JoinedStr = fmt.format_spec
                         for val in join.values:
                             if isinstance(val, ast.Constant):
                                 if FORMATNUMBERED:
-                                    form += "{%i:%s}" % (num, val.value)
+                                    form += "{%i:%s%s}" % (num, val.value, conv)
                                 else:
-                                    form += "{:%s}" % (val.value)
+                                    form += "{:%s%s}" % (val.value, conv)
                             else:
                                 logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
                     if FORMATNUMBERED:
-                        form += "{%i}" % (num,)
+                        form += "{%i%s}" % (num,conv)
                     else:
-                        form += "{}"
+                        form += "{%s}" % (conv)
                 num += 1
                 args += [fmt.value]
                 self.generic_visit(fmt.value)
