@@ -16,30 +16,37 @@ import ast_comments as ast
 # (python3.12) = type() statement
 # (python3.12) = support for generics
 # (python3.6) = NoReturn
-# (python3.5) = ClassVar
 # (python3.8) = Final
 # (python3.8) = Protocol
 # (python3.11) = assert_type
 # PEP3102 (python 3.0) keyword-only params
 # PEP3107 (python3.0) function annotations
 # PEP 484 (python 3.5) typehints and "typing" module (and tpying.TYPE_CHECKING)
+#          including "cast", "NewType", "overload", "no_type_check", "ClassVar", AnyStr = str|bytes
 # PEP 498 (python3.6) formatted string literals
 # PEP 515 (python 3.6) underscores in numeric literals
 # PEP 526 (python 3.6) syntax for variable annotations (variable typehints)
+#         (python 3.6) NamedTuple with variables annotations (3.5 had call-syntax)
 # PEP 563 (python 3.7) delayed typehints for "SelfClass" (from __future__ 3.10)
+# ....... (Pyhton 3.7) Generics
 # PEP 572 (python 3.8) walrus operator
 # PEP 570 (python 3.8) positional-only params
 # ....... (python 3.8) f-strings "{varname=}"
+# PEP 591 (python 3.8) @final decorator
 # PEP 593 (python 3.9) typing.Annotated
+# PEP 585 (python 3.9) builtins as types (e.g "list", "dict")
 # PEP 604 (python 3.10) a|b union operator
 # PEP 613 (python 3.10) TypeAlias
 # PEP 647 (python 3.10) TypeGuard
 # PEP 654 (python 3.11) exception groups
 # PEP 678 (python 3.11) exception notes
 # PEP 646 (python 3.11) variadic generics
-# PEP 655 (python 3.11) TypeDict items required
-# PEP 673 (python 3.11) Self type (and Never)
+# PEP 655 (python 3.11) TypeDict items Required, NotRequired
+# PEP 673 (python 3.11) Self type, Never
 # PEP 675 (python 3.11) LiteralString
+#         (python 3.11) Protocols, reveal_type(x), get_overloads
+#         (python 3.11)  assert_never(unreachable)
+
 
 
 logg = logging.getLogger(__name__.replace("/", "."))
