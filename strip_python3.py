@@ -63,9 +63,9 @@ class FStringToFormat(ast.NodeTransformer):
                         for val in join.values:
                             if isinstance(val, ast.Constant):
                                 if FORMATNUMBERED:
-                                    form += "{%i:%s%s}" % (num, val.value, conv)
+                                    form += "{%i%s:%s}" % (num, conv, val.value)
                                 else:
-                                    form += "{:%s%s}" % (val.value, conv)
+                                    form += "{%s:%s}" % (conv, val.value)
                             else:
                                 logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
                     else:
@@ -105,16 +105,16 @@ class FStringToFormat(ast.NodeTransformer):
                         for val in join.values:
                             if isinstance(val, ast.Constant):
                                 if FORMATNUMBERED:
-                                    form += "{%i:%s%s}" % (num, val.value, conv)
+                                    form += "{%i%s:%s}" % (num, conv, val.value)
                                 else:
-                                    form += "{:%s%s}" % (val.value, conv)
+                                    form += "{%s:%s}" % (conv, val.value)
                             else:
                                 logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
                     if FORMATNUMBERED:
-                        form += "{%i%s}" % (num,conv)
+                        form += "{%i%s}" % (num, conv)
                     else:
                         form += "{%s}" % (conv)
                 num += 1
