@@ -62,6 +62,29 @@ REMOVE_POSITIONAL = False
 REMOVE_PYI_POSITIONAL = False
 REPLACE_FSTRING = False
 DEFINE_RANGE = False
+DEFINE_BASESTRING = False
+
+class ReplaceIsinstanceBaseType(ast.NodeTransformer):
+    def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.replace = replace if replace is not None else { "str": "basestring"}
+        self.defines: List[str] = []
+    def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        calls: ast.Call = node
+        if not isinstance(calls.func, ast.Name):
+            return self.generic_visit(node)
+        callfunc: ast.Name = calls.func
+        if callfunc.id != "isinstance":
+            return self.generic_visit(node)
+        typecheck = calls.args[1]
+        if isinstance(typecheck, ast.Name):
+            typename = typecheck
+            if typename.id in self.replace:
+                origname = typename.id
+                basename = self.replace[origname]
+                typename.id = basename
+                self.defines.append(F"{basename} = {origname}")
+        return self.generic_visit(node)
 
 class DetectFunctionCalls(ast.NodeTransformer):
     def __init__(self) -> None:
@@ -100,6 +123,36 @@ class DefineIfPython2:
                     python2 = ast.If(test=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)]), body=self.body, orelse=[])
                     python2.lineno = stmt.lineno
                     body.append(python2)
+                    body.append(stmt)
+                    after_append = True
+            module2 = ast.Module(body, module1.type_ignores)
+            return module2
+        else:
+            return node
+
+class DefineIfPython3:
+    body: List[ast.stmt]
+    def __init__(self, expr: List[str]) -> None:
+        self.body = []
+        for stmtlist in [ast.parse(e).body for e in expr]:
+            self.body += stmtlist
+    def visit(self, node: ast.AST) -> ast.AST:
+        if isinstance(node, ast.Module):
+            module1: ast.Module = node
+            body: List[ast.stmt] = []
+            before_imports = True
+            after_append = False
+            for stmt in module1.body:
+                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import):
+                    if before_imports:
+                        before_imports = False
+                    body.append(stmt)
+                elif before_imports or after_append:
+                    body.append(stmt)
+                else:
+                    python3 = ast.If(test=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)]), body=self.body, orelse=[])
+                    python3.lineno = stmt.lineno
+                    body.append(python3)
                     body.append(stmt)
                     after_append = True
             module2 = ast.Module(body, module1.type_ignores)
@@ -413,6 +466,8 @@ class TypeHints:
             return ast.Module(body, type_ignores=node.type_ignores)
         return node
 
+# ............................................................................... MAIN
+
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
@@ -435,6 +490,12 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             if "range" in calls.found:
                 defs = DefineIfPython2(["range = xrange"])
                 tree = defs.visit(tree)
+        if DEFINE_BASESTRING:
+            basetypes = ReplaceIsinstanceBaseType({"str": "basestring"})
+            basetypes.visit(tree)
+            if basetypes.replace:
+                redefs = DefineIfPython3(basetypes.defines)
+                tree = redefs.visit(tree)
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -485,6 +546,7 @@ if __name__ == "__main__":
     cmdline.add_option("--remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() to xrange() iterator")
+    cmdline.add_option("--define-basestring", action="count", default=0, help="3.0 isinstance(str) is basestring python2")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
@@ -523,6 +585,8 @@ if __name__ == "__main__":
             FSTRING_NUMBERED = True
     if BACK_VERSION < 30 or opt.define_range:
         DEFINE_RANGE = True
+    if BACK_VERSION < 30 or opt.define_basestring:
+        DEFINE_BASESTRING = True
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0
