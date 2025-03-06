@@ -6,7 +6,7 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.4.1094"
 
-from typing import List, Dict, Optional, Union, cast
+from typing import List, Dict, Optional, Union, Tuple, cast
 import sys
 import os.path as fs
 import logging
@@ -64,6 +64,7 @@ REMOVE_PYI_POSITIONAL = False
 REPLACE_FSTRING = False
 DEFINE_RANGE = False
 DEFINE_BASESTRING = False
+DEFINE_CALLABLE = False
 
 class ReplaceIsinstanceBaseType(ast.NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
@@ -103,12 +104,15 @@ class DetectFunctionCalls(ast.NodeTransformer):
 
 class DefineIfPython2:
     body: List[ast.stmt]
-    def __init__(self, expr: List[str]) -> None:
+    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None) -> None:
+        self.atleast = atleast
+        self.before = before
         self.body = []
         for stmtlist in [ast.parse(e).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
         if isinstance(node, ast.Module) and self.body:
+            # pylint: disable=consider-using-f-string
             module1: ast.Module = node
             body: List[ast.stmt] = []
             before_imports = True
@@ -121,7 +125,29 @@ class DefineIfPython2:
                 elif before_imports or after_append:
                     body.append(stmt)
                 else:
-                    python2 = ast.If(test=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)]), body=self.body, orelse=[])
+                    testcode = "sys.version_info[0] < 3"
+                    testmodule: ast.Module = ast.parse(testcode)
+                    assert isinstance(testmodule.body[0], ast.Expr)
+                    testbody: ast.Expr = testmodule.body[0]
+                    if isinstance(testbody.value, ast.Compare):
+                        testcompare: ast.expr = testbody.value
+                        if self.before:
+                            testcode = "sys.version_info[0] < {} or sys.version_info[0] == {} and sys.version_info[1] < {}".format(self.before[0], self.before[0], self.before[1])
+                            testmodule = ast.parse(testcode)
+                            assert isinstance(testmodule.body[0], ast.Expr)
+                            testbody = testmodule.body[0]
+                            testcompare = testbody.value
+                        if self.atleast:
+                            testcode = "sys.version_info[0] > {} or sys.version_info[0] == {} and sys.version_info[1] >= {}".format(self.atleast[0], self.atleast[0], self.atleast[1])
+                            testmodule = ast.parse(testcode)
+                            assert isinstance(testmodule.body[0], ast.Expr)
+                            testbody = testmodule.body[0]
+                            testatleast = testbody.value
+                            testcompare = ast.BoolOp(op=ast.And(), values=[testatleast, testcompare])
+                    else:
+                        logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
+                        testcompare = ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)])
+                    python2 = ast.If(test=testcompare, body=self.body, orelse=[])
                     python2.lineno = stmt.lineno
                     body.append(python2)
                     body.append(stmt)
@@ -133,12 +159,15 @@ class DefineIfPython2:
 
 class DefineIfPython3:
     body: List[ast.stmt]
-    def __init__(self, expr: List[str]) -> None:
+    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None) -> None:
+        self.atleast = atleast
+        self.before = before
         self.body = []
         for stmtlist in [ast.parse(e).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
         if isinstance(node, ast.Module) and self.body:
+            # pylint: disable=consider-using-f-string
             module1: ast.Module = node
             body: List[ast.stmt] = []
             before_imports = True
@@ -151,7 +180,29 @@ class DefineIfPython3:
                 elif before_imports or after_append:
                     body.append(stmt)
                 else:
-                    python3 = ast.If(test=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)]), body=self.body, orelse=[])
+                    testcode = "sys.version_info[0] >= 3"
+                    testmodule: ast.Module = ast.parse(testcode)
+                    assert isinstance(testmodule.body[0], ast.Expr)
+                    testbody: ast.Expr = testmodule.body[0]
+                    if isinstance(testbody.value, ast.Compare):
+                        testcompare: ast.expr = testbody.value
+                        if self.atleast:
+                            testcode = "sys.version_info[0] > {} or sys.version_info[0] == {} and sys.version_info[1] >= {}".format(self.atleast[0], self.atleast[0], self.atleast[1])
+                            testmodule = ast.parse(testcode)
+                            assert isinstance(testmodule.body[0], ast.Expr)
+                            testbody = testmodule.body[0]
+                            testcompare = testbody.value
+                        if self.before:
+                            testcode = "sys.version_info[0] < {} or sys.version_info[0] == {} and sys.version_info[1] < {}".format(self.before[0], self.before[0], self.before[1])
+                            testmodule = ast.parse(testcode)
+                            assert isinstance(testmodule.body[0], ast.Expr)
+                            testbody = testmodule.body[0]
+                            testbefore = testbody.value
+                            testcompare = ast.BoolOp(op=ast.And(), values=[testcompare, testbefore])
+                    else:
+                        logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
+                        testcompare=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)])
+                    python3 = ast.If(test=testcompare, body=self.body, orelse=[])
                     python3.lineno = stmt.lineno
                     body.append(python3)
                     body.append(stmt)
@@ -491,12 +542,18 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             if "range" in calls.found:
                 defs2 = DefineIfPython2(["range = xrange"])
                 tree = defs2.visit(tree)
+        if DEFINE_CALLABLE:
+            calls = DetectFunctionCalls()
+            calls.visit(tree)
+            if "callable" in calls.found:
+                defs3 = DefineIfPython3(["def callable(x: Any): return hasattr(x, '__call__')"], before=(3,2))
+                tree = defs3.visit(tree)
         if DEFINE_BASESTRING:
             basetypes = ReplaceIsinstanceBaseType({"str": "basestring"})
             basetypes.visit(tree)
             if basetypes.replace:
-                defs3 = DefineIfPython3(basetypes.defines)
-                tree = defs3.visit(tree)
+                defs4 = DefineIfPython3(basetypes.defines)
+                tree = defs4.visit(tree)
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -536,8 +593,8 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
     settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
         "python-version": NIX, "pyi-version": NIX, "remove-typehints": 0, "remove-var-typehints": 0, # ..
         "remove-keywordonly": 0, "remove-positionalonly": 0, "remove-pyi-positionalonly": 0, # ..
-        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, # ..
-        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, # ..
+        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, "define-callable": 0, # ..
+        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0, # ..
         "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, }
     for configfile in files:
         if fs.isfile(configfile):
@@ -618,9 +675,11 @@ if __name__ == "__main__":
     cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
     cmdline.add_option("--define-range", action="count", default=defs["define-range"], help="3.0 define range() to xrange() iterator")
     cmdline.add_option("--define-basestring", action="count", default=defs["define-basestring"], help="3.0 isinstance(str) is basestring python2")
+    cmdline.add_option("--define-callable", action="count", default=defs["define-callable"], help="3.2 callable(x) as in python2")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
+    cmdline.add_option("--no-define-callable", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
@@ -671,11 +730,15 @@ if __name__ == "__main__":
     if BACK_VERSION < 30 or opt.define_basestring:
         if not opt.no_define_basestring:
             DEFINE_BASESTRING = True
+    if BACK_VERSION < 32 or opt.define_callable:
+        if not opt.no_define_callable:
+            DEFINE_CALLABLE = True
     if opt.show:
         logg.warning("%s = %s", "python-version-int", BACK_VERSION)
         logg.warning("%s = %s", "pyi-version-int", PYI_VERSION)
         logg.warning("%s = %s", "define-basestring", DEFINE_BASESTRING)
         logg.warning("%s = %s", "define-range", DEFINE_RANGE)
+        logg.warning("%s = %s", "define-callable", DEFINE_CALLABLE)
         logg.warning("%s = %s", "replace-fstring", REPLACE_FSTRING)
         logg.warning("%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
         logg.warning("%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)
