@@ -801,8 +801,32 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-
-
+    def test_0301(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import sys
+        def func1():
+            for x in range(3):
+                print(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        import sys
+        if sys.version_info[0] < 3:
+            range = xrange
+        
+        def func1():
+            for x in range(3):
+                print(x)
+        """))
+        self.coverage()
+        self.rm_testdir()
 
 def runtests() -> None:
     global PYTHON, KEEP, COVERAGE # pylint: disable=global-statement

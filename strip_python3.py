@@ -6,7 +6,7 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.2.1093"
 
-from typing import List, Optional
+from typing import List, Dict, Optional, cast
 import sys
 import logging
 # ........
@@ -61,6 +61,51 @@ REMOVE_KEYWORDONLY = False
 REMOVE_POSITIONAL = False
 REMOVE_PYI_POSITIONAL = False
 REPLACE_FSTRING = False
+DEFINE_RANGE = False
+
+class DetectFunctionCalls(ast.NodeTransformer):
+    def __init__(self) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.found: Dict[str, int] = {}
+    def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        calls: ast.Call = node
+        if not isinstance(calls.func, ast.Name):
+            return self.generic_visit(node)
+        callfunc: ast.Name = calls.func
+        if callfunc.id not in self.found:
+            self.found[callfunc.id] = 0
+        self.found[callfunc.id] += 1
+        return self.generic_visit(node)
+
+class DefineIfPython2:
+    body: List[ast.stmt]
+    def __init__(self, expr: List[str]) -> None:
+        self.body = []
+        for stmtlist in [ast.parse(e).body for e in expr]:
+            self.body += stmtlist
+    def visit(self, node: ast.AST) -> ast.AST:
+        if isinstance(node, ast.Module):
+            module1: ast.Module = node
+            body: List[ast.stmt] = []
+            before_imports = True
+            after_append = False
+            for stmt in module1.body:
+                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import):
+                    if before_imports:
+                        before_imports = False
+                    body.append(stmt)
+                elif before_imports or after_append:
+                    body.append(stmt)
+                else:
+                    python2 = ast.If(test=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)]), body=self.body, orelse=[])
+                    python2.lineno = stmt.lineno
+                    body.append(python2)
+                    body.append(stmt)
+                    after_append = True
+            module2 = ast.Module(body, module1.type_ignores)
+            return module2
+        else:
+            return node
 
 class FStringToFormat(ast.NodeTransformer):
     def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name
@@ -163,7 +208,10 @@ class StripHints(ast.NodeTransformer):
             return self.generic_visit(node)
         calls: ast.Call = node
         logg.debug("-calls: %s", ast.dump(calls))
-        if calls.func != "cast":
+        if not isinstance(calls.func, ast.Name):
+            return self.generic_visit(node)
+        callfunc: ast.Name = calls.func
+        if callfunc.id != "cast":
             return node # unchanged
         if len(calls.args) > 1:
             return self.generic_visit(calls.args[1])
@@ -342,7 +390,7 @@ class TypeHints:
                                 stmt.append(func2)
                                 args3 = func.args
                                 if posonlyargs and REMOVE_PYI_POSITIONAL:
-                                    posonlyargs3 = posonlyargs if not REMOVE_PYI_POSITIONAL else []
+                                    posonlyargs3: List[ast.arg] = posonlyargs if not REMOVE_PYI_POSITIONAL else []
                                     functionargs3 = functionargs if not REMOVE_PYI_POSITIONAL else posonlyargs + functionargs
                                     args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, kwonlyargs, # ..
                                            func.args.kw_defaults, kwarg, func.args.defaults)
@@ -381,6 +429,12 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
         if REPLACE_FSTRING:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
+        if DEFINE_RANGE:
+            calls = DetectFunctionCalls()
+            calls.visit(tree)
+            if "range" in calls.found:
+                defs = DefineIfPython2(["range = xrange"])
+                tree = defs.visit(tree)
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -430,6 +484,7 @@ if __name__ == "__main__":
     cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
     cmdline.add_option("--remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings")
+    cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() iterator")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
@@ -466,6 +521,8 @@ if __name__ == "__main__":
         REPLACE_FSTRING = True
         if opt.replace_fstring > 1:
             FSTRING_NUMBERED = True
+    if BACK_VERSION < 30 or opt.define_range:
+        DEFINE_RANGE = True
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0
