@@ -144,6 +144,13 @@ class DefineIfPython2:
                             testbody = testmodule.body[0]
                             testatleast = testbody.value
                             testcompare = ast.BoolOp(op=ast.And(), values=[testatleast, testcompare])
+                        atleast = self.atleast if self.atleast else (3,0)
+                        if self.before and atleast[0] == self.before[0]:
+                            testcode = "sys.version_info[0] == {} and sys.version_info[1] >= {} and sys.version_info[1] < {}".format(atleast[0], atleast[0], self.before[1])
+                            testmodule = ast.parse(testcode)
+                            assert isinstance(testmodule.body[0], ast.Expr)
+                            testbody = testmodule.body[0]
+                            testcompare = testbody.value
                     else:
                         logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
                         testcompare = ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)])
