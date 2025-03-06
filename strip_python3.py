@@ -4,7 +4,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "0.2.1093"
+__version__ = "0.2.1094"
 
 from typing import List, Dict, Optional, cast
 import sys
