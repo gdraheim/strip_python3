@@ -4,7 +4,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "0.2.1094"
+__version__ = "0.2.1093"
 
 from typing import List, Dict, Optional, cast
 import sys
@@ -483,8 +483,8 @@ if __name__ == "__main__":
     cmdline.add_option("--remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
     cmdline.add_option("--remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
-    cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings")
-    cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() iterator")
+    cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
+    cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() to xrange() iterator")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
