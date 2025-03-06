@@ -547,6 +547,12 @@ if __name__ == "__main__":
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() to xrange() iterator")
     cmdline.add_option("--define-basestring", action="count", default=0, help="3.0 isinstance(str) is basestring python2")
+    cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
+    cmdline.add_option("--no-define-range", action="count", default=0, help="3.0 define range()")
+    cmdline.add_option("--no-define-basestring", action="count", default=0, help="3.0 isinstance(str)")
+    cmdline.add_option("--no-remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
+    cmdline.add_option("--no-remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
+    cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly in *.pyi")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
@@ -570,23 +576,29 @@ if __name__ == "__main__":
             logg.error("unknown --python-version %s", opt.python_version)
     logg.debug("BACK_VERSION %s PYI_VERSION %s", BACK_VERSION, PYI_VERSION)
     if PYI_VERSION < 38 or opt.remove_pyi_positionalonly:
-        REMOVE_PYI_POSITIONAL = True
+        if not opt.no_remove_pyi_positional:
+            REMOVE_PYI_POSITIONAL = True
     if BACK_VERSION < 38 or opt.remove_positionalonly:
-        REMOVE_POSITIONAL = True
+        if not opt.no_remove_positionalonly:
+            REMOVE_POSITIONAL = True
     if BACK_VERSION < 30 or opt.remove_keywordonly:
-        REMOVE_KEYWORDONLY = True
+        if not opt.no_remove_keywordonly:
+            REMOVE_KEYWORDONLY = True
     if BACK_VERSION < 36 or opt.remove_typehints or opt.remove_var_typehints:
         REMOVE_VAR_TYPEHINTS = True
     if BACK_VERSION < 35 or opt.remove_typehints:
         REMOVE_TYPEHINTS = True
     if BACK_VERSION < 36 or opt.replace_fstring:
-        REPLACE_FSTRING = True
-        if opt.replace_fstring > 1:
-            FSTRING_NUMBERED = True
+        if not opt.no_replace_fstring:
+            REPLACE_FSTRING = True
+            if opt.replace_fstring > 1:
+                FSTRING_NUMBERED = True
     if BACK_VERSION < 30 or opt.define_range:
-        DEFINE_RANGE = True
+        if not opt.no_define_range:
+            DEFINE_RANGE = True
     if BACK_VERSION < 30 or opt.define_basestring:
-        DEFINE_BASESTRING = True
+        if not opt.no_define_basestring:
+            DEFINE_BASESTRING = True
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0
