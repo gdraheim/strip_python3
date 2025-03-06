@@ -163,12 +163,12 @@ class ShellException(Exception):
     def __init__(self, msg: str, result: ShellResult) -> None:
         Exception.__init__(self, msg)
         self.result = result
-def sh(cmd: str, shell: bool = True, check: bool = True, ok: Optional[bool] = None, default: str = "") -> ShellResult:
+def sh(cmd: str, shell: bool = True, check: bool = True, ok: Optional[bool] = None, default: str = "", cwd: Optional[str] = None) -> ShellResult:
     if ok is None: ok = OK  # a parameter "ok = OK" does not work in python
     if not ok:
         logg.info("skip %s", cmd)
         return ShellResult(0, default or "", "")
-    run = subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    run = subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd = cwd)
     run.wait()
     assert run.stdout is not None and run.stderr is not None
     result = ShellResult(run.returncode, decodes_(run.stdout.read()) or "", decodes_(run.stderr.read()) or "")
@@ -180,10 +180,14 @@ def sh(cmd: str, shell: bool = True, check: bool = True, ok: Optional[bool] = No
         raise ShellException("shell command failed", result)
     return result
 
-def coverage(tool: str) -> str:
+def coverage(tool: str, cwd: Optional[str] = None) -> str:
+    pre = ""
+    if cwd:
+        subdir = cwd if cwd.endswith("/") else cwd + "/"
+        pre = "../" * (subdir.count("/"))
     if COVERAGE:
-        return PYTHON + " -m coverage " + " run " + tool
-    return PYTHON + " " + tool
+        return PYTHON + " -m coverage " + " run " + pre + tool
+    return PYTHON + " " + pre + tool
 
 class StripTest(unittest.TestCase):
     "all tests should start with '0'."
@@ -239,6 +243,210 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(greps(run.out, "this help message"))
+    def test_0011(self) -> None:
+        strip = coverage(STRIP)
+        run = sh(F"{strip} --show")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 27
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = True
+        WARNING:strip:define-range = True
+        WARNING:strip:replace-fstring = True
+        WARNING:strip:remove-keywordsonly = True
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = True
+        """))
+    def test_0012(self) -> None:
+        strip = coverage(STRIP)
+        run = sh(F"{strip} --show --py36")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 36
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = False
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = False
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0014(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/pyproject.toml", """
+        [tool.strip-python3]
+        python-version = "3.6"
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 36
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = False
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = False
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0015(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/pyproject.toml", """
+        [tool.strip-python3]
+        python-version = "3.5"
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 35
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = True
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0016(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/pyproject.toml", """
+        [tool.strip-python3]
+        python-version = "3.5"
+        remove-typehints = true
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 35
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = True
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = True
+        """))
+    def test_0017(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/pyproject.toml", """
+        [tool.strip-python3]
+        python-version = "3.5"
+        no-replace-fstring = true
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 35
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = False
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0018(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/pyproject.toml", """
+        [tool.strip-python3]
+        python-version = "3.5"
+        no-replace-fstring = 1
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 35
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = False
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0024(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/setup.cfg", """
+        [strip-python3]
+        python-version = 3.6
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 36
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = False
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = False
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0025(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/setup.cfg", """
+        [strip-python3]
+        python-version = 3.5
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 35
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = True
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = False
+        """))
+    def test_0026(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/setup.cfg", """
+        [strip-python3]
+        python-version = 3.5
+        remove-typehints = true
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.assertEqual(run.stderr, text4("""
+        WARNING:strip:python-version-int = 35
+        WARNING:strip:pyi-version-int = 36
+        WARNING:strip:define-basestring = False
+        WARNING:strip:define-range = False
+        WARNING:strip:replace-fstring = True
+        WARNING:strip:remove-keywordsonly = False
+        WARNING:strip:remove-positionalonly = True
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = True
+        WARNING:strip:remove-typehints = True
+        """))
     def test_0101(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()

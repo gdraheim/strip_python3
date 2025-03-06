@@ -6,8 +6,9 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.3.1094"
 
-from typing import List, Dict, Optional, cast
+from typing import List, Dict, Optional, Union, cast
 import sys
+import os.path as fs
 import logging
 # ........
 # import ast
@@ -49,7 +50,7 @@ import ast_comments as ast
 
 
 
-logg = logging.getLogger(__name__.replace("/", "."))
+logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
 
 OK = True
 NIX = ""
@@ -488,14 +489,14 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             calls = DetectFunctionCalls()
             calls.visit(tree)
             if "range" in calls.found:
-                defs = DefineIfPython2(["range = xrange"])
-                tree = defs.visit(tree)
+                defs2 = DefineIfPython2(["range = xrange"])
+                tree = defs2.visit(tree)
         if DEFINE_BASESTRING:
             basetypes = ReplaceIsinstanceBaseType({"str": "basestring"})
             basetypes.visit(tree)
             if basetypes.replace:
-                redefs = DefineIfPython3(basetypes.defines)
-                tree = redefs.visit(tree)
+                defs3 = DefineIfPython3(basetypes.defines)
+                tree = defs3.visit(tree)
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -531,28 +532,99 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
 
     return 0
 
+def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
+    settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
+        "python-version": NIX, "pyi-version": NIX, "remove-typehints": 0, "remove-var-typehints": 0, # ..
+        "remove-keywordonly": 0, "remove-positionalonly": 0, "remove-pyi-positionalonly": 0, # ..
+        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, # ..
+        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, # ..
+        "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, }
+    for configfile in files:
+        if fs.isfile(configfile):
+            if configfile.endswith(".toml"):
+                logg.debug("found toml configfile %s", configfile)
+                import tomllib # pylint: disable=import-outside-toplevel
+                with open(configfile, "rb") as f:
+                    conf = tomllib.load(f)
+                    if "tool" in conf and "strip-python3" in conf["tool"]:
+                        section: Dict[str, Union[str, int, bool]] = conf["tool"]["strip-python3"]
+                        for setting in section:
+                            if setting in settings:
+                                oldvalue = settings[setting]
+                                setvalue = section[setting]
+                                if isinstance(oldvalue, str):
+                                    if isinstance(setvalue, str):
+                                        settings[setting] = setvalue
+                                    else:
+                                        logg.error("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))
+                                elif isinstance(oldvalue, int):
+                                    if isinstance(setvalue, int) or isinstance(setvalue, float):
+                                        settings[setting] = int(setvalue)
+                                    else:
+                                        logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
+                                elif isinstance(oldvalue, bool):
+                                    if isinstance(setvalue, bool):
+                                        settings[setting] = 1 if setvalue is True else 0
+                                    else:
+                                        logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
+                                else:
+                                    logg.error("%s[%s]: unknown type found %s", configfile, setting, type(setvalue))
+                            else:
+                                logg.error("%s: unknown setting found = %s", configfile, setting)
+                                logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
+            elif configfile.endswith(".cfg"):
+                import configparser # pylint: disable=import-outside-toplevel
+                confs = configparser.ConfigParser()
+                confs.read(configfile)
+                if "strip-python3" in confs:
+                    section2 = confs["strip-python3"]
+                    for option in section2:
+                        if OK:
+                            if option in settings:
+                                oldvalue = settings[option]
+                                setvalue = section2[option]
+                                if isinstance(oldvalue, str):
+                                    settings[option] = setvalue
+                                elif isinstance(oldvalue, int):
+                                    if setvalue in ["true", "True"]:
+                                        settings[option] = 1
+                                    elif setvalue in ["false", "False"]:
+                                        settings[option] = 0
+                                    elif setvalue in ["0", "1", "2", "3"]:
+                                        settings[option] = int(setvalue)
+                                    else:
+                                        logg.error("%s[%s]: expecting int but found %s", configfile, option, setvalue)
+                                else:
+                                    logg.error("%s[%s]: unknown value found %s", configfile, option, setvalue)
+                            else:
+                                logg.error("%s: unknown setting found = %s", configfile, option)
+                                logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
+    return settings
+
 if __name__ == "__main__":
+    defs = read_defaults("pyproject.toml", "setup.cfg")
     from optparse import OptionParser # pylint: disable=deprecated-module
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip())
     cmdline.formatter.max_help_position = 30
-    cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
-    cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
-    cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set python features by version")
+    cmdline.add_option("-v", "--verbose", action="count", default=defs["verbose"], help="increase logging level")
+    cmdline.add_option("--pyi-version", metavar="3.6", default=defs["pyi-version"], help="set python version for py-includes")
+    cmdline.add_option("--python-version", metavar="2.7", default=defs["python-version"], help="set python features by version")
     cmdline.add_option("--py36", action="count", default=0, help="keep features available since python3.6")
-    cmdline.add_option("--remove-typehints", action="count", default=0, help="3.5 function annotations and cast operator")
-    cmdline.add_option("--remove-var-typehints", action="count", default=0, help="only 3.6 variable annotations (for typehints)")
-    cmdline.add_option("--remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
-    cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
-    cmdline.add_option("--remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
-    cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
-    cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() to xrange() iterator")
-    cmdline.add_option("--define-basestring", action="count", default=0, help="3.0 isinstance(str) is basestring python2")
-    cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
-    cmdline.add_option("--no-define-range", action="count", default=0, help="3.0 define range()")
-    cmdline.add_option("--no-define-basestring", action="count", default=0, help="3.0 isinstance(str)")
-    cmdline.add_option("--no-remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
-    cmdline.add_option("--no-remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
-    cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=0, help="3.8 positionalonly in *.pyi")
+    cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast operator")
+    cmdline.add_option("--remove-var-typehints", action="count", default=defs["remove-var-typehints"], help="only 3.6 variable annotations (for typehints)")
+    cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
+    cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
+    cmdline.add_option("--remove-pyi-positionalonly", action="count", default=defs["remove-pyi-positionalonly"], help="3.8 positionalonly parameters in *.pyi")
+    cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
+    cmdline.add_option("--define-range", action="count", default=defs["define-range"], help="3.0 define range() to xrange() iterator")
+    cmdline.add_option("--define-basestring", action="count", default=defs["define-basestring"], help="3.0 isinstance(str) is basestring python2")
+    cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
+    cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
+    cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
+    cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
+    cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
+    cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
+    cmdline.add_option("--show", action="count", default=0, help="show transformer settings")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
@@ -576,7 +648,7 @@ if __name__ == "__main__":
             logg.error("unknown --python-version %s", opt.python_version)
     logg.debug("BACK_VERSION %s PYI_VERSION %s", BACK_VERSION, PYI_VERSION)
     if PYI_VERSION < 38 or opt.remove_pyi_positionalonly:
-        if not opt.no_remove_pyi_positional:
+        if not opt.no_remove_pyi_positionalonly:
             REMOVE_PYI_POSITIONAL = True
     if BACK_VERSION < 38 or opt.remove_positionalonly:
         if not opt.no_remove_positionalonly:
@@ -599,6 +671,17 @@ if __name__ == "__main__":
     if BACK_VERSION < 30 or opt.define_basestring:
         if not opt.no_define_basestring:
             DEFINE_BASESTRING = True
+    if opt.show:
+        logg.warning("%s = %s", "python-version-int", BACK_VERSION)
+        logg.warning("%s = %s", "pyi-version-int", PYI_VERSION)
+        logg.warning("%s = %s", "define-basestring", DEFINE_BASESTRING)
+        logg.warning("%s = %s", "define-range", DEFINE_RANGE)
+        logg.warning("%s = %s", "replace-fstring", REPLACE_FSTRING)
+        logg.warning("%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
+        logg.warning("%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)
+        logg.warning("%s = %s", "remove-pyi-positionalonly", REMOVE_PYI_POSITIONAL)
+        logg.warning("%s = %s", "remove-var-typehints", REMOVE_VAR_TYPEHINTS)
+        logg.warning("%s = %s", "remove-typehints", REMOVE_TYPEHINTS)
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0
