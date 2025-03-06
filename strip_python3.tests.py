@@ -231,7 +231,7 @@ class StripTest(unittest.TestCase):
                 out.write(text2)
     def begin(self) -> str:
         self._started = time.monotonic() # pylint: disable=attribute-defined-outside-init
-        logg.info("[[%s]]", datetime.datetime.fromtimestamp(self._started).strftime("%H:%M:%S"))
+        logg.debug("[[%s]]", datetime.datetime.fromtimestamp(self._started).strftime("%H:%M:%S"))
         return "-vv"
     def end(self, maximum: int = 99) -> None:
         runtime = time.monotonic() - self._started

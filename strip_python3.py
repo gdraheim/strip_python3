@@ -108,7 +108,7 @@ class DefineIfPython2:
         for stmtlist in [ast.parse(e).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
-        if isinstance(node, ast.Module):
+        if isinstance(node, ast.Module) and self.body:
             module1: ast.Module = node
             body: List[ast.stmt] = []
             before_imports = True
@@ -138,7 +138,7 @@ class DefineIfPython3:
         for stmtlist in [ast.parse(e).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
-        if isinstance(node, ast.Module):
+        if isinstance(node, ast.Module) and self.body:
             module1: ast.Module = node
             body: List[ast.stmt] = []
             before_imports = True
