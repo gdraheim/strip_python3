@@ -144,9 +144,10 @@ class DefineIfPython2:
                             testbody = testmodule.body[0]
                             testatleast = testbody.value
                             testcompare = ast.BoolOp(op=ast.And(), values=[testatleast, testcompare])
-                        atleast = self.atleast if self.atleast else (3,0)
-                        if self.before and atleast[0] == self.before[0]:
-                            testcode = "sys.version_info[0] == {} and sys.version_info[1] >= {} and sys.version_info[1] < {}".format(atleast[0], atleast[0], self.before[1])
+                        before = self.before if self.before else (3,0)
+                        logg.debug("python2 atleast %s before %s", self.atleast, before)
+                        if self.atleast and self.atleast[0] == before[0]:
+                            testcode = "sys.version_info[0] == {} and sys.version_info[1] >= {} and sys.version_info[1] < {}".format(self.atleast[0], self.atleast[0], before[1])
                             testmodule = ast.parse(testcode)
                             assert isinstance(testmodule.body[0], ast.Expr)
                             testbody = testmodule.body[0]
@@ -206,6 +207,14 @@ class DefineIfPython3:
                             testbody = testmodule.body[0]
                             testbefore = testbody.value
                             testcompare = ast.BoolOp(op=ast.And(), values=[testcompare, testbefore])
+                        atleast = self.atleast if self.atleast else (3,0)
+                        logg.debug("python3 atleast %s before %s", atleast, self.before)
+                        if self.before and atleast[0] == self.before[0]:
+                            testcode = "sys.version_info[0] == {} and sys.version_info[1] >= {} and sys.version_info[1] < {}".format(atleast[0], atleast[1], self.before[1])
+                            testmodule = ast.parse(testcode)
+                            assert isinstance(testmodule.body[0], ast.Expr)
+                            testbody = testmodule.body[0]
+                            testcompare = testbody.value
                     else:
                         logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
                         testcompare=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)])
@@ -553,7 +562,7 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             calls = DetectFunctionCalls()
             calls.visit(tree)
             if "callable" in calls.found:
-                defs3 = DefineIfPython3(["def callable(x: Any): return hasattr(x, '__call__')"], before=(3,2))
+                defs3 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
                 tree = defs3.visit(tree)
         if DEFINE_BASESTRING:
             basetypes = ReplaceIsinstanceBaseType({"str": "basestring"})

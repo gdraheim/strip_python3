@@ -1078,9 +1078,9 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/tmp.py")
         self.assertEqual(py, text4("""
         import sys
-        if sys.version_info[0] >= 3 and (sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 2)):
+        if sys.version_info[0] == 3 and sys.version_info[1] >= 0 and (sys.version_info[1] < 2):
         
-            def callable(x: Any):
+            def callable(x):
                 return hasattr(x, '__call__')
         
         def func1(x):
