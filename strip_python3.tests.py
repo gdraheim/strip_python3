@@ -1265,11 +1265,11 @@ class StripTest(unittest.TestCase):
         import datetime.datetime
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
 
-            def fromisoformat(x):
+            def datetime_fromisoformat(x):
                 return datetime.datetime.fromisoformat(x)
         else:
         
-            def fromisoformat(x):
+            def datetime_fromisoformat(x):
                 import re
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d\\\\d\\\\d\\\\d)', x)
                 if m:
@@ -1289,7 +1289,67 @@ class StripTest(unittest.TestCase):
                 raise ValueError('not a datetime isoformat: ' + x)
         
         def func1(x):
-            return fromisoformat(x)
+            return datetime_fromisoformat(x)
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0411(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import subprocess
+        def func1() -> str:
+            return subprocess.run("echo ok", shell=True).stdout
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        import subprocess
+        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
+
+            def subprocess_run(x):
+                return subprocess.run(x)
+        else:
+        
+            class CalledProcessError(subprocess.SubprocessError):
+        
+                def __init__(self, args, returncode, stdout, stderr):
+                    self.cmd = args
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+                    self.output = self.stdout
+        
+            class CompletedProcess:
+        
+                def __init__(self, args, returncode, stdout, stderr):
+                    self.args = args
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+        
+                def check_returncode(self):
+                    if self.returncode:
+                        raise CalledProcessError(self.args, self.returncode, self.stdout, self.stderr)
+
+            def subprocess_run(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
+                proc = Popen(args, stdin=stdin, input=input, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, timeout=timeout, env=env)
+                try:
+                    outs, errs = proc.communicate(input=input, timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    outs, errs = proc.communicate()
+                completed = CompletedProcess(args, proc.returncode, outs, errs)
+                if check:
+                    completed.check_returncode()
+                return completed
+        
+        def func1():
+            return subprocess_run('echo ok', shell=True).stdout
         """)))
         self.coverage()
         self.rm_testdir()

@@ -76,6 +76,7 @@ DEFINE_PRINT_FUNCTION = False
 DEFINE_FLOAT_DIVISION = False
 DEFINE_ABSOLUTE_IMPORT = False
 DATETIME_FROMISOFORMAT = False
+SUBPROCESS_RUN = False
 
 def text4(content: str) -> str:
     if content.startswith("\n"):
@@ -737,10 +738,10 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 defdivs = RequireImportFrom(["__future__.division"])
                 tree = defdivs.visit(tree)
             if "datetime.datetime.fromisoformat" in calls.found and DATETIME_FROMISOFORMAT:
-                logg.fatal("found fromisoformat")
                 datetime_module = calls.importas["datetime.datetime"]
-                isoformatdef = DefineIfPython3([F"def fromisoformat(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=text4(F"""
-                def fromisoformat(x):
+                fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
+                isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=text4(F"""
+                def {fromisoformat}(x):
                     import re
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d\\d\\d\\d)", x)
                     if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
@@ -754,7 +755,41 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                     if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)) )))
                     raise ValueError("not a datetime isoformat: "+x)
                 """))
-                isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": "fromisoformat"})
+                isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
+                tree = isoformatdef.visit(isoformatfunc.visit(tree))
+            if "subprocess.run" in calls.found and SUBPROCESS_RUN:
+                subprocess_module = calls.importas["subprocess"]
+                defname = subprocess_module + "_run"
+                isoformatdef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
+                class CalledProcessError({subprocess_module}.SubprocessError):
+                    def __init__(self, args, returncode, stdout, stderr):
+                        self.cmd = args
+                        self.returncode = returncode
+                        self.stdout = stdout
+                        self.stderr = stderr
+                        self.output = self.stdout
+                class CompletedProcess:
+                    def __init__(self, args, returncode, stdout, stderr):
+                        self.args = args
+                        self.returncode = returncode
+                        self.stdout = stdout
+                        self.stderr = stderr
+                    def check_returncode(self):
+                        if self.returncode:
+                            raise CalledProcessError(self.args, self.returncode, self.stdout, self.stderr)
+                def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
+                    proc = Popen(args, stdin=stdin, input=input, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, timeout=timeout, env=env)
+                    try:
+                        outs, errs = proc.communicate(input=input, timeout=timeout)
+                    except {subprocess_module}.TimeoutExpired:
+                        proc.kill()
+                        outs, errs = proc.communicate()
+                    completed = CompletedProcess(args, proc.returncode, outs, errs)
+                    if check:
+                        completed.check_returncode()
+                    return completed
+                """))
+                isoformatfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
             if SHOW_DUMP:
                 logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
@@ -830,7 +865,8 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "no-define-print-function": 0, "no-define-float-division": 0, "no-define-absolute-import": 0, # ..
         "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0,  # ..
         "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0,
-        "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, }
+        "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0,
+        "subprocess-run": 0, "no-subprocess-run": 0, }
     for configfile in files:
         if fs.isfile(configfile):
             if configfile.endswith(".toml"):
@@ -915,6 +951,7 @@ if __name__ == "__main__":
     cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
     cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
     cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
+    cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or boilerplate")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
@@ -923,6 +960,7 @@ if __name__ == "__main__":
     cmdline.add_option("--no-define-float-division", "--nod", action="count", default=defs["no-define-float-division"], help="3.0 float division")
     cmdline.add_option("--no-define-absolute-import", "--noa", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
     cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
+    cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
@@ -987,7 +1025,11 @@ if __name__ == "__main__":
         if not opt.no_define_absolute_import:
             DEFINE_ABSOLUTE_IMPORT = True
     if BACK_VERSION < 37 or opt.datetime_fromisoformat:
-        DATETIME_FROMISOFORMAT = True
+        if not opt.no_datetime_fromisoformat:
+            DATETIME_FROMISOFORMAT = True
+    if BACK_VERSION < 35 or opt.subprocess_run:
+        if not opt.no_subprocess_run:
+            SUBPROCESS_RUN = True
     if opt.show:
         logg.log(NOTE, "%s = %s", "python-version-int", BACK_VERSION)
         logg.log(NOTE, "%s = %s", "pyi-version-int", PYI_VERSION)
