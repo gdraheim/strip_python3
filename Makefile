@@ -1,4 +1,4 @@
-F= strip_python3.py
+F= src/strip_python3.py
 B= 2024
 FOR=today
 DAY=%u
@@ -18,7 +18,7 @@ check: tests
 tests: ; $(PYTHON) $(TESTS) $V
 test_0%: ; $(PYTHON) $(TESTS) $V $@
 
-VERFILES = $F $(F:.py=.tests.py)
+VERFILES = $F *.py *.toml
 version:
 	@ grep -l __version__ $(VERFILES) | { while read f; do : \
 	; Y=`date +%Y -d "$(FOR)"` ; X=$$(expr $$Y - $B) \
@@ -29,6 +29,7 @@ version:
 	-e "/^ *__copyright__/s/(C) [0123456789]*-[0123456789]*/(C) $B-$$Y/" \
 	-e "/^ *__copyright__/s/(C) [0123456789]* /(C) $$Y /" \
 	$$f; done; }
+	@ grep "^version =" $(VERFILES)
 	@ grep ^__version__ $(VERFILES)
 	@ $(GIT) add $(VERFILES) || true
 	@ ver=`cat $F | sed -e '/__version__/!d' -e 's/.*= *"//' -e 's/".*//' -e q` \

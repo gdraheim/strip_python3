@@ -77,7 +77,7 @@ def decodes_(text: Union[bytes, str]) -> Optional[str]:
             encoded = "utf-8"
         try:
             return text.decode(encoded)
-        except:
+        except:  # pylint: disable=bare-except
             return text.decode("latin-1")
     return text
 
@@ -1467,7 +1467,7 @@ def runtests() -> None:
         logg.info("xml results into %s", opt.xmlresults)
     if not logfile:
         if xmlresults:
-            import xmlrunner # type: ignore[import-error,import-untyped] # pylint: disable=import-error,import-outside-toplevel
+            import xmlrunner # type: ignore[import-error,import-untyped,unused-ignore] # pylint: disable=import-error,import-outside-toplevel
             TestRunner = xmlrunner.XMLTestRunner
             testresult = TestRunner(xmlresults, verbosity=opt.verbose).run(suite)
         else:
@@ -1476,9 +1476,9 @@ def runtests() -> None:
     else:
         TestRunner = unittest.TextTestRunner
         if xmlresults:
-            import xmlrunner # type: ignore[import-error,import-untyped] # pylint: disable=import-error,import-outside-toplevel
+            import xmlrunner # type: ignore[import-error,import-untyped,unused-ignore] # pylint: disable=import-error,import-outside-toplevel
             TestRunner = xmlrunner.XMLTestRunner
-        testresult = TestRunner(logfile.stream, verbosity=opt.verbose).run(suite) # type: ignore
+        testresult = TestRunner(logfile.stream, verbosity=opt.verbose).run(suite)
     if not testresult.wasSuccessful():
         sys.exit(1)
 

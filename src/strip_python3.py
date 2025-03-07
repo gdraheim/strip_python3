@@ -1,5 +1,5 @@
 #! /usr/bin/env python3.11
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,too-many-lines
 """ easy way to transform and remove python3 typehints """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
@@ -13,7 +13,8 @@ import os.path as fs
 import logging
 # ........
 # import ast
-import ast_comments as ast
+# import ast_comments as ast
+import strip_ast_comments as ast
 
 # (python3.12) = type() statement
 # (python3.12) = support for generics
@@ -190,13 +191,13 @@ class ReplaceIsinstanceBaseType(ast.NodeTransformer):
         return self.generic_visit(node)
 
 class DetectFunctionCalls(ast.NodeTransformer):
-    def __init__(self, replace: Dict[str, str] = {}) -> None:
+    def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
         ast.NodeTransformer.__init__(self)
         self.imported: Dict[str, str] = {}
         self.importas: Dict[str, str] = {}
         self.found: Dict[str, int] = {}
         self.divs: int = 0
-        self.replace = replace
+        self.replace = replace if replace is not None else {}
     def visit_Import(self, node: ast.Import) -> ast.AST:  # pylint: disable=invalid-name
         for alias in node.names:
             if alias.asname:
