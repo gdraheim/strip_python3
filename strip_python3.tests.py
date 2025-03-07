@@ -252,6 +252,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = True
         WARNING:strip:define-range = True
+        WARNING:strip:define-callable = True
+        WARNING:strip:define-print-function = True
+        WARNING:strip:define-float-division = True
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = True
         WARNING:strip:remove-positionalonly = True
@@ -268,6 +271,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -289,6 +295,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -310,6 +319,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -332,6 +344,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -354,6 +369,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -376,6 +394,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -397,6 +418,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -418,6 +442,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -440,6 +467,9 @@ class StripTest(unittest.TestCase):
         WARNING:strip:pyi-version-int = 36
         WARNING:strip:define-basestring = False
         WARNING:strip:define-range = False
+        WARNING:strip:define-callable = False
+        WARNING:strip:define-print-function = False
+        WARNING:strip:define-float-division = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -1019,7 +1049,7 @@ class StripTest(unittest.TestCase):
             for x in range(3):
                 print(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} --nop")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
@@ -1045,7 +1075,7 @@ class StripTest(unittest.TestCase):
             if isinstance(x, str):
                 print(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} --nop")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
