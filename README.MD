@@ -176,4 +176,11 @@ let "-2" append a "_2" so that "myfile.py" becomes "myfile_2.py" and "myfile_2.p
 after transformations.
 
 
+# Development
+
+I take patches!
+
+The source code has a lot of code duplications and ifelse lists. That is intentional to allow anyone to quickly add corner cases.
+
+https://github.com/gdraheim/strip_python3/issues
 
