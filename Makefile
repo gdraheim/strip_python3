@@ -84,3 +84,10 @@ mypy:
 	zypper install -y python3-click python3-pathspec
 type:
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $F
+
+PYLINT = pylint
+PYLINT_OPTIONS =
+pylint:
+	zypper install -y python3-pylint
+lint:
+	$(PYLINT) $(PYLINT_OPTIONS) $F

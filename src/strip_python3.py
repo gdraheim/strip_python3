@@ -1,5 +1,6 @@
 #! /usr/bin/env python3.11
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,too-many-lines
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,no-else-return,line-too-long,too-many-lines
+# pylint: disable=too-many-instance-attributes,too-few-public-methods,too-many-branches,too-many-locals,too-many-nested-blocks,too-many-statements
 """ easy way to transform and remove python3 typehints """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
@@ -294,12 +295,12 @@ class DefineIfPython2:
             after_append = False
             count_imports = 0
             for stmt in module1.body:
-                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import):
+                if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     count_imports += 1
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
-                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import) or isinstance(stmt, ast.Comment):
+                if isinstance(stmt, (ast.ImportFrom, ast.Import, ast.Comment)):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
@@ -371,12 +372,12 @@ class DefineIfPython3:
             after_append = False
             count_imports = 0
             for stmt in module1.body:
-                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import):
+                if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     count_imports += 1
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
-                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import) or isinstance(stmt, ast.Comment):
+                if isinstance(stmt, (ast.ImportFrom, ast.Import, ast.Comment)):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
@@ -940,7 +941,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                                     else:
                                         logg.error("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))
                                 elif isinstance(oldvalue, int):
-                                    if isinstance(setvalue, int) or isinstance(setvalue, float) or isinstance(setvalue, bool):
+                                    if isinstance(setvalue, (int, float, bool)):
                                         settings[setting] = int(setvalue)
                                     else:
                                         logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
