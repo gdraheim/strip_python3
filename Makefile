@@ -18,6 +18,9 @@ check: tests
 tests: ; $(PYTHON) $(TESTS) $V
 test_0%: ; $(PYTHON) $(TESTS) $V $@
 
+st_0%: ; $(PYTHON) $(TESTS) $V te$@ --coverage
+
+
 coverage:
 	$(PYTHON) $(TESTS) $V --coverage
 

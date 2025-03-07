@@ -56,8 +56,8 @@ HINT = (logging.INFO + logging.DEBUG) // 2
 logging.addLevelName(DONE, "DONE")
 logging.addLevelName(NOTE, "NOTE")
 logging.addLevelName(HINT, "HINT")
-
 logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
+DEBUG_TOML = logging.DEBUG
 
 OK = True
 NIX = ""
@@ -406,7 +406,7 @@ class DefineIfPython3:
             return node
 
 class FStringToFormat(ast.NodeTransformer):
-    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name
+    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name # pragma: nocover
         """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
         # NOTE: I did not manage to create a test case that triggers this visitor
         num: int = 0
@@ -875,16 +875,23 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
     for configfile in files:
         if fs.isfile(configfile):
             if configfile.endswith(".toml"):
-                logg.debug("found toml configfile %s", configfile)
+                logg.log(DEBUG_TOML, "found toml configfile %s", configfile)
                 import tomllib # pylint: disable=import-outside-toplevel
                 with open(configfile, "rb") as f:
                     conf = tomllib.load(f)
+                    section1: Dict[str, Union[str, int, bool]] = {}
                     if "tool" in conf and "strip-python3" in conf["tool"]:
-                        section: Dict[str, Union[str, int, bool]] = conf["tool"]["strip-python3"]
-                        for setting in section:
+                        section1 = conf["tool"]["strip-python3"]
+                    elif "tool.strip-python3" in conf:
+                        section1 = conf["tool.strip-python3"]
+                    else:
+                        logg.log(DEBUG_TOML, "have sections %s", list(section1.keys()))
+                    if section1:
+                        logg.log(DEBUG_TOML, "have section1 data:\n%s", section1)
+                        for setting in section1:
                             if setting in settings:
                                 oldvalue = settings[setting]
-                                setvalue = section[setting]
+                                setvalue = section1[setting]
                                 if isinstance(oldvalue, str):
                                     if isinstance(setvalue, str):
                                         settings[setting] = setvalue
@@ -906,11 +913,13 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                                 logg.error("%s: unknown setting found = %s", configfile, setting)
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
             elif configfile.endswith(".cfg"):
+                logg.log(DEBUG_TOML, "found ini configfile %s", configfile)
                 import configparser # pylint: disable=import-outside-toplevel
                 confs = configparser.ConfigParser()
                 confs.read(configfile)
                 if "strip-python3" in confs:
                     section2 = confs["strip-python3"]
+                    logg.log(DEBUG_TOML, "have section2 data:\n%s", section2)
                     for option in section2:
                         if OK:
                             if option in settings:
@@ -932,6 +941,10 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                             else:
                                 logg.error("%s: unknown setting found = %s", configfile, option)
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
+            else:
+                logg.log(DEBUG_TOML, "unknown configfile found %s", configfile)
+        else:
+            logg.log(DEBUG_TOML, "no configfile found %s", configfile)
     return settings
 
 def main() -> int:

@@ -18,6 +18,14 @@ import shutil
 import datetime
 import time
 import logging
+
+NOTE = (logging.INFO + logging.WARNING) // 2
+HINT = (logging.INFO + logging.DEBUG) // 2
+logging.addLevelName(NOTE, "NOTE")
+logging.addLevelName(HINT, "HINT")
+
+DEBUG_TOML = logging.DEBUG
+
 logg = logging.getLogger(__name__.replace("/", "."))
 STRIP = "src/strip_python3.py"
 PYTHON = "python3.11"
@@ -26,7 +34,8 @@ KEEP = 0
 OK = True
 NIX = ""
 LONGER = 2
-
+ENDSLEEP = 0.1
+FIXCOVERAGE = False
 
 basestring = str
 
@@ -220,11 +229,24 @@ class StripTest(unittest.TestCase):
         return newdir
     def coverage(self, testname: Optional[str] = None) -> None:
         testname = testname or self.caller_testname()
-        newcoverage = ".coverage."+testname
-        time.sleep(1)
+        testdir = self.testdir(testname)
+        time.sleep(ENDSLEEP)
         if os.path.isfile(".coverage"):
+            logg.debug("%s: found %s", testname, ".coverage")
+            newcoverage = ".coverage."+testname
             # shutil.copy(".coverage", newcoverage)
             with open(".coverage", "rb") as inp:
+                text = inp.read()
+            if FIXCOVERAGE:
+                text2 = re.sub(rb"(\]\}\})[^{}]*(\]\}\})$", rb"\1", text)
+            else:
+                text2 = text
+            with open(newcoverage, "wb") as out:
+                out.write(text2)
+        if os.path.isfile(F"{testdir}/.coverage"):
+            logg.debug("%s: found %s", testname, F"{testdir}/.coverage")
+            newcoverage = ".coverage."+testname+".testdir"
+            with open(F"{testdir}/.coverage", "rb") as inp:
                 text = inp.read()
             text2 = re.sub(rb"(\]\}\})[^{}]*(\]\}\})$", rb"\1", text)
             with open(newcoverage, "wb") as out:
@@ -243,6 +265,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertFalse(run.err)
         self.assertTrue(greps(run.out, "this help message"))
+        self.coverage()
+        self.rm_testdir()
     def test_0011(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show")
@@ -263,6 +287,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0012(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show --py36")
@@ -283,6 +309,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = False
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0014(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -308,6 +336,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = False
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0015(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -333,6 +363,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0016(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -359,6 +391,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0017(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -385,6 +419,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0018(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -411,6 +447,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0024(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -436,6 +474,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = False
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0025(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -461,6 +501,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0026(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
@@ -487,6 +529,8 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
+        self.coverage()
+        self.rm_testdir()
     def test_0101(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1403,7 +1447,7 @@ class StripTest(unittest.TestCase):
     def test_0999(self) -> None:
         if COVERAGE:
             coverage3 = PYTHON + " -m coverage "
-            run = sh(F"{coverage3} combine")
+            run = sh(F"{coverage3} combine", check=False)
             if run.err:
                 logg.error("%s", run.err)
             if run.out:
@@ -1417,11 +1461,11 @@ class StripTest(unittest.TestCase):
             if run.err:
                 logg.error("%s", run.err)
             if run.out:
-                print("# "+run.out.replace("\n", "\n# "))
+                logg.log(HINT, "annotate:\n %s", run.out.replace("\n", "\n "))
             run = sh(F"wc -l {STRIP},cover")
             if run.err:
                 logg.error("%s", run.err)
-            print("  "+run.out.replace("\n", "\n  "))
+            print("\n  "+run.out.replace("\n", "\n  "))
 
 
 def runtests() -> None:
@@ -1444,7 +1488,7 @@ def runtests() -> None:
     cmdline.add_option("--xmlresults", metavar="FILE", default=None,
                   help="capture results as a junit xml file [%default]")
     opt, cmdline_args = cmdline.parse_args()
-    logging.basicConfig(level = logging.WARNING - opt.verbose * 10)
+    logging.basicConfig(level = NOTE - opt.verbose * 5)
     PYTHON = opt.python
     KEEP = opt.keep
     COVERAGE = opt.coverage
