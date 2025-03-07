@@ -1062,6 +1062,43 @@ class StripTest(unittest.TestCase):
                 pass"""))
         self.coverage()
         self.rm_testdir()
+    def test_0161(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import List
+        a: int 
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: List[str], /, a: int = 0, *, b: int = 0) -> List[str]:
+               return [self.c] + y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+        
+            def __add__(self, y, a=0, b=0):
+                return [self.c] + y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: List[str], a: int=0, *, b: int=0) -> List[str]:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
     def test_0201(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)

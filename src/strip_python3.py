@@ -688,9 +688,9 @@ class TypeHints:
                                 stmt.append(func2)
                                 args3 = func.args
                                 if posonlyargs and want.remove_pyi_positional:
-                                    posonlyargs3: List[ast.arg] = posonlyargs if not want.remove_pyi_positional else []
-                                    functionargs3 = functionargs if not want.remove_pyi_positional else posonlyargs + functionargs
-                                    args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, kwonlyargs, # ..
+                                    posonlyargs3: List[ast.arg] = func.args.posonlyargs if not want.remove_pyi_positional else []
+                                    functionargs3 = func.args.args if not want.remove_pyi_positional else func.args.posonlyargs + func.args.args
+                                    args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, func.args.kwonlyargs, # ..
                                            func.args.kw_defaults, kwarg, func.args.defaults)
                                 func3 = ast.FunctionDef(func.name, args3, [ast.Pass()], func.decorator_list, func.returns)
                                 func3.lineno = func.lineno
