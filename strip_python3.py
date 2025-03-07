@@ -8,6 +8,7 @@ __version__ = "0.5.1095"
 
 from typing import List, Dict, Optional, Union, Tuple, cast
 import sys
+import re
 import os.path as fs
 import logging
 # ........
@@ -60,8 +61,7 @@ logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace
 OK = True
 NIX = ""
 FSTRING_NUMBERED = False
-SHOW_DUMP = False
-SHOW_DONE = False
+SHOW_DUMP = 0
 
 REMOVE_VAR_TYPEHINTS = False
 REMOVE_TYPEHINTS = False
@@ -75,6 +75,27 @@ DEFINE_CALLABLE = False
 DEFINE_PRINT_FUNCTION = False
 DEFINE_FLOAT_DIVISION = False
 DEFINE_ABSOLUTE_IMPORT = False
+DATETIME_FROMISOFORMAT = False
+
+def text4(content: str) -> str:
+    if content.startswith("\n"):
+        text = ""
+        x = re.match("(?s)\n( *)", content)
+        assert x is not None
+        indent = x.group(1)
+        for line in content[1:].split("\n"):
+            if line.startswith(indent):
+                if not line.strip():
+                    line = ""
+                else:
+                    line = line[len(indent):]
+            text += line + "\n"
+        if text.endswith("\n\n"):
+            return text[:-1]
+        else:
+            return text
+    else:
+        return content
 
 class DetectImportFrom(ast.NodeTransformer):
     def __init__(self) -> None:
@@ -165,29 +186,92 @@ class ReplaceIsinstanceBaseType(ast.NodeTransformer):
         return self.generic_visit(node)
 
 class DetectFunctionCalls(ast.NodeTransformer):
-    def __init__(self) -> None:
+    def __init__(self, replace: Dict[str, str] = {}) -> None:
         ast.NodeTransformer.__init__(self)
+        self.imported: Dict[str, str] = {}
+        self.importas: Dict[str, str] = {}
         self.found: Dict[str, int] = {}
         self.divs: int = 0
+        self.replace = replace
+    def visit_Import(self, node: ast.Import) -> ast.AST:  # pylint: disable=invalid-name
+        for alias in node.names:
+            if alias.asname:
+                self.imported[alias.name] = alias.asname
+                self.importas[alias.asname] = alias.name
+            else:
+                self.imported[alias.name] = alias.name
+                self.importas[alias.name] = alias.name
+        return self.generic_visit(node)
     def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
         self.divs += 1
         return self.generic_visit(node)
     def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         calls: ast.Call = node
-        if not isinstance(calls.func, ast.Name):
-            return self.generic_visit(node)
-        callfunc: ast.Name = calls.func
-        if callfunc.id not in self.found:
-            self.found[callfunc.id] = 0
-        self.found[callfunc.id] += 1
+        if isinstance(calls.func, ast.Name):
+            call1: ast.Name = calls.func
+            logg.debug("found call1: %s", call1.id)
+            callname = call1.id
+            if callname not in self.found:
+                self.found[callname] = 0
+            self.found[callname] += 1
+            if callname in self.replace:
+                return ast.Call(func=ast.Name(self.replace[callname]), args=calls.args, keywords=calls.keywords)
+        elif isinstance(calls.func, ast.Attribute):
+            call2: ast.Attribute = calls.func
+            if isinstance(call2.value, ast.Name):
+                call21: ast.Name = call2.value
+                module2 = call21.id
+                if module2 in self.importas:
+                    logg.debug("found call2: %s.%s", module2, call2.attr)
+                    callname = self.importas[module2] + "." + call2.attr
+                    if callname not in self.found:
+                        self.found[callname] = 0
+                    self.found[callname] += 1
+                    if callname in self.replace:
+                        return ast.Call(func=ast.Name(self.replace[callname]), args=calls.args, keywords=calls.keywords)
+                else:
+                    logg.debug("skips call2: %s.%s", module2, call2.attr)
+                    logg.debug("have imports: %s", ", ".join(self.importas.keys()))
+            elif isinstance(call2.value, ast.Attribute):
+                call3: ast.Attribute = call2.value
+                if isinstance(call3.value, ast.Name):
+                    call31: ast.Name = call3.value
+                    module3 = call31.id + "." + call3.attr
+                    if module3 in self.importas:
+                        logg.debug("found call3: %s.%s", module3, call2.attr)
+                        callname = self.importas[module3] + "." + call2.attr
+                        if callname not in self.found:
+                            self.found[callname] = 0
+                        self.found[callname] += 1
+                        if callname in self.replace:
+                            return ast.Call(func=ast.Name(self.replace[callname]), args=calls.args, keywords=calls.keywords)
+                    else:
+                        logg.debug("skips call3: %s.%s", module3, call2.attr)
+                        logg.debug("have imports: %s", ", ".join(self.importas.keys()))
+                elif isinstance(call3.value, ast.Attribute):
+                    logg.debug("skips call4+ (not implemented)")
+                else:
+                    logg.debug("skips call3+ [%s]", type(call3.value))
+            else:
+                logg.debug("skips call2+ [%s]", type(call2.value))
+        else:
+            logg.debug("skips call1+ [%s]", type(calls.func))
         return self.generic_visit(node)
 
 class DefineIfPython2:
     body: List[ast.stmt]
-    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None) -> None:
+    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, orelse: Union[str, List[ast.stmt]] = NIX) -> None:
         self.atleast = atleast
         self.before = before
         self.body = []
+        if isinstance(orelse, str):
+            if not orelse:
+                self.orelse = []
+            else:
+                elseparsed: ast.Module = ast.parse(orelse)
+                self.orelse = elseparsed.body
+        else:
+            self.orelse = orelse
         for stmtlist in [ast.parse(e).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
@@ -225,7 +309,7 @@ class DefineIfPython2:
                             testatleast = testbody.value
                             testcompare = ast.BoolOp(op=ast.And(), values=[testatleast, testcompare])
                         before = self.before if self.before else (3,0)
-                        logg.debug("python2 atleast %s before %s", self.atleast, before)
+                        logg.log(HINT, "python2 atleast %s before %s", self.atleast, before)
                         if self.atleast and self.atleast[0] == before[0]:
                             testcode = "sys.version_info[0] == {} and sys.version_info[1] >= {} and sys.version_info[1] < {}".format(self.atleast[0], self.atleast[0], before[1])
                             testmodule = ast.parse(testcode)
@@ -235,7 +319,7 @@ class DefineIfPython2:
                     else:
                         logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
                         testcompare = ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)])
-                    python2 = ast.If(test=testcompare, body=self.body, orelse=[])
+                    python2 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
                     python2.lineno = stmt.lineno
                     body.append(python2)
                     body.append(stmt)
@@ -247,10 +331,18 @@ class DefineIfPython2:
 
 class DefineIfPython3:
     body: List[ast.stmt]
-    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None) -> None:
+    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, orelse: Union[str, List[ast.stmt]] = NIX) -> None:
         self.atleast = atleast
         self.before = before
         self.body = []
+        if isinstance(orelse, str):
+            if not orelse:
+                self.orelse = []
+            else:
+                elseparsed: ast.Module = ast.parse(orelse)
+                self.orelse = elseparsed.body
+        else:
+            self.orelse = orelse
         for stmtlist in [ast.parse(e).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
@@ -288,7 +380,7 @@ class DefineIfPython3:
                             testbefore = testbody.value
                             testcompare = ast.BoolOp(op=ast.And(), values=[testcompare, testbefore])
                         atleast = self.atleast if self.atleast else (3,0)
-                        logg.debug("python3 atleast %s before %s", atleast, self.before)
+                        logg.log(HINT, "python3 atleast %s before %s", atleast, self.before)
                         if self.before and atleast[0] == self.before[0]:
                             testcode = "sys.version_info[0] == {} and sys.version_info[1] >= {} and sys.version_info[1] < {}".format(atleast[0], atleast[1], self.before[1])
                             testmodule = ast.parse(testcode)
@@ -298,7 +390,7 @@ class DefineIfPython3:
                     else:
                         logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
                         testcompare=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)])
-                    python3 = ast.If(test=testcompare, body=self.body, orelse=[])
+                    python3 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
                     python3.lineno = stmt.lineno
                     body.append(python3)
                     body.append(stmt)
@@ -644,6 +736,28 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             if calls.divs and DEFINE_FLOAT_DIVISION:
                 defdivs = RequireImportFrom(["__future__.division"])
                 tree = defdivs.visit(tree)
+            if "datetime.datetime.fromisoformat" in calls.found and DATETIME_FROMISOFORMAT:
+                logg.fatal("found fromisoformat")
+                datetime_module = calls.importas["datetime.datetime"]
+                isoformatdef = DefineIfPython3([F"def fromisoformat(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=text4(F"""
+                def fromisoformat(x):
+                    import re
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d\\d\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)))
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)) )))
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)) )))
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)) )))
+                    raise ValueError("not a datetime isoformat: "+x)
+                """))
+                isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": "fromisoformat"})
+                tree = isoformatdef.visit(isoformatfunc.visit(tree))
+            if SHOW_DUMP:
+                logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
         if DEFINE_ABSOLUTE_IMPORT:
             imps = DetectImportFrom()
             imps.visit(tree)
@@ -665,9 +779,11 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 tree = defs3.visit(tree)
         if SHOW_DUMP:
             logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
-        if SHOW_DONE:
+        if SHOW_DUMP > 1:
             logg.log(NOTE, "%s: (after transformations)\n%s", arg, beautify_dump(ast.dump(tree)))
         done = ast.unparse(tree)
+        if SHOW_DUMP > 2:
+            logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
         if outfile:
             out = outfile
         elif arg.endswith("3.py") and eachfile & EACH_REMOVE3:
@@ -713,7 +829,8 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "define-print-function": 0, "define-float-division": 0, "define-absolute-import": 0, # ..
         "no-define-print-function": 0, "no-define-float-division": 0, "no-define-absolute-import": 0, # ..
         "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0,  # ..
-        "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, }
+        "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0,
+        "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, }
     for configfile in files:
         if fs.isfile(configfile):
             if configfile.endswith(".toml"):
@@ -797,6 +914,7 @@ if __name__ == "__main__":
     cmdline.add_option("--define-print-function", action="count", default=defs["define-print-function"], help="3.0 print() or from __future__")
     cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
     cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
+    cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
@@ -804,6 +922,7 @@ if __name__ == "__main__":
     cmdline.add_option("--no-define-print-function", "--nop", action="count", default=defs["no-define-print-function"], help="3.0 print() function")
     cmdline.add_option("--no-define-float-division", "--nod", action="count", default=defs["no-define-float-division"], help="3.0 float division")
     cmdline.add_option("--no-define-absolute-import", "--noa", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
+    cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
@@ -867,6 +986,8 @@ if __name__ == "__main__":
     if BACK_VERSION < 30 or opt.define_absolute_import:
         if not opt.no_define_absolute_import:
             DEFINE_ABSOLUTE_IMPORT = True
+    if BACK_VERSION < 37 or opt.datetime_fromisoformat:
+        DATETIME_FROMISOFORMAT = True
     if opt.show:
         logg.log(NOTE, "%s = %s", "python-version-int", BACK_VERSION)
         logg.log(NOTE, "%s = %s", "pyi-version-int", PYI_VERSION)
@@ -883,9 +1004,7 @@ if __name__ == "__main__":
         logg.log(NOTE, "%s = %s", "remove-var-typehints", REMOVE_VAR_TYPEHINTS)
         logg.log(NOTE, "%s = %s", "remove-typehints", REMOVE_TYPEHINTS)
     if opt.dump:
-        SHOW_DUMP = True
-        if opt.dump > 1:
-            SHOW_DONE = True
+        SHOW_DUMP = int(opt.dump)
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0

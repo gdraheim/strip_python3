@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,line-too-long,multiple-statements
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,line-too-long,multiple-statements,too-many-lines
 """ tests for strip_python3 """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
@@ -87,7 +87,7 @@ def _lines(lines: Union[str, List[str]]) -> List[str]:
         if len(lines) and lines[-1] == "":
             lines = lines[:-1]
     return lines
-def linesof(text: Union[str, List[str]]) -> List[str]:
+def lines4(text: Union[str, List[str]]) -> List[str]:
     lines = []
     for line in _lines(text):
         lines.append(line.rstrip())
@@ -1252,25 +1252,45 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp3.py", """
-        import datetime.datime
+        import datetime.datetime
         def func1(x: x) -> datetime.datetime:
             return datetime.datetime.fromisoformat(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -V")
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         py = file_text4(F"{tmp}/tmp.py")
-        self.assertEqual(py, text4("""
-        if sys.version_info[0] < 3 or sys.version_info[0] == 3 and sys.version_info[1] < 7:
-            def datetime_datetime_isoformat(x):
-                return x
+        self.assertEqual(lines4(py), lines4(text4("""
+        import datetime.datetime
+        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
+
+            def fromisoformat(x):
+                return datetime.datetime.fromisoformat(x)
         else:
-            from datetime.datetime import fromisoformat as datetime_datetime_isoformat
+        
+            def fromisoformat(x):
+                import re
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d\\\\d\\\\d\\\\d)', x)
+                if m:
+                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d)', x)
+                if m:
+                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d)', x)
+                if m:
+                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d)', x)
+                if m:
+                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)))))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d)', x)
+                if m:
+                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)))))
+                raise ValueError('not a datetime isoformat: ' + x)
         
         def func1(x):
-            retunr datetime_datetime_isoformat(x)
-        """))
+            return fromisoformat(x)
+        """)))
         self.coverage()
         self.rm_testdir()
 
