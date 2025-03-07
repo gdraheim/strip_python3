@@ -65,6 +65,73 @@ REPLACE_FSTRING = False
 DEFINE_RANGE = False
 DEFINE_BASESTRING = False
 DEFINE_CALLABLE = False
+DEFINE_PRINT_FUNCTION = False
+DEFINE_FLOAT_DIVISION = False
+
+class DetectImportFrom(ast.NodeTransformer):
+    def __init__(self) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.found: Dict[str, Dict[str, str]] = {}
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.ImportFrom = node
+        if imports.module:
+            if imports.module not in self.found:
+                self.found[imports.module] = {}
+            for symbol in imports.names:
+                if symbol.name not in self.found[imports.module]:
+                    self.found[imports.module][symbol.name] = symbol.asname or symbol.name
+        return self.generic_visit(node)
+
+class RequireImportFrom:
+    def __init__(self, require: List[str]) -> None:
+        self.require = require
+    def visit(self, node: ast.AST) -> ast.AST:
+        imports = DetectImportFrom()
+        imports.visit(node)
+        newimport: List[str] = []
+        for require in self.require:
+            if "." in require:
+                library, function = require.split(require, 1)
+                if library in imports.found:
+                    if function in imports.found[library]:
+                        logg.debug("%s already imported", require)
+                    else:
+                        newimport.append(require)
+                else:
+                    newimport.append(require)
+        if not newimport:
+            return node
+        if isinstance(node, ast.Module):
+            module: ast.Module = node
+            body: List[ast.stmt] = []
+            done = False
+            if not imports.found:
+                for stmt in module.body:
+                    if isinstance(stmt, ast.Comment):
+                        body.append(stmt)
+                    elif done:
+                        body.append(stmt)
+                    else:
+                        for new in newimport:
+                            mod, func = new.split(".", 1)
+                            body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
+                        body.append(stmt)
+                        done = True
+            else:
+                for stmt in module.body:
+                    if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
+                        body.append(stmt)
+                    elif done:
+                        body.append(stmt)
+                    else:
+                        for new in newimport:
+                            mod, func = new.split(".", 1)
+                            body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
+                        body.append(stmt)
+                        done = True
+            module.body = body
+            return module
+        return node
 
 class ReplaceIsinstanceBaseType(ast.NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
@@ -92,6 +159,10 @@ class DetectFunctionCalls(ast.NodeTransformer):
     def __init__(self) -> None:
         ast.NodeTransformer.__init__(self)
         self.found: Dict[str, int] = {}
+        self.divs: int = 0
+    def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
+        self.divs += 1
+        return self.generic_visit(node)
     def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         calls: ast.Call = node
         if not isinstance(calls.func, ast.Name):
@@ -552,24 +623,30 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
         if REPLACE_FSTRING:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
+        if DEFINE_CALLABLE or DEFINE_PRINT_FUNCTION or DEFINE_FLOAT_DIVISION:
+            calls = DetectFunctionCalls()
+            calls.visit(tree)
+            if "callable" in calls.found and DEFINE_CALLABLE:
+                defs1 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
+                tree = defs1.visit(tree)
+            if "print" in calls.found and DEFINE_PRINT_FUNCTION:
+                defprint = RequireImportFrom(["__future__.print_function"])
+                tree = defprint.visit(tree)
+            if calls.divs and DEFINE_FLOAT_DIVISION:
+                defdivs = RequireImportFrom(["__future__.division"])
+                tree = defdivs.visit(tree)
         if DEFINE_RANGE:
             calls = DetectFunctionCalls()
             calls.visit(tree)
             if "range" in calls.found:
                 defs2 = DefineIfPython2(["range = xrange"])
                 tree = defs2.visit(tree)
-        if DEFINE_CALLABLE:
-            calls = DetectFunctionCalls()
-            calls.visit(tree)
-            if "callable" in calls.found:
-                defs3 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
-                tree = defs3.visit(tree)
         if DEFINE_BASESTRING:
             basetypes = ReplaceIsinstanceBaseType({"str": "basestring"})
             basetypes.visit(tree)
             if basetypes.replace:
-                defs4 = DefineIfPython3(basetypes.defines)
-                tree = defs4.visit(tree)
+                defs3 = DefineIfPython3(basetypes.defines)
+                tree = defs3.visit(tree)
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -609,8 +686,8 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
     settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
         "python-version": NIX, "pyi-version": NIX, "remove-typehints": 0, "remove-var-typehints": 0, # ..
         "remove-keywordonly": 0, "remove-positionalonly": 0, "remove-pyi-positionalonly": 0, # ..
-        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, "define-callable": 0, # ..
-        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0, # ..
+        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, "define-callable": 0, "define-print-function": 0, "define-float-division": 0, # ..
+        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0, "no-define-print-function": 0, "no-define-float-division": 0, # ..
         "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, }
     for configfile in files:
         if fs.isfile(configfile):
@@ -692,10 +769,14 @@ if __name__ == "__main__":
     cmdline.add_option("--define-range", action="count", default=defs["define-range"], help="3.0 define range() to xrange() iterator")
     cmdline.add_option("--define-basestring", action="count", default=defs["define-basestring"], help="3.0 isinstance(str) is basestring python2")
     cmdline.add_option("--define-callable", action="count", default=defs["define-callable"], help="3.2 callable(x) as in python2")
+    cmdline.add_option("--define-print-function", action="count", default=defs["define-print-function"], help="3.0 print() or from __future__")
+    cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
     cmdline.add_option("--no-define-callable", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
+    cmdline.add_option("--no-define-print-function", action="count", default=defs["no-define-print-function"], help="3.0 print() function")
+    cmdline.add_option("--no-define-float-division", action="count", default=defs["no-define-float-division"], help="3.0 float division")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
@@ -749,12 +830,20 @@ if __name__ == "__main__":
     if BACK_VERSION < 32 or opt.define_callable:
         if not opt.no_define_callable:
             DEFINE_CALLABLE = True
+    if BACK_VERSION < 30 or opt.define_print_function:
+        if not opt.no_define_print_function:
+            DEFINE_PRINT_FUNCTION = True
+    if BACK_VERSION < 30 or opt.define_float_division:
+        if not opt.no_define_float_division:
+            DEFINE_FLOAT_DIVISION = True
     if opt.show:
         logg.warning("%s = %s", "python-version-int", BACK_VERSION)
         logg.warning("%s = %s", "pyi-version-int", PYI_VERSION)
         logg.warning("%s = %s", "define-basestring", DEFINE_BASESTRING)
         logg.warning("%s = %s", "define-range", DEFINE_RANGE)
         logg.warning("%s = %s", "define-callable", DEFINE_CALLABLE)
+        logg.warning("%s = %s", "define-print-function", DEFINE_PRINT_FUNCTION)
+        logg.warning("%s = %s", "define-float-division", DEFINE_FLOAT_DIVISION)
         logg.warning("%s = %s", "replace-fstring", REPLACE_FSTRING)
         logg.warning("%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
         logg.warning("%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)

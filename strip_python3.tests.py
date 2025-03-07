@@ -1069,7 +1069,7 @@ class StripTest(unittest.TestCase):
         import sys
         def func1(x: Any):
             if callable(x):
-                print(x())
+                repr(x())
         """)
         run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1085,10 +1085,104 @@ class StripTest(unittest.TestCase):
         
         def func1(x):
             if callable(x):
-                print(x())
+                repr(x())
         """))
         self.coverage()
         self.rm_testdir()
+    def test_0331(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import sys
+        def func1(x: Any):
+            print(x())
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        from __future__ import print_function
+        import sys
+        
+        def func1(x):
+            print(x())
+        """))
+        self.coverage()
+        self.rm_testdir()
+    def test_0332(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        #! /usr/bin/env python
+        def func1(x: Any):
+            print(x())
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        #! /usr/bin/env python
+        from __future__ import print_function
+        
+        def func1(x):
+            print(x())
+        """))
+        self.coverage()
+        self.rm_testdir()
+    def test_0341(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import sys
+        def func1(x: Any):
+            repr(x / 2)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        from __future__ import division
+        import sys
+        
+        def func1(x):
+            repr(x / 2)
+        """))
+        self.coverage()
+        self.rm_testdir()
+    def test_0343(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import sys
+        def func1(x: Any):
+            print(x / 2)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        from __future__ import division
+        from __future__ import print_function
+        import sys
+        
+        def func1(x):
+            print(x / 2)
+        """))
+        self.coverage()
+        self.rm_testdir()
+
 
 def runtests() -> None:
     global PYTHON, KEEP, COVERAGE # pylint: disable=global-statement
