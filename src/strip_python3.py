@@ -937,13 +937,13 @@ def main() -> int:
     defs = read_defaults("pyproject.toml", "setup.cfg")
     from optparse import OptionParser # pylint: disable=deprecated-module, import-outside-toplevel
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip())
-    cmdline.formatter.max_help_position = 30
+    cmdline.formatter.max_help_position = 37
     cmdline.add_option("-v", "--verbose", action="count", default=defs["verbose"], help="increase logging level")
     cmdline.add_option("--pyi-version", metavar="3.6", default=defs["pyi-version"], help="set python version for py-includes")
     cmdline.add_option("--python-version", metavar="2.7", default=defs["python-version"], help="set python features by version")
     cmdline.add_option("--py36", action="count", default=0, help="keep features available since python3.6")
-    cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast operator")
-    cmdline.add_option("--remove-var-typehints", action="count", default=defs["remove-var-typehints"], help="only 3.6 variable annotations (for typehints)")
+    cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast()")
+    cmdline.add_option("--remove-var-typehints", action="count", default=defs["remove-var-typehints"], help="only 3.6 variable annotations (typehints)")
     cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--remove-pyi-positionalonly", action="count", default=defs["remove-pyi-positionalonly"], help="3.8 positionalonly parameters in *.pyi")
@@ -962,7 +962,7 @@ def main() -> int:
     cmdline.add_option("--no-define-callable", "--noc", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
     cmdline.add_option("--no-define-print-function", "--nop", action="count", default=defs["no-define-print-function"], help="3.0 print() function")
     cmdline.add_option("--no-define-float-division", "--nod", action="count", default=defs["no-define-float-division"], help="3.0 float division")
-    cmdline.add_option("--no-define-absolute-import", "--noa", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
+    cmdline.add_option("--no-define-absolute-import", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
     cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
     cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")

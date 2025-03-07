@@ -4,7 +4,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "0.5.1095"
+__version__ = "0.6.1095"
 
 from typing import List, Union, Optional, Iterator, NamedTuple
 import unittest
@@ -19,7 +19,7 @@ import datetime
 import time
 import logging
 logg = logging.getLogger(__name__.replace("/", "."))
-STRIP = "strip_python3.py"
+STRIP = "src/strip_python3.py"
 PYTHON = "python3.11"
 COVERAGE = 0
 KEEP = 0
