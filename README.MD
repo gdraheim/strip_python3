@@ -98,6 +98,16 @@ versions where it was not predefined (3.0 and 3.1)
 If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
 if python2 compatibility requested, as well as python3 older than 3.5.
 
+## datetime-fromisoformat
+
+If `datetime.datetime.fromisoformat` is used then it is replaced by `datetime_fromisodate`
+with boilerplate code if python2 or python3 older than 3.7.
+
+## subprocess-run
+
+If `subprocess.run` is used then it is replaced by `subprocess_run`
+with boilerplate code if python2 or python3 older than 3.5.
+
 ## remove-keywordsonly
 
 The keywordsonly syntax became available in python 3.0, so it need to be
