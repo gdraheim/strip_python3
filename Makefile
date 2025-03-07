@@ -9,8 +9,12 @@ PYTHON = python3.11
 TESTS = strip_python3.tests.py --python=$(PYTHON)
 V=-v
 
-all: tests
+all: help
 
+help:
+	$(PYTHON) strip_python3.py --help
+
+check: tests
 tests: ; $(PYTHON) $(TESTS) $V
 test_0%: ; $(PYTHON) $(TESTS) $V $@
 
@@ -30,4 +34,17 @@ version:
 	@ ver=`cat $F | sed -e '/__version__/!d' -e 's/.*= *"//' -e 's/".*//' -e q` \
 	; echo "# $(GIT) commit -m v$$ver"
 
+PIP3 = pip3
+
+ins install:
+	$(PIP3) install --no-compile --user .
+	$(MAKE) show | sed -e "s|[.][.]/[.][.]/[.][.]/bin|$$HOME/.local/bin|"
+
+uns uninstall: 
+	test -d tmp || mkdir -v tmp
+	set -x; $(PIP3) uninstall -y `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//'  pyproject.toml`
+
+show:
+	@ $(PIP3) show --files `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//' pyproject.toml` \
+	| sed -e "s:[^ ]*/[.][.]/\\([a-z][a-z]*\\)/:~/.local/\\1/:"
 

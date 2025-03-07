@@ -60,23 +60,26 @@ logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace
 
 OK = True
 NIX = ""
-FSTRING_NUMBERED = False
-SHOW_DUMP = 0
 
-REMOVE_VAR_TYPEHINTS = False
-REMOVE_TYPEHINTS = False
-REMOVE_KEYWORDONLY = False
-REMOVE_POSITIONAL = False
-REMOVE_PYI_POSITIONAL = False
-REPLACE_FSTRING = False
-DEFINE_RANGE = False
-DEFINE_BASESTRING = False
-DEFINE_CALLABLE = False
-DEFINE_PRINT_FUNCTION = False
-DEFINE_FLOAT_DIVISION = False
-DEFINE_ABSOLUTE_IMPORT = False
-DATETIME_FROMISOFORMAT = False
-SUBPROCESS_RUN = False
+class Want:
+    fstring_numbered = False
+    show_dump = 0
+    remove_var_typehints = False
+    remove_typehints = False
+    remove_keywordonly = False
+    remove_positional = False
+    remove_pyi_positional = False
+    replace_fstring = False
+    define_range = False
+    define_basestring = False
+    define_callable = False
+    define_print_function = False
+    define_float_division = False
+    define_absolute_import = False
+    datetime_fromisoformat = False
+    subprocess_run = False
+
+want = Want()
 
 def text4(content: str) -> str:
     if content.startswith("\n"):
@@ -425,7 +428,7 @@ class FStringToFormat(ast.NodeTransformer):
                         join: ast.JoinedStr = fmt.format_spec
                         for val in join.values:
                             if isinstance(val, ast.Constant):
-                                if FSTRING_NUMBERED:
+                                if want.fstring_numbered:
                                     form += "{%i%s:%s}" % (num, conv, val.value)
                                 else:
                                     form += "{%s:%s}" % (conv, val.value)
@@ -434,7 +437,7 @@ class FStringToFormat(ast.NodeTransformer):
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
-                    if FSTRING_NUMBERED:
+                    if want.fstring_numbered:
                         form += "{%i%s}" % (num, conv)
                     else:
                         form += "{%s}" %(conv)
@@ -467,7 +470,7 @@ class FStringToFormat(ast.NodeTransformer):
                         join: ast.JoinedStr = fmt.format_spec
                         for val in join.values:
                             if isinstance(val, ast.Constant):
-                                if FSTRING_NUMBERED:
+                                if want.fstring_numbered:
                                     form += "{%i%s:%s}" % (num, conv, val.value)
                                 else:
                                     form += "{%s:%s}" % (conv, val.value)
@@ -476,7 +479,7 @@ class FStringToFormat(ast.NodeTransformer):
                     else:
                         logg.error("unknown format_spec in f-string: %s", type(node))
                 else:
-                    if FSTRING_NUMBERED:
+                    if want.fstring_numbered:
                         form += "{%i%s}" % (num, conv)
                     else:
                         form += "{%s}" % (conv)
@@ -490,7 +493,7 @@ class FStringToFormat(ast.NodeTransformer):
 
 class StripHints(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        if not REMOVE_TYPEHINTS:
+        if not want.remove_typehints:
             return node
         imports: ast.ImportFrom = node
         logg.debug("-imports: %s", ast.dump(imports))
@@ -498,7 +501,7 @@ class StripHints(ast.NodeTransformer):
             return node # unchanged
         return None
     def visit_Call(self, node: ast.Call) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        if not REMOVE_TYPEHINTS:
+        if not want.remove_typehints:
             return self.generic_visit(node)
         calls: ast.Call = node
         logg.debug("-calls: %s", ast.dump(calls))
@@ -512,7 +515,7 @@ class StripHints(ast.NodeTransformer):
         logg.error("-bad cast: %s", ast.dump(node))
         return ast.Constant(None)
     def visit_AnnAssign(self, node: ast.AnnAssign) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        if not REMOVE_TYPEHINTS and not REMOVE_VAR_TYPEHINTS:
+        if not want.remove_typehints and not want.remove_var_typehints:
             return self.generic_visit(node)
         assign: ast.AnnAssign = node
         logg.debug("-assign: %s", ast.dump(assign))
@@ -535,7 +538,7 @@ class StripHints(ast.NodeTransformer):
         if OK:
             for arg in func.args.posonlyargs:
                 logg.debug("-pos arg: %s", ast.dump(arg))
-                if REMOVE_POSITIONAL:
+                if want.remove_positional:
                     functionargs.append(ast.arg(arg.arg))
                 else:
                     posonlyargs.append(ast.arg(arg.arg))
@@ -550,7 +553,7 @@ class StripHints(ast.NodeTransformer):
         if OK:
             for arg in func.args.kwonlyargs:
                 logg.debug("-kwo arg: %s", ast.dump(arg))
-                if REMOVE_KEYWORDONLY:
+                if want.remove_keywordonly:
                     functionargs.append(ast.arg(arg.arg))
                 else:
                     kwonlyargs.append(ast.arg(arg.arg))
@@ -565,7 +568,7 @@ class StripHints(ast.NodeTransformer):
                 annos += 1
             kwarg = ast.arg(kwarg.arg)
         old = 0
-        if func.args.kw_defaults and REMOVE_KEYWORDONLY:
+        if func.args.kw_defaults and want.remove_keywordonly:
             old += 1
         if not annos and not func.returns and not old:
             return self.generic_visit(node) # unchanged
@@ -574,7 +577,7 @@ class StripHints(ast.NodeTransformer):
                 defaults.append(exp)
         if OK:
             for kwexp in func.args.kw_defaults:
-                if REMOVE_KEYWORDONLY:
+                if want.remove_keywordonly:
                     if kwexp is not None:
                         defaults.append(kwexp)
                 else:
@@ -603,7 +606,7 @@ class TypeHints:
                 elif isinstance(child, ast.AnnAssign):
                     assign1: ast.AnnAssign = child
                     logg.debug("assign: %s", ast.dump(assign1))
-                    if REMOVE_TYPEHINTS or REMOVE_VAR_TYPEHINTS:
+                    if want.remove_typehints or want.remove_var_typehints:
                         if assign1.value is not None:
                             assign2 = ast.Assign(targets=[assign1.target], value=assign1.value)
                             assign2.lineno = assign1.lineno
@@ -622,7 +625,7 @@ class TypeHints:
                         if isinstance(part, ast.AnnAssign):
                             assign: ast.AnnAssign = part
                             logg.debug("assign: %s", ast.dump(assign))
-                            if REMOVE_TYPEHINTS or REMOVE_VAR_TYPEHINTS:
+                            if want.remove_typehints or want.remove_var_typehints:
                                 if assign.value is not None:
                                     assign2 = ast.Assign(targets=[assign.target], value=assign.value)
                                     assign2.lineno = assign.lineno
@@ -672,7 +675,7 @@ class TypeHints:
                                 stmt.append(func)
                             else:
                                 logg.debug("args: %s", ast.dump(func.args))
-                                if not REMOVE_TYPEHINTS:
+                                if not want.remove_typehints:
                                     rets2 = func.returns
                                     args2 = func.args
                                 else:
@@ -683,9 +686,9 @@ class TypeHints:
                                 func2.lineno = func.lineno
                                 stmt.append(func2)
                                 args3 = func.args
-                                if posonlyargs and REMOVE_PYI_POSITIONAL:
-                                    posonlyargs3: List[ast.arg] = posonlyargs if not REMOVE_PYI_POSITIONAL else []
-                                    functionargs3 = functionargs if not REMOVE_PYI_POSITIONAL else posonlyargs + functionargs
+                                if posonlyargs and want.remove_pyi_positional:
+                                    posonlyargs3: List[ast.arg] = posonlyargs if not want.remove_pyi_positional else []
+                                    functionargs3 = functionargs if not want.remove_pyi_positional else posonlyargs + functionargs
                                     args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, kwonlyargs, # ..
                                            func.args.kw_defaults, kwarg, func.args.defaults)
                                 func3 = ast.FunctionDef(func.name, args3, [ast.Pass()], func.decorator_list, func.returns)
@@ -712,7 +715,7 @@ class TypeHints:
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
-def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) -> int:
+def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
@@ -722,25 +725,25 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
         tree = types.visit(tree1)
         strip = StripHints()
         tree = strip.visit(tree)
-        if REPLACE_FSTRING:
+        if want.replace_fstring:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
-        if DEFINE_CALLABLE or DEFINE_PRINT_FUNCTION or DEFINE_FLOAT_DIVISION or DATETIME_FROMISOFORMAT or SUBPROCESS_RUN:
+        if want.define_callable or want.define_print_function or want.define_float_division or want.datetime_fromisoformat or want.subprocess_run:
             calls = DetectFunctionCalls()
             calls.visit(tree)
-            if SHOW_DUMP:
+            if want.show_dump:
                 logg.log(HINT, "detected module imports:\n%s", "\n".join(calls.imported.keys()))
                 logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
-            if "callable" in calls.found and DEFINE_CALLABLE:
+            if "callable" in calls.found and want.define_callable:
                 defs1 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
                 tree = defs1.visit(tree)
-            if "print" in calls.found and DEFINE_PRINT_FUNCTION:
+            if "print" in calls.found and want.define_print_function:
                 defprint = RequireImportFrom(["__future__.print_function"])
                 tree = defprint.visit(tree)
-            if calls.divs and DEFINE_FLOAT_DIVISION:
+            if calls.divs and want.define_float_division:
                 defdivs = RequireImportFrom(["__future__.division"])
                 tree = defdivs.visit(tree)
-            if "datetime.datetime.fromisoformat" in calls.found and DATETIME_FROMISOFORMAT:
+            if "datetime.datetime.fromisoformat" in calls.found and want.datetime_fromisoformat:
                 datetime_module = calls.imported["datetime.datetime"]
                 fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
                 isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=text4(F"""
@@ -760,7 +763,7 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 """))
                 isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
-            if "subprocess.run" in calls.found and SUBPROCESS_RUN:
+            if "subprocess.run" in calls.found and want.subprocess_run:
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
                 isoformatdef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
@@ -794,31 +797,31 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 """))
                 isoformatfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
-        if DEFINE_ABSOLUTE_IMPORT:
+        if want.define_absolute_import:
             imps = DetectImportFrom()
             imps.visit(tree)
             relative = [imp for imp in imps.found if imp.startswith(".")]
             if relative:
                 defimps = RequireImportFrom(["__future__.absolute_import"])
                 tree = defimps.visit(tree)
-        if DEFINE_RANGE:
+        if want.define_range:
             calls = DetectFunctionCalls()
             calls.visit(tree)
             if "range" in calls.found:
                 defs2 = DefineIfPython2(["range = xrange"])
                 tree = defs2.visit(tree)
-        if DEFINE_BASESTRING:
+        if want.define_basestring:
             basetypes = ReplaceIsinstanceBaseType({"str": "basestring"})
             basetypes.visit(tree)
             if basetypes.replace:
                 defs3 = DefineIfPython3(basetypes.defines)
                 tree = defs3.visit(tree)
-        if SHOW_DUMP:
+        if want.show_dump:
             logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
-        if SHOW_DUMP > 1:
+        if want.show_dump > 1:
             logg.log(NOTE, "%s: (after transformations)\n%s", arg, beautify_dump(ast.dump(tree)))
         done = ast.unparse(tree)
-        if SHOW_DUMP > 2:
+        if want.show_dump > 2:
             logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
         if outfile:
             out = outfile
@@ -930,9 +933,9 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
     return settings
 
-if __name__ == "__main__":
+def main() -> int:
     defs = read_defaults("pyproject.toml", "setup.cfg")
-    from optparse import OptionParser # pylint: disable=deprecated-module
+    from optparse import OptionParser # pylint: disable=deprecated-module, import-outside-toplevel
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip())
     cmdline.formatter.max_help_position = 30
     cmdline.add_option("-v", "--verbose", action="count", default=defs["verbose"], help="increase logging level")
@@ -974,81 +977,84 @@ if __name__ == "__main__":
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
-    PYI_VERSION = 36
+    pyi_version = 36
     if opt.pyi_version:
         if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
-            PYI_VERSION = int(opt.pyi_version[0]) * 10 + int(opt.pyi_version[2:])
+            pyi_version = int(opt.pyi_version[0]) * 10 + int(opt.pyi_version[2:])
         else:
             logg.error("unknown --pyi-version %s", opt.pyi_version)
-    BACK_VERSION = 27
+    back_version = 27
     if opt.py36:
-        BACK_VERSION = 36
+        back_version = 36
     elif opt.python_version:
         if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
-            BACK_VERSION = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
+            back_version = int(opt.python_version[0]) * 10 + int(opt.python_version[2:])
         else:
             logg.error("unknown --python-version %s", opt.python_version)
-    logg.debug("BACK_VERSION %s PYI_VERSION %s", BACK_VERSION, PYI_VERSION)
-    if PYI_VERSION < 38 or opt.remove_pyi_positionalonly:
+    logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
+    if pyi_version < 38 or opt.remove_pyi_positionalonly:
         if not opt.no_remove_pyi_positionalonly:
-            REMOVE_PYI_POSITIONAL = True
-    if BACK_VERSION < 38 or opt.remove_positionalonly:
+            want.remove_pyi_positional = True
+    if back_version < 38 or opt.remove_positionalonly:
         if not opt.no_remove_positionalonly:
-            REMOVE_POSITIONAL = True
-    if BACK_VERSION < 30 or opt.remove_keywordonly:
+            want.remove_positional = True
+    if back_version < 30 or opt.remove_keywordonly:
         if not opt.no_remove_keywordonly:
-            REMOVE_KEYWORDONLY = True
-    if BACK_VERSION < 36 or opt.remove_typehints or opt.remove_var_typehints:
-        REMOVE_VAR_TYPEHINTS = True
-    if BACK_VERSION < 35 or opt.remove_typehints:
-        REMOVE_TYPEHINTS = True
-    if BACK_VERSION < 36 or opt.replace_fstring:
+            want.remove_keywordonly = True
+    if back_version < 36 or opt.remove_typehints or opt.remove_var_typehints:
+        want.remove_var_typehints = True
+    if back_version < 35 or opt.remove_typehints:
+        want.remove_typehints = True
+    if back_version < 36 or opt.replace_fstring:
         if not opt.no_replace_fstring:
-            REPLACE_FSTRING = True
+            want.replace_fstring = True
             if opt.replace_fstring > 1:
-                FSTRING_NUMBERED = True
-    if BACK_VERSION < 30 or opt.define_range:
+                want.fstring_numbered = True
+    if back_version < 30 or opt.define_range:
         if not opt.no_define_range:
-            DEFINE_RANGE = True
-    if BACK_VERSION < 30 or opt.define_basestring:
+            want.define_range = True
+    if back_version < 30 or opt.define_basestring:
         if not opt.no_define_basestring:
-            DEFINE_BASESTRING = True
-    if BACK_VERSION < 32 or opt.define_callable:
+            want.define_basestring = True
+    if back_version < 32 or opt.define_callable:
         if not opt.no_define_callable:
-            DEFINE_CALLABLE = True
-    if BACK_VERSION < 30 or opt.define_print_function:
+            want.define_callable = True
+    if back_version < 30 or opt.define_print_function:
         if not opt.no_define_print_function:
-            DEFINE_PRINT_FUNCTION = True
-    if BACK_VERSION < 30 or opt.define_float_division:
+            want.define_print_function = True
+    if back_version < 30 or opt.define_float_division:
         if not opt.no_define_float_division:
-            DEFINE_FLOAT_DIVISION = True
-    if BACK_VERSION < 30 or opt.define_absolute_import:
+            want.define_float_division = True
+    if back_version < 30 or opt.define_absolute_import:
         if not opt.no_define_absolute_import:
-            DEFINE_ABSOLUTE_IMPORT = True
-    if BACK_VERSION < 37 or opt.datetime_fromisoformat:
+            want.define_absolute_import = True
+    if back_version < 37 or opt.datetime_fromisoformat:
         if not opt.no_datetime_fromisoformat:
-            DATETIME_FROMISOFORMAT = True
-    if BACK_VERSION < 35 or opt.subprocess_run:
+            want.datetime_fromisoformat = True
+    if back_version < 35 or opt.subprocess_run:
         if not opt.no_subprocess_run:
-            SUBPROCESS_RUN = True
+            want.subprocess_run = True
     if opt.show:
-        logg.log(NOTE, "%s = %s", "python-version-int", BACK_VERSION)
-        logg.log(NOTE, "%s = %s", "pyi-version-int", PYI_VERSION)
-        logg.log(NOTE, "%s = %s", "define-basestring", DEFINE_BASESTRING)
-        logg.log(NOTE, "%s = %s", "define-range", DEFINE_RANGE)
-        logg.log(NOTE, "%s = %s", "define-callable", DEFINE_CALLABLE)
-        logg.log(NOTE, "%s = %s", "define-print-function", DEFINE_PRINT_FUNCTION)
-        logg.log(NOTE, "%s = %s", "define-float-division", DEFINE_FLOAT_DIVISION)
-        logg.log(NOTE, "%s = %s", "define-absolute-import", DEFINE_ABSOLUTE_IMPORT)
-        logg.log(NOTE, "%s = %s", "replace-fstring", REPLACE_FSTRING)
-        logg.log(NOTE, "%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
-        logg.log(NOTE, "%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)
-        logg.log(NOTE, "%s = %s", "remove-pyi-positionalonly", REMOVE_PYI_POSITIONAL)
-        logg.log(NOTE, "%s = %s", "remove-var-typehints", REMOVE_VAR_TYPEHINTS)
-        logg.log(NOTE, "%s = %s", "remove-typehints", REMOVE_TYPEHINTS)
+        logg.log(NOTE, "%s = %s", "python-version-int", back_version)
+        logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
+        logg.log(NOTE, "%s = %s", "define-basestring", want.define_basestring)
+        logg.log(NOTE, "%s = %s", "define-range", want.define_range)
+        logg.log(NOTE, "%s = %s", "define-callable", want.define_callable)
+        logg.log(NOTE, "%s = %s", "define-print-function", want.define_print_function)
+        logg.log(NOTE, "%s = %s", "define-float-division", want.define_float_division)
+        logg.log(NOTE, "%s = %s", "define-absolute-import", want.define_absolute_import)
+        logg.log(NOTE, "%s = %s", "replace-fstring", want.replace_fstring)
+        logg.log(NOTE, "%s = %s", "remove-keywordsonly", want.remove_keywordonly)
+        logg.log(NOTE, "%s = %s", "remove-positionalonly", want.remove_positional)
+        logg.log(NOTE, "%s = %s", "remove-pyi-positionalonly", want.remove_pyi_positional)
+        logg.log(NOTE, "%s = %s", "remove-var-typehints", want.remove_var_typehints)
+        logg.log(NOTE, "%s = %s", "remove-typehints", want.remove_typehints)
     if opt.dump:
-        SHOW_DUMP = int(opt.dump)
-    _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
-    _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
-    _EACHFILE |= EACH_INPLACE if opt.inplace else 0
-    sys.exit(main(cmdline_args, eachfile=_EACHFILE, outfile=opt.outfile, pyi=opt.pyi))
+        want.show_dump = int(opt.dump)
+    eachfile = EACH_REMOVE3 if opt.remove3 else 0
+    eachfile |= EACH_APPEND2 if opt.append2 else 0
+    eachfile |= EACH_INPLACE if opt.inplace else 0
+    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=opt.pyi)
+
+if __name__ == "__main__":
+    sys.exit(main())
