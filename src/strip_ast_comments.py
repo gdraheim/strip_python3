@@ -10,10 +10,10 @@ import sys
 import tokenize
 import typing as _t
 # from ast import *  # noqa: F401,F403
-from ast import AST, Add, And, AnnAssign, Assign, AsyncFor, AsyncFunctionDef, AsyncWith, Attribute, AugAssign, AugLoad, AugStore, Await, BinOp, BitAnd, BitOr, BitXor, BoolOp, Break, Bytes, Call, ClassDef, Compare, Constant, Continue,Del, Delete, Dict, DictComp, Div, Ellipsis, Eq, ExceptHandler, Expr, Expression, ExtSlice, FloorDiv, For, FormattedValue, FunctionDef, FunctionType, GeneratorExp, Global, Gt, GtE, If, IfExp, Import, ImportFrom, In, Index, Interactive, Invert, Is, IsNot, JoinedStr, LShift, Lambda, List, ListComp, Load, Lt, LtE, MatMult, Match, MatchAs, MatchClass, MatchMapping, MatchOr, MatchSequence, MatchSingleton, MatchStar, MatchValue, Mod, Module, Mult, Name, NameConstant, NamedExpr, NodeTransformer, NodeVisitor, Nonlocal, Not, NotEq, NotIn, Num, Or, Param, Pass, Pow, alias, arg, arguments 
+from ast import AST, Add, And, AnnAssign, Assign, AsyncFor, AsyncFunctionDef, AsyncWith, Attribute, AugAssign, AugLoad, AugStore, Await, BinOp, BitAnd, BitOr, BitXor, BoolOp, Break, Bytes, Call, ClassDef, Compare, Constant, Continue,Del, Delete, Dict, DictComp, Div, Ellipsis, Eq, ExceptHandler, Expr, Expression, ExtSlice, FloorDiv, For, FormattedValue, FunctionDef, FunctionType, GeneratorExp, Global, Gt, GtE, If, IfExp, Import, ImportFrom, In, Index, Interactive, Invert, Is, IsNot, JoinedStr, LShift, Lambda, List, ListComp, Load, Lt, LtE, MatMult, Match, MatchAs, MatchClass, MatchMapping, MatchOr, MatchSequence, MatchSingleton, MatchStar, MatchValue, Mod, Module, Mult, Name, NameConstant, NamedExpr, NodeTransformer, NodeVisitor, Nonlocal, Not, NotEq, NotIn, Num, Or, Param, Pass, Pow, RShift, Raise, Return, Set, SetComp,Slice, Starred, Store, Str, Sub, Subscript, Suite, Try, Tuple, UAdd, USub, UnaryOp, While, With, Yield, YieldFrom  
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 11:
     from ast import IntEnum # type: ignore[attr-defined]
-from ast import dump, stmt, expr
+from ast import dump, stmt, expr, alias, arg, arguments
 from collections.abc import Iterable
 
 
