@@ -114,6 +114,12 @@ with boilerplate code if python2 or python3 older than 3.7.
 If `subprocess.run` is used then it is replaced by `subprocess_run`
 with boilerplate code if python2 or python3 older than 3.5.
 
+## import-pathlib2
+
+If `import pathlib` is used then it is replaced by `import pathlib2`
+if python2 compatiblity is requested. Pathlib exists since python 3.3
+but there is a backport available (to be installed seperately)
+
 ## remove-keywordsonly
 
 The keywordsonly syntax became available in python 3.0, so it need to be

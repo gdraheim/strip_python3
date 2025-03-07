@@ -14,6 +14,8 @@ import typing as _t
 from ast import AST, Add, And, AnnAssign, Assign, AsyncFor, AsyncFunctionDef, AsyncWith, Attribute, AugAssign, AugLoad, AugStore, Await, BinOp, BitAnd, BitOr, BitXor, BoolOp, Break, Call, ClassDef, Compare, Constant, Continue,Del, Delete, Dict, DictComp, Div, Ellipsis, Eq, ExceptHandler, Expr, Expression, ExtSlice, FloorDiv, For, FormattedValue, FunctionDef, GeneratorExp, Global, Gt, GtE, If, IfExp, Import, ImportFrom, In, Index, Interactive, Invert, Is, IsNot, JoinedStr, LShift, Lambda, List, ListComp, Load, Lt, LtE, MatMult, Mod, Module, Mult, Name, NodeTransformer, NodeVisitor, Nonlocal, Not, NotEq, NotIn, Or, Param, Pass, Pow, RShift, Raise, Return, Set, SetComp,Slice, Starred, Store, Sub, Subscript, Suite, Try, Tuple, UAdd, USub, UnaryOp, While, With, Yield, YieldFrom  
 if sys.version_info[0] == 3 and sys.version_info[1] < 8:
     from ast import Num, Str, Bytes, NameConstant # replaced by ast.Constant
+else:
+    Num, Str, Bytes = Constant, Constant, Constant
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from ast import FunctionType, NamedExpr
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 10:

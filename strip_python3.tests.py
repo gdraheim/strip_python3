@@ -1534,6 +1534,57 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_0421(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import pathlib
+        def func1(x: str) -> pathlib.PurePath:
+            return pathlib.PurePath(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 3):
+            import pathlib2 as pathlib
+        else:
+            import pathlib
+        
+        def func1(x):
+            return pathlib.PurePath(x)
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0422(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import pathlib as fs
+        def func1(x: str) -> fs.PurePath:
+            return fs.PurePath(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 3):
+            import pathlib2 as fs
+        else:
+            import pathlib as fs
+        
+        def func1(x):
+            return fs.PurePath(x)
+        """)))
+        self.coverage()
+        self.rm_testdir()
+
     def test_0999(self) -> None:
         if COVERAGE:
             coverage3 = PYTHON + " -m coverage "

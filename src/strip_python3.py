@@ -79,6 +79,7 @@ class Want:
     define_absolute_import = False
     datetime_fromisoformat = False
     subprocess_run = False
+    import_pathlib2 = False
 
 want = Want()
 
@@ -191,14 +192,17 @@ class ReplaceIsinstanceBaseType(ast.NodeTransformer):
         return self.generic_visit(node)
 
 class DetectFunctionCalls(ast.NodeTransformer):
-    def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
+    def __init__(self, replace: Optional[Dict[str, str]] = None, noimport: Optional[List[str]] = None) -> None:
         ast.NodeTransformer.__init__(self)
         self.imported: Dict[str, str] = {}
         self.importas: Dict[str, str] = {}
         self.found: Dict[str, int] = {}
         self.divs: int = 0
         self.replace = replace if replace is not None else {}
-    def visit_Import(self, node: ast.Import) -> ast.AST:  # pylint: disable=invalid-name
+        self.noimport = noimport if noimport is not None else []
+    def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        if node.names and node.names[0].name in self.noimport:
+            return None # to remove the node
         for alias in node.names:
             if alias.asname:
                 self.imported[alias.name] = alias.asname
@@ -286,8 +290,14 @@ class DefineIfPython2:
             body: List[ast.stmt] = []
             before_imports = True
             after_append = False
+            count_imports = 0
             for stmt in module1.body:
                 if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import):
+                    count_imports += 1
+            if not count_imports:
+                before_imports = False
+            for stmt in module1.body:
+                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import) or isinstance(stmt, ast.Comment):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
@@ -357,8 +367,14 @@ class DefineIfPython3:
             body: List[ast.stmt] = []
             before_imports = True
             after_append = False
+            count_imports = 0
             for stmt in module1.body:
                 if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import):
+                    count_imports += 1
+            if not count_imports:
+                before_imports = False
+            for stmt in module1.body:
+                if isinstance(stmt, ast.ImportFrom) or isinstance(stmt, ast.Import) or isinstance(stmt, ast.Comment):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
@@ -767,7 +783,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if "subprocess.run" in calls.found and want.subprocess_run:
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
-                isoformatdef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
+                subprocessrundef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
                 class CalledProcessError({subprocess_module}.SubprocessError):
                     def __init__(self, args, returncode, stdout, stderr):
                         self.cmd = args
@@ -796,8 +812,15 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                         completed.check_returncode()
                     return completed
                 """))
-                isoformatfunc = DetectFunctionCalls({"subprocess.run": defname})
-                tree = isoformatdef.visit(isoformatfunc.visit(tree))
+                subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
+                tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
+            if "pathlib" in calls.imported and want.import_pathlib2:
+                logg.fatal("detected pathlib")
+                pathlibname = calls.imported["pathlib"]
+                pathlibdef = DefineIfPython2([F"import pathlib2 as {pathlibname}"], before=(3,3), # ..
+                   orelse=text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}"""))
+                pathlibdrop = DetectFunctionCalls(noimport=["pathlib"])
+                tree = pathlibdef.visit(pathlibdrop.visit(tree))
         if want.define_absolute_import:
             imps = DetectImportFrom()
             imps.visit(tree)
@@ -871,7 +894,8 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0,  # ..
         "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0,
         "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0,
-        "subprocess-run": 0, "no-subprocess-run": 0, }
+        "subprocess-run": 0, "no-subprocess-run": 0, 
+        "import-pathlib2": 0, "no-import-pathlib2": 0, }
     for configfile in files:
         if fs.isfile(configfile):
             if configfile.endswith(".toml"):
@@ -954,6 +978,7 @@ def main() -> int:
     cmdline.add_option("--no-define-absolute-import", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
     cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
     cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
+    cmdline.add_option("--no-import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib to python2 pathlib2")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
@@ -966,6 +991,7 @@ def main() -> int:
     cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
     cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
     cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or boilerplate")
+    cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib")
     cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
     cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
@@ -1041,6 +1067,9 @@ def main() -> int:
     if back_version < 35 or opt.subprocess_run:
         if not opt.no_subprocess_run:
             want.subprocess_run = True
+    if back_version < 33 or opt.import_pathlib2:
+        if not opt.no_import_pathlib2:
+            want.import_pathlib2 = True
     if opt.show:
         logg.log(NOTE, "%s = %s", "python-version-int", back_version)
         logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
