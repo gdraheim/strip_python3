@@ -8,6 +8,7 @@ GIT = git
 PYTHON3 = python3
 PYTHON = python3.11
 PYTHON_VERSION = 3.11
+TWINE = twine-3.11
 AST4_PY = src/strip_ast_comments.py
 TESTS_PY = strip_python3.tests.py
 TESTS = $(TESTS_PY) --python=$(PYTHON)
@@ -46,6 +47,15 @@ version:
 	; echo "# $(GIT) commit -m v$$ver"
 
 PIP3 = pip3
+
+.PHONY: build
+build:
+	- rm -rf build dist *.egg-info
+	$(MAKE) tmp/README.MD
+	# $(PIP3) install --root=~/local . -v --no-compile
+	$(PYTHON) -m build
+	$(TWINE) check dist/*
+	: $(TWINE) upload dist/*
 
 tmp/README.MD: README.MD Makefile
 	@ test -d tmp || mkdir tmp

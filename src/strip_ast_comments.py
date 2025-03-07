@@ -1,4 +1,4 @@
-# pylint: disable=unused-import,unused-argument,missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,trailing-whitespace,protected-access,invalid-name,wrong-import-position
+# pylint: disable=unused-import,unused-argument,missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,trailing-whitespace,protected-access,invalid-name,wrong-import-position,redefined-builtin
 # https://github.com/t3rn0/ast-comments/blob/master/ast_comments.py
 # mypy: ignore-errors
 __author__ = "Dmitry Makarov (t3rn0@github)"
