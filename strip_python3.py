@@ -725,9 +725,12 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
         if REPLACE_FSTRING:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
-        if DEFINE_CALLABLE or DEFINE_PRINT_FUNCTION or DEFINE_FLOAT_DIVISION:
+        if DEFINE_CALLABLE or DEFINE_PRINT_FUNCTION or DEFINE_FLOAT_DIVISION or DATETIME_FROMISOFORMAT or SUBPROCESS_RUN:
             calls = DetectFunctionCalls()
             calls.visit(tree)
+            if SHOW_DUMP:
+                logg.log(HINT, "detected module imports:\n%s", "\n".join(calls.imported.keys()))
+                logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
             if "callable" in calls.found and DEFINE_CALLABLE:
                 defs1 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
                 tree = defs1.visit(tree)
@@ -738,7 +741,7 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 defdivs = RequireImportFrom(["__future__.division"])
                 tree = defdivs.visit(tree)
             if "datetime.datetime.fromisoformat" in calls.found and DATETIME_FROMISOFORMAT:
-                datetime_module = calls.importas["datetime.datetime"]
+                datetime_module = calls.imported["datetime.datetime"]
                 fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
                 isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=text4(F"""
                 def {fromisoformat}(x):
@@ -758,7 +761,7 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
             if "subprocess.run" in calls.found and SUBPROCESS_RUN:
-                subprocess_module = calls.importas["subprocess"]
+                subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
                 isoformatdef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
                 class CalledProcessError({subprocess_module}.SubprocessError):
@@ -791,8 +794,6 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                 """))
                 isoformatfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
-            if SHOW_DUMP:
-                logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
         if DEFINE_ABSOLUTE_IMPORT:
             imps = DetectImportFrom()
             imps.visit(tree)

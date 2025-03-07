@@ -1293,6 +1293,53 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_0402(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import datetime.datetime as Time
+        def func1(x: x) -> datetime.datetime:
+            return Time.fromisoformat(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        import datetime.datetime as Time
+        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
+
+            def Time_fromisoformat(x):
+                return Time.fromisoformat(x)
+        else:
+        
+            def Time_fromisoformat(x):
+                import re
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d\\\\d\\\\d\\\\d)', x)
+                if m:
+                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d)', x)
+                if m:
+                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d)', x)
+                if m:
+                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d)', x)
+                if m:
+                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)))))
+                m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d)', x)
+                if m:
+                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)))))
+                raise ValueError('not a datetime isoformat: ' + x)
+        
+        def func1(x):
+            return Time_fromisoformat(x)
+        """)))
+        self.coverage()
+        self.rm_testdir()
+
     def test_0411(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
