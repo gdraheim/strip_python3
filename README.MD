@@ -114,8 +114,15 @@ The pyi typehint include files are usually generated to be compatible for
 `--pyi-version=3.6`. That requires the positionalonly syntax to be
 removed in that file as well.
 
+## remove-var-typehints
 
+The var typehints became available in python 3.6, so they need to be
+removed for older python3 (or python2)
 
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = False
-        WARNING:strip:remove-typehints = False
+## remove-typehints
+
+The function annotations became available in python 3.0, so they need to
+be removed for python2. Note that the typehints syntax became available
+in python 3.5 - before that the "typing" module did not exist.
+
+...
