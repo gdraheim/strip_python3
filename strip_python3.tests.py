@@ -283,8 +283,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 27
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (2, 7)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = True
         NOTE:strip:define-range = True
         NOTE:strip:define-callable = True
@@ -305,8 +305,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 36
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -332,8 +332,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 36
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -359,8 +359,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -387,8 +387,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -415,8 +415,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -452,8 +452,8 @@ class StripTest(unittest.TestCase):
         pyproject.toml[pyi-version]: expecting str but found <class 'int'>
         pyproject.toml[define-basestring]: expecting int but found <class 'datetime.datetime'>
         pyproject.toml[define-unknown]: unknown setting found
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = True
         NOTE:strip:define-callable = False
@@ -479,8 +479,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 36
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -506,8 +506,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -534,8 +534,8 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
         self.assertEqual(run.stderr, text4("""
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = False
         NOTE:strip:define-callable = False
@@ -568,8 +568,8 @@ class StripTest(unittest.TestCase):
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         setup.cfg[define-basestring]: expecting int but found unknown
         setup.cfg[define-unknown]: unknown setting found
-        NOTE:strip:python-version-int = 35
-        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = False
         NOTE:strip:define-range = True
         NOTE:strip:define-callable = False
@@ -1581,6 +1581,56 @@ class StripTest(unittest.TestCase):
         
         def func1(x):
             return fs.PurePath(x)
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0431(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import tomllib
+        def func1(x: str) -> Dict[str, Any]:
+            return tomllib.loads(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 11):
+            import toml as tomllib
+        else:
+            import tomllib
+        
+        def func1(x):
+            return tomllib.loads(x)
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0432(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import tomllib as toml
+        def func1(x: str) -> Dict[str, Any]:
+            return toml.loads(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 11):
+            import toml as toml
+        else:
+            import tomllib as toml
+        
+        def func1(x):
+            return toml.loads(x)
         """)))
         self.coverage()
         self.rm_testdir()
