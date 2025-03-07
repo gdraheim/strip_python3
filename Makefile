@@ -47,7 +47,13 @@ version:
 
 PIP3 = pip3
 
+tmp/README.MD: README.MD Makefile
+	@ test -d tmp || mkdir tmp
+	cat $(notdir $@) | sed -e "/\\/badge/d" > $@
+
 ins install:
+	$(MAKE) tmp/README.MD
+	test ! -d build || rm -rf build
 	$(PIP3) install --no-compile --user .
 	$(MAKE) show | sed -e "s|[.][.]/[.][.]/[.][.]/bin|$$HOME/.local/bin|"
 

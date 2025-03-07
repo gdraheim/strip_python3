@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 name = "strip_python3"
 version = "0.8.1095"
 description = ""
-readme = { "file" = "README.MD", content-type = "text/markdown" }
+readme = { "file" = "tmp/README.MD", content-type = "text/markdown" }
 license = { file = "LICENSE" }
 authors = [ { name = "Guido U. Draheim", "email" = "Guido.Draheim@gmx.de" }]
 classifiers = [
