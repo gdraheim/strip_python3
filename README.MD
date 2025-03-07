@@ -108,12 +108,6 @@ removed for python2
 The postionalonly syntax became available in python 3.8, so it need to be
 removed for python2 and python3 older than 3.8
 
-## remove-pyi-positionalonly
-
-The pyi typehint include files are usually generated to be compatible for
-`--pyi-version=3.6`. That requires the positionalonly syntax to be
-removed in that file as well.
-
 ## remove-var-typehints
 
 The var typehints became available in python 3.6, so they need to be
@@ -126,3 +120,44 @@ be removed for python2. Note that the typehints syntax became available
 in python 3.5 - before that the "typing" module did not exist.
 
 ...
+
+# pyi typehint include files generation
+
+The `"*.pyi"` file generation needs to be requested with the "--pyi" commandline option.
+
+The transformations are automatically selected by the minimum target python version
+that is given by --pyi-version=3.6 (which is the default). 
+
+## remove-pyi-positionalonly
+
+The postionalonly syntax became available in python 3.8, so it need to be
+removed for python3 compatiblity older than 3.8.
+
+## outer interface only
+
+Note that not all variable annotations and function typehints are being exported.
+
+Only the global variables and classes, and the direct class methods and member
+annotations are reproduced in the "*.pyi" typehints file. That's good enough for
+type checkers that want to know the type of imported elements in the "*.py" file.
+
+Be aware that there is no type inference done for global variables without a
+type annotation. They will simply not exist in the pyi typehints file.
+
+## option -2 and option -3
+
+If you only provide one input file on the commandline then you can select the
+output file as `"-o output.py"`. If no output is selected then all input files
+are converted and printed to standard output.
+
+If multiple files are provided on the command line then the output file is
+selected based on "-1" or "-2" or "-3", where "-1" means to modify the file
+in place (i.e. overwrite it).
+
+If all your files are named like "myfile3.py" then "-3" will remove the 3
+and each output file will be named like "myfile.py" and "myfile.pyi". Otherwise 
+let "-2" append a "_2" so that "myfile.py" becomes "myfile_2.py" and "myfile_2.pyi"
+after transformations.
+
+
+
