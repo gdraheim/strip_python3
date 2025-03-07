@@ -255,6 +255,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = True
         WARNING:strip:define-print-function = True
         WARNING:strip:define-float-division = True
+        WARNING:strip:define-absolute-import = True
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = True
         WARNING:strip:remove-positionalonly = True
@@ -274,6 +275,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -298,6 +300,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -322,6 +325,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -347,6 +351,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -372,6 +377,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -397,6 +403,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -421,6 +428,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = False
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -445,6 +453,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -470,6 +479,7 @@ class StripTest(unittest.TestCase):
         WARNING:strip:define-callable = False
         WARNING:strip:define-print-function = False
         WARNING:strip:define-float-division = False
+        WARNING:strip:define-absolute-import = False
         WARNING:strip:replace-fstring = True
         WARNING:strip:remove-keywordsonly = False
         WARNING:strip:remove-positionalonly = True
@@ -1212,6 +1222,32 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
+    def test_0353(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        from .exceptions import MyException
+        def func1(x: Any):
+            print(x / 2)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        from __future__ import absolute_import
+        from __future__ import division
+        from __future__ import print_function
+        from .exceptions import MyException
+        
+        def func1(x):
+            print(x / 2)
+        """))
+        self.coverage()
+        self.rm_testdir()
+
 
 
 def runtests() -> None:

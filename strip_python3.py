@@ -67,6 +67,7 @@ DEFINE_BASESTRING = False
 DEFINE_CALLABLE = False
 DEFINE_PRINT_FUNCTION = False
 DEFINE_FLOAT_DIVISION = False
+DEFINE_ABSOLUTE_IMPORT = False
 
 class DetectImportFrom(ast.NodeTransformer):
     def __init__(self) -> None:
@@ -75,11 +76,12 @@ class DetectImportFrom(ast.NodeTransformer):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.ImportFrom = node
         if imports.module:
-            if imports.module not in self.found:
-                self.found[imports.module] = {}
+            modulename = ("." * imports.level) + imports.module
+            if modulename not in self.found:
+                self.found[modulename] = {}
             for symbol in imports.names:
-                if symbol.name not in self.found[imports.module]:
-                    self.found[imports.module][symbol.name] = symbol.asname or symbol.name
+                if symbol.name not in self.found[modulename]:
+                    self.found[modulename][symbol.name] = symbol.asname or symbol.name
         return self.generic_visit(node)
 
 class RequireImportFrom:
@@ -635,6 +637,13 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             if calls.divs and DEFINE_FLOAT_DIVISION:
                 defdivs = RequireImportFrom(["__future__.division"])
                 tree = defdivs.visit(tree)
+        if DEFINE_ABSOLUTE_IMPORT:
+            imps = DetectImportFrom()
+            imps.visit(tree)
+            relative = [imp for imp in imps.found if imp.startswith(".")]
+            if relative:
+                defimps = RequireImportFrom(["__future__.absolute_import"])
+                tree = defimps.visit(tree)
         if DEFINE_RANGE:
             calls = DetectFunctionCalls()
             calls.visit(tree)
@@ -686,8 +695,10 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
     settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
         "python-version": NIX, "pyi-version": NIX, "remove-typehints": 0, "remove-var-typehints": 0, # ..
         "remove-keywordonly": 0, "remove-positionalonly": 0, "remove-pyi-positionalonly": 0, # ..
-        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, "define-callable": 0, "define-print-function": 0, "define-float-division": 0, # ..
-        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0, "no-define-print-function": 0, "no-define-float-division": 0, # ..
+        "replace-fstring": 0, "define-range": 0, "define-basestring": 0, "define-callable": 0, # ..
+        "define-print-function": 0, "define-float-division": 0, "define-absolute-import": 0, # ..
+        "no-define-print-function": 0, "no-define-float-division": 0, "no-define-absolute-import": 0, # ..
+        "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0,  # ..
         "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, }
     for configfile in files:
         if fs.isfile(configfile):
@@ -771,12 +782,14 @@ if __name__ == "__main__":
     cmdline.add_option("--define-callable", action="count", default=defs["define-callable"], help="3.2 callable(x) as in python2")
     cmdline.add_option("--define-print-function", action="count", default=defs["define-print-function"], help="3.0 print() or from __future__")
     cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
+    cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
-    cmdline.add_option("--no-define-callable", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
+    cmdline.add_option("--no-define-callable", "--noc", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
     cmdline.add_option("--no-define-print-function", "--nop", action="count", default=defs["no-define-print-function"], help="3.0 print() function")
     cmdline.add_option("--no-define-float-division", "--nod", action="count", default=defs["no-define-float-division"], help="3.0 float division")
+    cmdline.add_option("--no-define-absolute-import", "--noa", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
@@ -836,6 +849,9 @@ if __name__ == "__main__":
     if BACK_VERSION < 30 or opt.define_float_division:
         if not opt.no_define_float_division:
             DEFINE_FLOAT_DIVISION = True
+    if BACK_VERSION < 30 or opt.define_absolute_import:
+        if not opt.no_define_absolute_import:
+            DEFINE_ABSOLUTE_IMPORT = True
     if opt.show:
         logg.warning("%s = %s", "python-version-int", BACK_VERSION)
         logg.warning("%s = %s", "pyi-version-int", PYI_VERSION)
@@ -844,6 +860,7 @@ if __name__ == "__main__":
         logg.warning("%s = %s", "define-callable", DEFINE_CALLABLE)
         logg.warning("%s = %s", "define-print-function", DEFINE_PRINT_FUNCTION)
         logg.warning("%s = %s", "define-float-division", DEFINE_FLOAT_DIVISION)
+        logg.warning("%s = %s", "define-absolute-import", DEFINE_ABSOLUTE_IMPORT)
         logg.warning("%s = %s", "replace-fstring", REPLACE_FSTRING)
         logg.warning("%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
         logg.warning("%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)
