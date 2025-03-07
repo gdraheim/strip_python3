@@ -21,7 +21,7 @@ jobs:
         sudo apt-get update --fix-missing
     - name: 'install python3 pylint'
       run: |
-        sudo apt-get install --fix-broken --ignore-missing pylint3
+        sudo apt-get install --fix-broken --ignore-missing pylint
     - name: 'show pylint directories'
       run: |
         find . -type d
