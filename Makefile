@@ -18,6 +18,9 @@ check: tests
 tests: ; $(PYTHON) $(TESTS) $V
 test_0%: ; $(PYTHON) $(TESTS) $V $@
 
+coverage:
+	$(PYTHON) $(TESTS) $V --coverage
+
 VERFILES = $F *.py *.toml
 version:
 	@ grep -l __version__ $(VERFILES) | { while read f; do : \

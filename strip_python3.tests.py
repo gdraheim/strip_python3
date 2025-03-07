@@ -1400,7 +1400,28 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-
+    def test_0999(self) -> None:
+        if COVERAGE:
+            coverage3 = PYTHON + " -m coverage "
+            run = sh(F"{coverage3} combine")
+            if run.err:
+                logg.error("%s", run.err)
+            if run.out:
+                logg.debug("combine:\n%s", run.out)
+            run = sh(F"{coverage3} report")
+            if run.err:
+                logg.error("%s", run.err)
+            if run.out:
+                print("\n"+run.out)
+            run = sh(F"{coverage3} annotate")
+            if run.err:
+                logg.error("%s", run.err)
+            if run.out:
+                print("# "+run.out.replace("\n", "\n# "))
+            run = sh(F"wc -l {STRIP},cover")
+            if run.err:
+                logg.error("%s", run.err)
+            print("  "+run.out.replace("\n", "\n  "))
 
 
 def runtests() -> None:
