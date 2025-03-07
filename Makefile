@@ -7,6 +7,7 @@ DAY=%u
 GIT = git
 PYTHON3 = python3
 PYTHON = python3.11
+PYTHON_VERSION = 3.8
 TESTS = strip_python3.tests.py --python=$(PYTHON)
 V=-v
 
@@ -56,3 +57,12 @@ show:
 	@ $(PIP3) show --files `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//' pyproject.toml` \
 	| sed -e "s:[^ ]*/[.][.]/\\([a-z][a-z]*\\)/:~/.local/\\1/:"
 
+MYPY = mypy
+MYPY_WITH = --strict --show-error-codes --show-error-context 
+MYPY_OPTIONS = --no-warn-unused-ignores --python-version $(PYTHON_VERSION)
+mypy:
+	zypper install -y mypy
+	zypper install -y python3-click python3-pathspec
+	$(MAKE) striphints.git
+type:
+	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $F
