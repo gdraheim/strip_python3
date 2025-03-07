@@ -5,6 +5,7 @@ DAY=%u
 # 'make version FOR=yesterday' or 'make version DAY=0'
 
 GIT = git
+PYTHON3 = python3
 PYTHON = python3.11
 TESTS = strip_python3.tests.py --python=$(PYTHON)
 V=-v

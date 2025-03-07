@@ -35,7 +35,7 @@ OK = True
 NIX = ""
 LONGER = 2
 ENDSLEEP = 0.1
-FIXCOVERAGE = False
+FIXCOVERAGE = True
 
 basestring = str
 
@@ -177,7 +177,8 @@ def sh(cmd: str, shell: bool = True, check: bool = True, ok: Optional[bool] = No
     if not ok:
         logg.info("skip %s", cmd)
         return ShellResult(0, default or "", "")
-    run = subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd = cwd)
+    cwdir = cwd if cwd is None else os.path.abspath(cwd)
+    run = subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd = cwdir)
     run.wait()
     assert run.stdout is not None and run.stderr is not None
     result = ShellResult(run.returncode, decodes_(run.stdout.read()) or "", decodes_(run.stderr.read()) or "")
@@ -212,10 +213,12 @@ class StripTest(unittest.TestCase):
         if suffix:
             return name + "_" + suffix
         return name
-    def testdir(self, testname: Optional[str] = None, keep: bool = False) -> str:
+    def testdir(self, testname: Optional[str] = None, keep: Optional[bool] = None) -> str:
+        keeps = KEEP if keep is None else keep
         testname = testname or self.caller_testname()
         newdir = "tmp/tmp."+testname
-        if os.path.isdir(newdir) and not keep:
+        if os.path.isdir(newdir) and not keeps:
+            logg.log(DEBUG_TOML, "testdir rmtree %s", newdir)
             shutil.rmtree(newdir)
         if not os.path.isdir(newdir):
             os.makedirs(newdir)
@@ -229,10 +232,11 @@ class StripTest(unittest.TestCase):
         return newdir
     def coverage(self, testname: Optional[str] = None) -> None:
         testname = testname or self.caller_testname()
-        testdir = self.testdir(testname)
+        testdir = self.testdir(testname, keep=True)
         time.sleep(ENDSLEEP)
+        written = []
         if os.path.isfile(".coverage"):
-            logg.debug("%s: found %s", testname, ".coverage")
+            logg.log(DEBUG_TOML, "%s: found %s", testname, ".coverage")
             newcoverage = ".coverage."+testname
             # shutil.copy(".coverage", newcoverage)
             with open(".coverage", "rb") as inp:
@@ -243,14 +247,20 @@ class StripTest(unittest.TestCase):
                 text2 = text
             with open(newcoverage, "wb") as out:
                 out.write(text2)
+                written.append(newcoverage)
         if os.path.isfile(F"{testdir}/.coverage"):
-            logg.debug("%s: found %s", testname, F"{testdir}/.coverage")
+            logg.log(DEBUG_TOML, "%s: found %s", testname, F"{testdir}/.coverage")
             newcoverage = ".coverage."+testname+".testdir"
             with open(F"{testdir}/.coverage", "rb") as inp:
                 text = inp.read()
-            text2 = re.sub(rb"(\]\}\})[^{}]*(\]\}\})$", rb"\1", text)
+            if FIXCOVERAGE:
+                text2 = re.sub(rb"(\]\}\})[^{}]*(\]\}\})$", rb"\1", text)
+            else:
+                text2 = text
             with open(newcoverage, "wb") as out:
                 out.write(text2)
+                written.append(newcoverage)
+        logg.log(DEBUG_TOML, "coverage written %s", written)
     def begin(self) -> str:
         self._started = time.monotonic() # pylint: disable=attribute-defined-outside-init
         logg.debug("[[%s]]", datetime.datetime.fromtimestamp(self._started).strftime("%H:%M:%S"))
@@ -263,14 +273,15 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         run = sh(F"{strip} --help")
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertFalse(run.err)
         self.assertTrue(greps(run.out, "this help message"))
-        self.coverage()
         self.rm_testdir()
     def test_0011(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show")
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 27
         NOTE:strip:pyi-version-int = 36
@@ -287,12 +298,12 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0012(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show --py36")
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 36
         NOTE:strip:pyi-version-int = 36
@@ -309,7 +320,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = False
         NOTE:strip:remove-typehints = False
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0014(self) -> None:
         tmp = self.testdir()
@@ -320,6 +330,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 36
         NOTE:strip:pyi-version-int = 36
@@ -336,7 +347,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = False
         NOTE:strip:remove-typehints = False
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0015(self) -> None:
         tmp = self.testdir()
@@ -347,6 +357,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 35
         NOTE:strip:pyi-version-int = 36
@@ -363,7 +374,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0016(self) -> None:
         tmp = self.testdir()
@@ -375,6 +385,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 35
         NOTE:strip:pyi-version-int = 36
@@ -391,7 +402,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0017(self) -> None:
         tmp = self.testdir()
@@ -403,6 +413,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 35
         NOTE:strip:pyi-version-int = 36
@@ -447,7 +458,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0024(self) -> None:
         tmp = self.testdir()
@@ -458,6 +468,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 36
         NOTE:strip:pyi-version-int = 36
@@ -474,7 +485,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = False
         NOTE:strip:remove-typehints = False
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0025(self) -> None:
         tmp = self.testdir()
@@ -485,6 +495,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 35
         NOTE:strip:pyi-version-int = 36
@@ -501,7 +512,6 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
         """))
-        self.coverage()
         self.rm_testdir()
     def test_0026(self) -> None:
         tmp = self.testdir()
@@ -513,6 +523,7 @@ class StripTest(unittest.TestCase):
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = 35
         NOTE:strip:pyi-version-int = 36
@@ -529,8 +540,9 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
-        self.coverage()
-        self.rm_testdir()
+        run = sh(F"cat {tmp}/setup.cfg")
+        logg.log(DEBUG_TOML, "%s", run.out)
+        # self.rm_testdir()
     def test_0101(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
