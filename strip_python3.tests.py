@@ -438,15 +438,24 @@ class StripTest(unittest.TestCase):
         text_file(F"{tmp}/pyproject.toml", """
         [tool.strip-python3]
         python-version = "3.5"
+        pyi-version = 35
         no-replace-fstring = 1
+        define-callable = 0
+        define-range = true
+        define-basestring = 1979-05-27T07:32:00Z
+        define-unknown = true
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
-        self.assertEqual(run.stderr, text4("""
+        self.coverage()
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
+        pyproject.toml[pyi-version]: expecting str but found <class 'int'>
+        pyproject.toml[define-basestring]: expecting int but found <class 'datetime.datetime'>
+        pyproject.toml[define-unknown]: unknown setting found
         NOTE:strip:python-version-int = 35
         NOTE:strip:pyi-version-int = 36
         NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
+        NOTE:strip:define-range = True
         NOTE:strip:define-callable = False
         NOTE:strip:define-print-function = False
         NOTE:strip:define-float-division = False
@@ -457,7 +466,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-pyi-positionalonly = True
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = False
-        """))
+        """)))
         self.rm_testdir()
     def test_0024(self) -> None:
         tmp = self.testdir()
@@ -540,9 +549,41 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-var-typehints = True
         NOTE:strip:remove-typehints = True
         """))
-        run = sh(F"cat {tmp}/setup.cfg")
-        logg.log(DEBUG_TOML, "%s", run.out)
-        # self.rm_testdir()
+        self.rm_testdir()
+    def test_0028(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/setup.cfg", """
+        [strip-python3]
+        python-version = 3.5
+        no-replace-fstring = 1
+        define-callable = 0
+        define-range = true
+        define-basestring = unknown
+        define-unknown = true
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        self.coverage()
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
+        setup.cfg[define-basestring]: expecting int but found unknown
+        setup.cfg[define-unknown]: unknown setting found
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = True
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = False
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = False
+        """)))
+        self.rm_testdir()
     def test_0101(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()

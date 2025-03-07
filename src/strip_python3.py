@@ -882,8 +882,6 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                     section1: Dict[str, Union[str, int, bool]] = {}
                     if "tool" in conf and "strip-python3" in conf["tool"]:
                         section1 = conf["tool"]["strip-python3"]
-                    elif "tool.strip-python3" in conf:
-                        section1 = conf["tool.strip-python3"]
                     else:
                         logg.log(DEBUG_TOML, "have sections %s", list(section1.keys()))
                     if section1:
@@ -898,19 +896,14 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                                     else:
                                         logg.error("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))
                                 elif isinstance(oldvalue, int):
-                                    if isinstance(setvalue, int) or isinstance(setvalue, float):
+                                    if isinstance(setvalue, int) or isinstance(setvalue, float) or isinstance(setvalue, bool):
                                         settings[setting] = int(setvalue)
                                     else:
                                         logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
-                                elif isinstance(oldvalue, bool):
-                                    if isinstance(setvalue, bool):
-                                        settings[setting] = 1 if setvalue is True else 0
-                                    else:
-                                        logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
-                                else:
-                                    logg.error("%s[%s]: unknown type found %s", configfile, setting, type(setvalue))
+                                else:  # pragma: nocover
+                                    logg.error("%s[%s]: unknown setting type found %s", configfile, setting, type(setvalue))
                             else:
-                                logg.error("%s: unknown setting found = %s", configfile, setting)
+                                logg.error("%s[%s]: unknown setting found", configfile, setting)
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
             elif configfile.endswith(".cfg"):
                 logg.log(DEBUG_TOML, "found ini configfile %s", configfile)
@@ -936,12 +929,12 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                                         settings[option] = int(setvalue)
                                     else:
                                         logg.error("%s[%s]: expecting int but found %s", configfile, option, setvalue)
-                                else:
-                                    logg.error("%s[%s]: unknown value found %s", configfile, option, setvalue)
+                                else:  # pragma: nocover
+                                    logg.error("%s[%s]: unknown setting type found %s", configfile, option, setvalue)
                             else:
-                                logg.error("%s: unknown setting found = %s", configfile, option)
+                                logg.error("%s[%s]: unknown setting found", configfile, option)
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
-            else:
+            else:  # pragma: nocover
                 logg.log(DEBUG_TOML, "unknown configfile found %s", configfile)
         else:
             logg.log(DEBUG_TOML, "no configfile found %s", configfile)
