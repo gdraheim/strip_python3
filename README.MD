@@ -52,5 +52,70 @@ The differences to the output of code beautyfiers have become minimal. Note howe
 that the code removal does sometimes make comments appear on lines where they don't 
 belong to.
 
+# transformations
+
+Transformations are automatically selected by the minimum target python version
+that is given by --python-version=3.6 (which has a shorthand --py36). The default
+is to support even python2.
+
+Each transformation can be selectivly enabled or disabled. This can also be done
+in a pyproject.toml `[tool.strip-python3]` or setup.cfg `[strip-python3]` section.
+The names are the same as the commandline options, just without a leading "--".
+
+## define-print-function
+
+If `print()` is used then `from __future__ import print_function` is added
+if python2 compatibility is requested.
+
+## define-float-division
+
+If `/` is used then `from __future__ import division` is added
+if python2 compatibility is requested.
+
+## define-absolute-import
+
+If `.localtypes` is used then `from __future__ import absolute_import` is added
+if python2 compatibility is requested.
+
+## define-basestring
+
+If `isinstance(x, str)` is used then each is replaced by `isinstance(x, basestring)`
+if python2 compatibility is requested. It does also import `basestring = str` for
+python3 versions.
+
+## define-range
+
+If `range(x)` is used then `range = xrange` is defined for python2 versions
+if python2 compatibility is required.
+
+## define-callable
+
+If `callable(x)` is used then a `def callable` boilerplate is added for python3
+versions where it was not predefined (3.0 and 3.1)
+
+## replace-fstring
+
+If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
+if python2 compatibility requested, as well as python3 older than 3.5.
+
+## remove-keywordsonly
+
+The keywordsonly syntax became available in python 3.0, so it need to be
+removed for python2
+
+## remove-positionalonly
+
+The postionalonly syntax became available in python 3.8, so it need to be
+removed for python2 and python3 older than 3.8
+
+## remove-pyi-positionalonly
+
+The pyi typehint include files are usually generated to be compatible for
+`--pyi-version=3.6`. That requires the positionalonly syntax to be
+removed in that file as well.
 
 
+
+        WARNING:strip:remove-pyi-positionalonly = True
+        WARNING:strip:remove-var-typehints = False
+        WARNING:strip:remove-typehints = False
