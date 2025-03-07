@@ -9,7 +9,7 @@ on:
 jobs:
   tests:
     name: 'unit tests'
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-24.04'
     steps:
     - name: checkout software
       uses: actions/checkout@v2
@@ -29,7 +29,7 @@ jobs:
         pip3 install unittest-xml-reporting
     - name: 'make tests (testsuite.py without coverage)'
       run: |
-        make tests -C software || true
+        make tests -C software PYTHON=python3.12 || true
     - name: 'find xml'
       run: |
         find . -name '*.xml'

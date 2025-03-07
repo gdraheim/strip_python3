@@ -63,6 +63,5 @@ MYPY_OPTIONS = --no-warn-unused-ignores --python-version $(PYTHON_VERSION)
 mypy:
 	zypper install -y mypy
 	zypper install -y python3-click python3-pathspec
-	$(MAKE) striphints.git
 type:
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $F
