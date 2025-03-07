@@ -80,6 +80,7 @@ class Want:
     datetime_fromisoformat = False
     subprocess_run = False
     import_pathlib2 = False
+    import_backports_zoneinfo = False
     import_toml = False
 
 want = Want()
@@ -822,6 +823,14 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}"""))
                 pathlibdrop = DetectFunctionCalls(noimport=["pathlib"])
                 tree = pathlibdef.visit(pathlibdrop.visit(tree))
+            if "zoneinfo" in calls.imported and want.import_backports_zoneinfo:
+                logg.log(HINT, "detected zoneinfo")
+                zoneinfoname = calls.imported["zoneinfo"]
+                as_zoneinfo = F"as {zoneinfoname}" if zoneinfoname != "zoneinfo" else ""
+                zoneinfodef = DefineIfPython2([F"from backports import zoneinfo {as_zoneinfo}"], before=(3,9), # ..
+                   orelse=text4("import zoneinfo") if zoneinfoname == "zoneinfo" else text4(F"""import zoneinfo as {zoneinfoname}"""))
+                zoneinfodrop = DetectFunctionCalls(noimport=["zoneinfo"])
+                tree = zoneinfodef.visit(zoneinfodrop.visit(tree))
             if "tomllib" in calls.imported and want.import_toml:
                 logg.log(HINT, "detected tomllib")
                 tomllibname = calls.imported["tomllib"]
@@ -829,7 +838,6 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import tomllib") if tomllibname == "tomllib" else text4(F"""import tomllib as {tomllibname}"""))
                 tomllibdrop = DetectFunctionCalls(noimport=["tomllib"])
                 tree = tomllibdef.visit(tomllibdrop.visit(tree))
-
         if want.define_absolute_import:
             imps = DetectImportFrom()
             imps.visit(tree)
@@ -905,7 +913,9 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0,
         "subprocess-run": 0, "no-subprocess-run": 0, 
         "import-pathlib2": 0, "no-import-pathlib2": 0, 
+        "import-backports-zoneinfo": 0, "no-import-backports-zoneinfo": 0,
         "import-toml": 0, "no-import-toml": 0, }
+
     for configfile in files:
         if fs.isfile(configfile):
             if configfile.endswith(".toml"):
@@ -989,6 +999,7 @@ def main() -> int:
     cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
     cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
     cmdline.add_option("--no-import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib to python2 pathlib2")
+    cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=defs["no-import-backports-zoneinfo"], help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=defs["no-import-toml"], help="3.11 tomllib to external toml")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
@@ -1003,6 +1014,7 @@ def main() -> int:
     cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
     cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or boilerplate")
     cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib")
+    cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo")
     cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import tomllib")
     cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
     cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
@@ -1082,6 +1094,9 @@ def main() -> int:
     if back_version < (3,3) or opt.import_pathlib2:
         if not opt.no_import_pathlib2:
             want.import_pathlib2 = True
+    if back_version < (3,9) or opt.import_backports_zoneinfo:
+        if not opt.no_import_backports_zoneinfo:
+            want.import_backports_zoneinfo = True
     if back_version < (3,11) or opt.import_toml:
         if not opt.no_import_toml:
             want.import_toml = True

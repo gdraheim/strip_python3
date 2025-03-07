@@ -1634,6 +1634,56 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_0441(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import zoneinfo
+        def func1() -> List[str]:
+            return zoneinfo.available_timezones()
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 9):
+            from backports import zoneinfo
+        else:
+            import zoneinfo
+        
+        def func1():
+            return zoneinfo.available_timezones()
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0444(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import zoneinfo as tz
+        def func1() -> List[str]:
+            return tz.available_timezones()
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 9):
+            from backports import zoneinfo as tz
+        else:
+            import zoneinfo as tz
+
+        def func1():
+            return tz.available_timezones()
+        """)))
+        self.coverage()
+        self.rm_testdir()
 
     def test_0999(self) -> None:
         if COVERAGE:
