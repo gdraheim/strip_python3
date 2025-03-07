@@ -167,8 +167,8 @@ removed for python3 compatiblity older than 3.8.
 Note that not all variable annotations and function typehints are being exported.
 
 Only the global variables and classes, and the direct class methods and member
-annotations are reproduced in the "*.pyi" typehints file. That's good enough for
-type checkers that want to know the type of imported elements in the "*.py" file.
+annotations are reproduced in the `"*.pyi"` typehints file. That's good enough for
+type checkers that want to know the type of imported elements in the `"*.py"` file.
 
 Be aware that there is no type inference done for global variables without a
 type annotation. They will simply not exist in the pyi typehints file.
