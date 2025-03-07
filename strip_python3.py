@@ -48,13 +48,20 @@ import ast_comments as ast
 #         (python 3.11) Protocols, reveal_type(x), get_overloads
 #         (python 3.11)  assert_never(unreachable)
 
-
+DONE = (logging.ERROR + logging.WARNING) // 2
+NOTE = (logging.INFO + logging.WARNING) // 2
+HINT = (logging.INFO + logging.DEBUG) // 2
+logging.addLevelName(DONE, "DONE")
+logging.addLevelName(NOTE, "NOTE")
+logging.addLevelName(HINT, "HINT")
 
 logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
 
 OK = True
 NIX = ""
 FSTRING_NUMBERED = False
+SHOW_DUMP = False
+SHOW_DONE = False
 
 REMOVE_VAR_TYPEHINTS = False
 REMOVE_TYPEHINTS = False
@@ -656,6 +663,10 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
             if basetypes.replace:
                 defs3 = DefineIfPython3(basetypes.defines)
                 tree = defs3.visit(tree)
+        if SHOW_DUMP:
+            logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
+        if SHOW_DONE:
+            logg.log(NOTE, "%s: (after transformations)\n%s", arg, beautify_dump(ast.dump(tree)))
         done = ast.unparse(tree)
         if outfile:
             out = outfile
@@ -690,6 +701,9 @@ def main(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) ->
                                 w.write("\n")
 
     return 0
+
+def beautify_dump(x: str) -> str:
+    return x.replace("body=[", "\n body=[").replace("FunctionDef(", "\n FunctionDef(").replace(", ctx=Load()",",.")
 
 def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
     settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
@@ -794,13 +808,14 @@ if __name__ == "__main__":
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings")
+    cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file2.py")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
     cmdline.add_option("-y", "--pyi", action="count", default=0, help="generate file.pyi as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
-    logging.basicConfig(level = max(0, logging.WARNING - 10 * opt.verbose))
+    logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
     PYI_VERSION = 36
     if opt.pyi_version:
         if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
@@ -853,20 +868,24 @@ if __name__ == "__main__":
         if not opt.no_define_absolute_import:
             DEFINE_ABSOLUTE_IMPORT = True
     if opt.show:
-        logg.warning("%s = %s", "python-version-int", BACK_VERSION)
-        logg.warning("%s = %s", "pyi-version-int", PYI_VERSION)
-        logg.warning("%s = %s", "define-basestring", DEFINE_BASESTRING)
-        logg.warning("%s = %s", "define-range", DEFINE_RANGE)
-        logg.warning("%s = %s", "define-callable", DEFINE_CALLABLE)
-        logg.warning("%s = %s", "define-print-function", DEFINE_PRINT_FUNCTION)
-        logg.warning("%s = %s", "define-float-division", DEFINE_FLOAT_DIVISION)
-        logg.warning("%s = %s", "define-absolute-import", DEFINE_ABSOLUTE_IMPORT)
-        logg.warning("%s = %s", "replace-fstring", REPLACE_FSTRING)
-        logg.warning("%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
-        logg.warning("%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)
-        logg.warning("%s = %s", "remove-pyi-positionalonly", REMOVE_PYI_POSITIONAL)
-        logg.warning("%s = %s", "remove-var-typehints", REMOVE_VAR_TYPEHINTS)
-        logg.warning("%s = %s", "remove-typehints", REMOVE_TYPEHINTS)
+        logg.log(NOTE, "%s = %s", "python-version-int", BACK_VERSION)
+        logg.log(NOTE, "%s = %s", "pyi-version-int", PYI_VERSION)
+        logg.log(NOTE, "%s = %s", "define-basestring", DEFINE_BASESTRING)
+        logg.log(NOTE, "%s = %s", "define-range", DEFINE_RANGE)
+        logg.log(NOTE, "%s = %s", "define-callable", DEFINE_CALLABLE)
+        logg.log(NOTE, "%s = %s", "define-print-function", DEFINE_PRINT_FUNCTION)
+        logg.log(NOTE, "%s = %s", "define-float-division", DEFINE_FLOAT_DIVISION)
+        logg.log(NOTE, "%s = %s", "define-absolute-import", DEFINE_ABSOLUTE_IMPORT)
+        logg.log(NOTE, "%s = %s", "replace-fstring", REPLACE_FSTRING)
+        logg.log(NOTE, "%s = %s", "remove-keywordsonly", REMOVE_KEYWORDONLY)
+        logg.log(NOTE, "%s = %s", "remove-positionalonly", REMOVE_POSITIONAL)
+        logg.log(NOTE, "%s = %s", "remove-pyi-positionalonly", REMOVE_PYI_POSITIONAL)
+        logg.log(NOTE, "%s = %s", "remove-var-typehints", REMOVE_VAR_TYPEHINTS)
+        logg.log(NOTE, "%s = %s", "remove-typehints", REMOVE_TYPEHINTS)
+    if opt.dump:
+        SHOW_DUMP = True
+        if opt.dump > 1:
+            SHOW_DONE = True
     _EACHFILE = EACH_REMOVE3 if opt.remove3 else 0
     _EACHFILE |= EACH_APPEND2 if opt.append2 else 0
     _EACHFILE |= EACH_INPLACE if opt.inplace else 0

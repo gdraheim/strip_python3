@@ -248,40 +248,40 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 27
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = True
-        WARNING:strip:define-range = True
-        WARNING:strip:define-callable = True
-        WARNING:strip:define-print-function = True
-        WARNING:strip:define-float-division = True
-        WARNING:strip:define-absolute-import = True
-        WARNING:strip:replace-fstring = True
-        WARNING:strip:remove-keywordsonly = True
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = True
+        NOTE:strip:python-version-int = 27
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = True
+        NOTE:strip:define-range = True
+        NOTE:strip:define-callable = True
+        NOTE:strip:define-print-function = True
+        NOTE:strip:define-float-division = True
+        NOTE:strip:define-absolute-import = True
+        NOTE:strip:replace-fstring = True
+        NOTE:strip:remove-keywordsonly = True
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = True
         """))
     def test_0012(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show --py36")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 36
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = False
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = False
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 36
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = False
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = False
+        NOTE:strip:remove-typehints = False
         """))
     def test_0014(self) -> None:
         tmp = self.testdir()
@@ -293,20 +293,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 36
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = False
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = False
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 36
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = False
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = False
+        NOTE:strip:remove-typehints = False
         """))
     def test_0015(self) -> None:
         tmp = self.testdir()
@@ -318,20 +318,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 35
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = True
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = True
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = False
         """))
     def test_0016(self) -> None:
         tmp = self.testdir()
@@ -344,20 +344,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 35
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = True
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = True
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = True
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = True
         """))
     def test_0017(self) -> None:
         tmp = self.testdir()
@@ -370,20 +370,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 35
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = False
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = False
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = False
         """))
     def test_0018(self) -> None:
         tmp = self.testdir()
@@ -396,20 +396,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 35
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = False
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = False
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = False
         """))
     def test_0024(self) -> None:
         tmp = self.testdir()
@@ -421,20 +421,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 36
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = False
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = False
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 36
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = False
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = False
+        NOTE:strip:remove-typehints = False
         """))
     def test_0025(self) -> None:
         tmp = self.testdir()
@@ -446,20 +446,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 35
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = True
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = False
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = True
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = False
         """))
     def test_0026(self) -> None:
         tmp = self.testdir()
@@ -472,20 +472,20 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.assertEqual(run.stderr, text4("""
-        WARNING:strip:python-version-int = 35
-        WARNING:strip:pyi-version-int = 36
-        WARNING:strip:define-basestring = False
-        WARNING:strip:define-range = False
-        WARNING:strip:define-callable = False
-        WARNING:strip:define-print-function = False
-        WARNING:strip:define-float-division = False
-        WARNING:strip:define-absolute-import = False
-        WARNING:strip:replace-fstring = True
-        WARNING:strip:remove-keywordsonly = False
-        WARNING:strip:remove-positionalonly = True
-        WARNING:strip:remove-pyi-positionalonly = True
-        WARNING:strip:remove-var-typehints = True
-        WARNING:strip:remove-typehints = True
+        NOTE:strip:python-version-int = 35
+        NOTE:strip:pyi-version-int = 36
+        NOTE:strip:define-basestring = False
+        NOTE:strip:define-range = False
+        NOTE:strip:define-callable = False
+        NOTE:strip:define-print-function = False
+        NOTE:strip:define-float-division = False
+        NOTE:strip:define-absolute-import = False
+        NOTE:strip:replace-fstring = True
+        NOTE:strip:remove-keywordsonly = False
+        NOTE:strip:remove-positionalonly = True
+        NOTE:strip:remove-pyi-positionalonly = True
+        NOTE:strip:remove-var-typehints = True
+        NOTE:strip:remove-typehints = True
         """))
     def test_0101(self) -> None:
         strip = coverage(STRIP)
@@ -1244,6 +1244,32 @@ class StripTest(unittest.TestCase):
         
         def func1(x):
             print(x / 2)
+        """))
+        self.coverage()
+        self.rm_testdir()
+    def test_0401(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        import datetime.datime
+        def func1(x: x) -> datetime.datetime:
+            return datetime.datetime.fromisoformat(x)
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -V")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        if sys.version_info[0] < 3 or sys.version_info[0] == 3 and sys.version_info[1] < 7:
+            def datetime_datetime_isoformat(x):
+                return x
+        else:
+            from datetime.datetime import fromisoformat as datetime_datetime_isoformat
+        
+        def func1(x):
+            retunr datetime_datetime_isoformat(x)
         """))
         self.coverage()
         self.rm_testdir()
