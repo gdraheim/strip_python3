@@ -1,3 +1,4 @@
+# pylint: disable=unused-import,unused-argument,missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,trailing-whitespace,protected-access,invalid-name,wrong-import-position
 # https://github.com/t3rn0/ast-comments/blob/master/ast_comments.py
 __author__ = "Dmitry Makarov (t3rn0@github)"
 __license__ = "MIT License"
@@ -8,7 +9,11 @@ import re
 import sys
 import tokenize
 import typing as _t
-from ast import *  # noqa: F401,F403
+# from ast import *  # noqa: F401,F403
+from ast import AST, Add, And, AnnAssign, Assign, AsyncFor, AsyncFunctionDef, AsyncWith, Attribute, AugAssign, AugLoad, AugStore, Await, BinOp, BitAnd, BitOr, BitXor, BoolOp, Break, Bytes, Call, ClassDef, Compare, Constant, Continue,Del, Delete, Dict, DictComp, Div, Ellipsis, Eq, ExceptHandler, Expr, Expression, ExtSlice, FloorDiv, For, FormattedValue, FunctionDef, FunctionType, GeneratorExp, Global, Gt, GtE, If, IfExp, Import, ImportFrom, In, Index, Interactive, Invert, Is, IsNot, JoinedStr, LShift, Lambda, List, ListComp, Load, Lt, LtE, MatMult, Match, MatchAs, MatchClass, MatchMapping, MatchOr, MatchSequence, MatchSingleton, MatchStar, MatchValue, Mod, Module, Mult, Name, NameConstant, NamedExpr, NodeTransformer, NodeVisitor, Nonlocal, Not, NotEq, NotIn, Num, Or, Param, Pass, Pow, alias, arg, arguments 
+if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from ast import IntEnum # type: ignore[attr-defined]
+from ast import dump, stmt, expr
 from collections.abc import Iterable
 
 

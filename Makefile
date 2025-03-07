@@ -7,8 +7,10 @@ DAY=%u
 GIT = git
 PYTHON3 = python3
 PYTHON = python3.11
-PYTHON_VERSION = 3.8
-TESTS = strip_python3.tests.py --python=$(PYTHON)
+PYTHON_VERSION = 3.11
+AST4_PY = src/strip_ast_comments.py
+TESTS_PY = strip_python3.tests.py
+TESTS = $(TESTS_PY) --python=$(PYTHON)
 V=-v
 
 all: help
@@ -57,11 +59,12 @@ show:
 	@ $(PIP3) show --files `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//' pyproject.toml` \
 	| sed -e "s:[^ ]*/[.][.]/\\([a-z][a-z]*\\)/:~/.local/\\1/:"
 
-MYPY = mypy
+MYPY = mypy-3.11
+MYPY_EXCLUDES = --exclude /$(notdir $(AST4_PY))
 MYPY_WITH = --strict --show-error-codes --show-error-context 
-MYPY_OPTIONS = --no-warn-unused-ignores --python-version $(PYTHON_VERSION)
+MYPY_OPTIONS = --no-warn-unused-ignores --implicit-reexport --python-version $(PYTHON_VERSION)
 mypy:
 	zypper install -y mypy
 	zypper install -y python3-click python3-pathspec
 type:
-	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $F
+	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $F
