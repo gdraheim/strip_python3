@@ -7,7 +7,7 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.9.1096"
 
-from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple
+from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar
 import sys
 import re
 import os
@@ -23,6 +23,14 @@ else:
 # import ast
 # import ast_comments as ast
 import strip_ast_comments as ast  # pylint: disable=wrong-import-position
+
+TypeAST = TypeVar("TypeAST", bound=ast.AST) # pylint: disable=invalid-name
+def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
+    """ similar to ast.copy_location """
+    if hasattr(old_node, "lineno") and hasattr(old_node, "end_lineno"):
+        setattr(new_node, "lineno", old_node.lineno)
+        setattr(new_node, "end_lineno", old_node.end_lineno)
+    return new_node
 
 # (python3.12) = type() statement
 # (python3.12) = support for generics
@@ -353,7 +361,7 @@ class DefineIfPython2:
                         logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
                         testcompare = ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)])
                     python2 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
-                    python2.lineno = stmt.lineno
+                    python2 = copy_location(python2, stmt)
                     body.append(python2)
                     body.append(stmt)
                     after_append = True
@@ -430,7 +438,7 @@ class DefineIfPython3:
                         logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
                         testcompare=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)])
                     python3 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
-                    python3.lineno = stmt.lineno
+                    python3 = copy_location(python3, stmt)
                     body.append(python3)
                     body.append(stmt)
                     after_append = True
@@ -556,7 +564,7 @@ class StripHints(ast.NodeTransformer):
         logg.debug("-assign: %s", ast.dump(assign))
         if assign.value is not None:
             assign2 = ast.Assign(targets=[assign.target], value=assign.value)
-            assign2.lineno = assign.lineno
+            assign2 = copy_location(assign2, assign)
             return self.generic_visit(assign2)
         return None
     def visit_FunctionDef(self, node: ast.FunctionDef) -> Optional[ast.AST]:  # pylint: disable=invalid-name
@@ -620,7 +628,7 @@ class StripHints(ast.NodeTransformer):
         args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
             kwdefaults, kwarg, defaults)
         func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
-        func2.lineno = func.lineno
+        func2 = copy_location(func2, func)
         return self.generic_visit(func2)
 
 class TypeHints:
@@ -636,7 +644,7 @@ class TypeHints:
                     body.append(child)
                     if imports.module == "typing":
                         imports3 = ast.ImportFrom(imports.module, imports.names, imports.level)
-                        imports3.lineno = imports.lineno
+                        imports3 = copy_location(imports3, imports)
                         self.pyi.append(imports3)
                 elif isinstance(child, ast.AnnAssign):
                     assign1: ast.AnnAssign = child
@@ -644,7 +652,7 @@ class TypeHints:
                     if want.remove_typehints or want.remove_var_typehints:
                         if assign1.value is not None:
                             assign2 = ast.Assign(targets=[assign1.target], value=assign1.value)
-                            assign2.lineno = assign1.lineno
+                            assign2 = copy_location(assign2, assign1)
                             body.append(assign2)
                         else:
                             logg.debug("remove simple typehint")
@@ -701,7 +709,7 @@ class TypeHints:
                                     args2 = ast.arguments(posonlyargs1, functionargs1, vararg1, kwonlyargs1, # ..
                                            funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
                                 funcdef2 = ast.FunctionDef(funcdef1.name, args2, funcdef1.body, funcdef1.decorator_list, rets2)
-                                funcdef2.lineno = funcdef1.lineno
+                                funcdef2 = copy_location(funcdef2, funcdef1)
                                 body.append(funcdef2)
                                 funcargs3 = funcdef1.args
                                 if posonlyargs1 and want.remove_pyi_positional:
@@ -710,7 +718,7 @@ class TypeHints:
                                     funcargs3 = ast.arguments(posonly3, functionargs3, vararg1, funcdef1.args.kwonlyargs, # ..
                                            funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
                                 funcdef3 = ast.FunctionDef(funcdef1.name, funcargs3, [ast.Pass()], funcdef1.decorator_list, funcdef1.returns)
-                                funcdef3.lineno = funcdef1.lineno
+                                funcdef3 = copy_location(funcdef3, funcdef1)
                                 self.pyi.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
                     logg.debug("class: %s", ast.dump(child))
@@ -723,7 +731,7 @@ class TypeHints:
                             if want.remove_typehints or want.remove_var_typehints:
                                 if assign.value is not None:
                                     assign2 = ast.Assign(targets=[assign.target], value=assign.value)
-                                    assign2.lineno = assign.lineno
+                                    assign2 = copy_location(assign2, assign)
                                     stmt.append(assign2)
                                 else:
                                     logg.debug("remove simple typehint")
@@ -778,7 +786,7 @@ class TypeHints:
                                     args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
                                            func.args.kw_defaults, kwarg, func.args.defaults)
                                 func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list, rets2)
-                                func2.lineno = func.lineno
+                                func2 = copy_location(func2, func)
                                 stmt.append(func2)
                                 args3 = func.args
                                 if posonlyargs and want.remove_pyi_positional:
@@ -787,7 +795,7 @@ class TypeHints:
                                     args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, func.args.kwonlyargs, # ..
                                            func.args.kw_defaults, kwarg, func.args.defaults)
                                 func3 = ast.FunctionDef(func.name, args3, [ast.Pass()], func.decorator_list, func.returns)
-                                func3.lineno = func.lineno
+                                func3 = copy_location(func3, func)
                                 decl.append(func3)
                         else:
                             stmt.append(part)
@@ -862,9 +870,9 @@ def types36(ann: ast.expr, classname: Optional[str] = None) -> Types36:
         newann = ast.Name(selfclass)
         decl: Dict[str, ast.stmt] = {}
         typevar = ast.Call(ast.Name("TypeVar"), [ast.Constant(selfclass)], [ast.keyword("bound", ast.Constant(classname))])
-        typevar.lineno = ann.lineno
+        typevar = copy_location(typevar, ann)
         stmt = ast.Assign([ast.Name(selfclass)], typevar)
-        stmt.lineno = ann.lineno
+        stmt = copy_location(stmt, ann)
         decl[selfclass] = stmt
         typing = set()
         typing.add("TypeVar")

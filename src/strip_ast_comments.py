@@ -27,6 +27,9 @@ if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >
 from ast import dump, stmt, expr, alias, arg, arguments, keyword, TypeIgnore
 from collections.abc import Iterable
 
+if hasattr(ast, "copy_location"):
+    from ast import copy_location # pylint: disable=ungrouped-imports
+
 
 class Comment(ast.AST):
     if sys.version_info >= (3, 10):
