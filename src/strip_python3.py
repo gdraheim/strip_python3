@@ -22,7 +22,7 @@ else:
 # ........
 # import ast
 # import ast_comments as ast
-import strip_ast_comments as ast  # pylint: disable=wrong-import-positioning
+import strip_ast_comments as ast  # pylint: disable=wrong-import-position
 
 # (python3.12) = type() statement
 # (python3.12) = support for generics
@@ -657,37 +657,37 @@ class TypeHints:
                     if OK:
                         if OK:
                             annos = 0
-                            posonlyargs: List[ast.arg] = []
-                            functionargs: List[ast.arg] = []
-                            kwonlyargs: List[ast.arg] = []
-                            vargarg = funcdef1.args.vararg
-                            kwarg = funcdef1.args.kwarg
+                            posonlyargs1: List[ast.arg] = []
+                            functionargs1: List[ast.arg] = []
+                            kwonlyargs1: List[ast.arg] = []
+                            vararg1 = funcdef1.args.vararg
+                            kwarg1 = funcdef1.args.kwarg
                             if OK:
                                 for arg in funcdef1.args.posonlyargs:
                                     logg.debug("pos arg: %s", ast.dump(arg))
-                                    posonlyargs.append(ast.arg(arg.arg))
+                                    posonlyargs1.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
                             if OK:
                                 for arg in funcdef1.args.args:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    functionargs.append(ast.arg(arg.arg))
+                                    functionargs1.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
                             if OK:
                                 for arg in funcdef1.args.kwonlyargs:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    kwonlyargs.append(ast.arg(arg.arg))
+                                    kwonlyargs1.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
-                            if vargarg is not None:
-                                if vargarg.annotation:
+                            if vararg1 is not None:
+                                if vararg1.annotation:
                                     annos += 1
-                                vargarg = ast.arg(vargarg.arg)
-                            if kwarg is not None:
-                                if kwarg.annotation:
+                                vararg1 = ast.arg(vararg1.arg)
+                            if kwarg1 is not None:
+                                if kwarg1.annotation:
                                     annos += 1
-                                kwarg = ast.arg(kwarg.arg)
+                                kwarg1 = ast.arg(kwarg1.arg)
                             if not annos and not funcdef1.returns:
                                 body.append(funcdef1)
                             else:
@@ -697,17 +697,17 @@ class TypeHints:
                                     args2 = funcdef1.args
                                 else:
                                     rets2 = None
-                                    args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
-                                           funcdef1.args.kw_defaults, kwarg, funcdef1.args.defaults)
+                                    args2 = ast.arguments(posonlyargs1, functionargs1, vararg1, kwonlyargs1, # ..
+                                           funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
                                 funcdef2 = ast.FunctionDef(funcdef1.name, args2, funcdef1.body, funcdef1.decorator_list, rets2)
                                 funcdef2.lineno = funcdef1.lineno
                                 body.append(funcdef2)
                                 funcargs3 = funcdef1.args
-                                if posonlyargs and want.remove_pyi_positional:
-                                    posonlyargs3: List[ast.arg] = funcdef1.args.posonlyargs if not want.remove_pyi_positional else []
+                                if posonlyargs1 and want.remove_pyi_positional:
+                                    posonly3: List[ast.arg] = funcdef1.args.posonlyargs if not want.remove_pyi_positional else []
                                     functionargs3 = funcdef1.args.args if not want.remove_pyi_positional else funcdef1.args.posonlyargs + funcdef1.args.args
-                                    funcargs3 = ast.arguments(posonlyargs3, functionargs3, vargarg, funcdef1.args.kwonlyargs, # ..
-                                           funcdef1.args.kw_defaults, kwarg, funcdef1.args.defaults)
+                                    funcargs3 = ast.arguments(posonly3, functionargs3, vararg1, funcdef1.args.kwonlyargs, # ..
+                                           funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
                                 funcdef3 = ast.FunctionDef(funcdef1.name, funcargs3, [ast.Pass()], funcdef1.decorator_list, funcdef1.returns)
                                 funcdef3.lineno = funcdef1.lineno
                                 self.pyi.append(funcdef3)
