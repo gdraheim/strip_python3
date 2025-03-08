@@ -1269,6 +1269,92 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
+        from pydantic import Field
+        a: int 
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> Self:
+               x = int(b)
+               return self
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
+        self.assertEqual(py, text4("""
+        from pydantic import Field
+        
+        class B:
+        
+            def __add__(self, y, a=0, b=0):
+                x = int(b)
+                return self
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List, Optional, TypeVar
+        a: int
+        SelfB = TypeVar('SelfB', bound='B')
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> SelfB:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_0167(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from pydantic import Field
+        a: int 
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: list[str], /, a: Self, *, b: int | None = 0) -> Self:
+               x = int(b)
+               return a
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
+        self.assertEqual(py, text4("""
+        from pydantic import Field
+        
+        class B:
+        
+            def __add__(self, y, a, b=0):
+                x = int(b)
+                return a
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List, Optional, TypeVar
+        a: int
+        SelfB = TypeVar('SelfB', bound='B')
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: List[str], a: SelfB, *, b: Optional[int]=0) -> SelfB:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_0175(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
         from typing import Annotated
         from pydantic import Field
         a: int 

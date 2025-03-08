@@ -85,6 +85,7 @@ class Want:
     replace_annotated_typing = to_false(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_builtin_typing = to_false(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_union_typing = to_false(os.environ.get("PYTHON3_REPLACE_UNION_TYPING", NIX))
+    replace_self_typing = to_false(os.environ.get("PYTHON3_REPLACE_SELF_TYPING", NIX))
     replace_fstring = to_false(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
     define_range = to_false(os.environ.get("PYTHON3_DEFINE_RANGE", NIX))
     define_basestring =to_false(os.environ.get("PYTHON3_DEFINE_BASESTRING", NIX))
@@ -853,10 +854,26 @@ class Types36(NamedTuple):
     annotation: ast.expr
     typing: Set[str]
     removed: Set[str]
-def types36(ann: ast.expr) -> Types36:
-    types = TypesTransformer()
-    annotation = types.visit(ann)
-    return Types36(annotation, types.typing, types.removed)
+    preclass: Dict[str, ast.stmt]
+def types36(ann: ast.expr, classname: Optional[str] = None) -> Types36:
+    logg.log(DEBUG_TYPING, "types36: %s", ast.dump(ann))
+    if isinstance(ann, ast.Name) and ann.id == "Self" and classname and want.replace_self_typing:
+        selfclass = F"Self{classname}"
+        newann = ast.Name(selfclass)
+        decl: Dict[str, ast.stmt] = {}
+        typevar = ast.Call(ast.Name("TypeVar"), [ast.Constant(selfclass)], [ast.keyword("bound", ast.Constant(classname))])
+        typevar.lineno = ann.lineno
+        stmt = ast.Assign([ast.Name(selfclass)], typevar)
+        stmt.lineno = ann.lineno
+        decl[selfclass] = stmt
+        typing = set()
+        typing.add("TypeVar")
+        logg.log(DEBUG_TYPING, "self decl: %s", ast.dump(stmt))
+        return Types36(newann, typing, set(), decl)
+    else:
+        types = TypesTransformer()
+        annotation = types.visit(ann)
+        return Types36(annotation, types.typing, types.removed, {})
 
 def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]] = None) -> ast.Module:
     type_ignores1: List[ast.TypeIgnore] = type_ignores if type_ignores is not None else []
@@ -911,15 +928,18 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]]
             body.append(stmt)
         elif isinstance(stmt, ast.ClassDef):
             classdef: ast.ClassDef = stmt
+            classname = classdef.name
+            preclass: Dict[str, ast.stmt] = {}
             for part in classdef.body:
                 if isinstance(part, ast.AnnAssign):
                     assign: ast.AnnAssign = part
                     annv = assign.annotation
                     logg.log(DEBUG_TYPING, "annv %s", ast.dump(annv))
-                    newv = types36(annv)
+                    newv = types36(annv, classname)
                     assign.annotation = newv.annotation
                     typing_require.update(newv.typing)
                     typing_removed.update(newv.removed)
+                    preclass.update(newv.preclass)
                 elif isinstance(part, ast.FunctionDef):
                     funcdef: ast.FunctionDef = part
                     logg.log(DEBUG_TYPING, "method args %s",  [ast.dump(a) for a in funcdef.args.args])
@@ -927,10 +947,11 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]]
                         annp = arg.annotation
                         if annp:
                             logg.log(DEBUG_TYPING, "annp[%i] %s", n, ast.dump(annp))
-                            newp = types36(annp)
+                            newp = types36(annp, classname)
                             arg.annotation = newp.annotation
                             typing_require.update(newp.typing)
                             typing_removed.update(newp.removed)
+                            preclass.update(newp.preclass)
                     kwargs = funcdef.args.kwonlyargs
                     if kwargs:
                         logg.log(DEBUG_TYPING, "method kwargs %s",  [ast.dump(a) for a in kwargs])
@@ -938,19 +959,24 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]]
                             annk = argk.annotation
                             if annk:
                                 logg.log(DEBUG_TYPING, "annk[%i] %s", k, ast.dump(annk))
-                                newk = types36(annk)
+                                newk = types36(annk, classname)
                                 argk.annotation = newk.annotation
                                 typing_require.update(newk.typing)
                                 typing_removed.update(newk.removed)
+                                preclass.update(newk.preclass)
                     annr = funcdef.returns
                     if annr:
-                        logg.log(DEBUG_TYPING, "annr %s",ast.dump(annr))
-                        newr = types36(annr)
+                        newr = types36(annr, classname)
                         funcdef.returns = newr.annotation
                         typing_require.update(newr.typing)
                         typing_removed.update(newr.removed)
+                        preclass.update(newr.preclass)
                 else:
                     logg.warning("unknown pyi part %s", type(part))
+            for preclassname in sorted(preclass):
+                preclassdef = preclass[preclassname]
+                logg.log(DEBUG_TYPING, "self preclass: %s", ast.dump(preclassdef))
+                body.append(preclassdef)
             body.append(stmt)
         else:
             logg.warning("unknown pyi stmt %s", type(stmt))
@@ -1152,6 +1178,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "replace-annotated-typing": 0, "no-replace-annotated-typing": 0, # ..
         "replace-builtin-typing": 0, "no-replace-builtin-typing": 0, # ..
         "replace-union-typing": 0, "no-replace-union-typing": 0, # ..
+        "replace-self-typing": 0, "no-replace-self-typing": 0, # ..
         "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, # ..
         "subprocess-run": 0, "no-subprocess-run": 0,  # ..
         "import-pathlib2": 0, "no-import-pathlib2": 0,  # ..
@@ -1246,6 +1273,7 @@ def main() -> int:
     cmdline.add_option("--no-replace-annotated-typing", action="count", default=defs["no-replace-annotated-typing"], help="3.9 Annotated[int, x] (in pyi)")
     cmdline.add_option("--no-replace-builtin-typing", action="count", default=defs["no-replace-builtin-typing"], help="3.9 list[int] (in pyi)")
     cmdline.add_option("--no-replace-union-typing", action="count", default=defs["no-replace-union-typing"], help="3.10 int|str (in pyi)")
+    cmdline.add_option("--no-replace-self-typing", action="count", default=defs["no-replace-self-typing"], help="3.11 Self (in pyi)")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
@@ -1264,6 +1292,7 @@ def main() -> int:
     cmdline.add_option("--replace-annotated-typing", action="count", default=defs["replace-annotated-typing"], help="3.9 Annotated[int, x] converted to int")
     cmdline.add_option("--replace-builtin-typing", action="count", default=defs["replace-builtin-typing"], help="3.9 list[int] converted to List[int]")
     cmdline.add_option("--replace-union-typing", action="count", default=defs["replace-union-typing"], help="3.10 int|str converted to Union[int,str]")
+    cmdline.add_option("--replace-self-typing", action="count", default=defs["replace-self-typing"], help="3.11 Self converted to SelfClass a TypeVar")
     cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast()")
     cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
@@ -1318,6 +1347,9 @@ def main() -> int:
     if back_version < (3,10) or opt.replace_union_typing:
         if not opt.no_replace_union_typing:
             want.replace_union_typing = True
+    if back_version < (3,11) or opt.replace_self_typing:
+        if not opt.no_replace_self_typing:
+            want.replace_self_typing = True
     if back_version < (3,6) or opt.replace_fstring:
         if not opt.no_replace_fstring:
             want.replace_fstring = True

@@ -1,7 +1,7 @@
 [![Type Check](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml)
 [![Lint Check](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml)
 [![Unit Tests](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml)
-[![Code Coverage](https://img.shields.io/badge/60%20test-91%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
+[![Code Coverage](https://img.shields.io/badge/62%20test-91%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
 [![PyPI version](https://badge.fury.io/py/strip-python3.svg)](https://pypi.org/project/strip-python3/)
 
 
@@ -166,6 +166,13 @@ if python2 compatibility requested, as well as python3 older than 3.9.
 If `var: int|str` is used then it is replaced by `var: Union[int, str]`
 if python2 compatibility requested, as well as python3 older than 3.10.
 It does also replace `var: int|None` by `var: Optional[int]`
+
+## replace-self-typing
+
+If `param: Self` is used then it is replaced by `param: SelfB`
+if python2 compatibility requested, as well as python3 older than 3.11.
+It does declare a `SelfB = TypeVar("SelfB", bound="B")` as suggested 
+in PEP 673, and it works for the return type of a class method as well.
 
 ## remove-keywordsonly
 
