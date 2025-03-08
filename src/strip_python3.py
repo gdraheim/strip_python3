@@ -106,6 +106,7 @@ class Want:
     define_absolute_import = to_false(os.environ.get("PYTHON3_DEFINE_ABSOLUTE_IMPORT", NIX))
     datetime_fromisoformat = to_false(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
     subprocess_run = to_false(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
+    time_monotonic = to_false(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
     import_pathlib2 = to_false(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
     import_backports_zoneinfo = to_false(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
     import_toml = to_false(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
@@ -1299,7 +1300,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         if want.replace_fstring:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
-        if want.define_callable or want.define_print_function or want.define_float_division or want.datetime_fromisoformat or want.subprocess_run:
+        if OK: # was only running if some replacements were requested
             calls = DetectFunctionCalls()
             calls.visit(tree)
             if want.show_dump:
@@ -1368,6 +1369,13 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 """))
                 subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
+            if "time.monotonic" in calls.found and want.time_monotonic:
+                time_module = calls.imported["time"]
+                defname = time_module + "_monotonic"
+                monotonicdef = DefineIfPython3([F"def {defname}(): return {time_module}.monotonic()"], atleast=(3,3), # ..
+                   orelse=F"def {defname}(): return time.time()")
+                monotonicfunc = DetectFunctionCalls({"time.monotonic": defname})
+                tree = monotonicdef.visit(monotonicfunc.visit(tree))
             if "pathlib" in calls.imported and want.import_pathlib2:
                 logg.log(HINT, "detected pathlib")
                 pathlibname = calls.imported["pathlib"]
@@ -1479,6 +1487,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "replace-self-typing": 0, "no-replace-self-typing": 0, # ..
         "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, # ..
         "subprocess-run": 0, "no-subprocess-run": 0,  # ..
+        "time-monotonic": 0, "no-time-monotonic": 0,  # ..
         "import-pathlib2": 0, "no-import-pathlib2": 0,  # ..
         "import-backports-zoneinfo": 0, "no-import-backports-zoneinfo": 0, # ..
         "import-toml": 0, "no-import-toml": 0,  # ..
@@ -1564,6 +1573,7 @@ def main() -> int:
     cmdline.add_option("--no-define-absolute-import", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
     cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
     cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
+    cmdline.add_option("--no-time-monotonic", action="count", default=defs["no-time-monotonic"], help="3.3 time.monotonic")
     cmdline.add_option("--no-import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib to python2 pathlib2")
     cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=defs["no-import-backports-zoneinfo"], help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=defs["no-import-toml"], help="3.11 tomllib to external toml")
@@ -1584,6 +1594,7 @@ def main() -> int:
     cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
     cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
     cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or boilerplate")
+    cmdline.add_option("--time-monotonic", action="count", default=defs["time-monotonic"], help="3.3 time.monotonic or boilerplate time.time")
     cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib")
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo")
     cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import tomllib")
@@ -1682,6 +1693,9 @@ def main() -> int:
     if back_version < (3,5) or opt.subprocess_run:
         if not opt.no_subprocess_run:
             want.subprocess_run = True
+    if back_version < (3,3) or opt.time_monotonic:
+        if not opt.no_time_monotonic:
+            want.time_monotonic = True
     if back_version < (3,3) or opt.import_pathlib2:
         if not opt.no_import_pathlib2:
             want.import_pathlib2 = True

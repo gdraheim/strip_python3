@@ -131,6 +131,12 @@ with boilerplate code if python2 or python3 older than 3.7.
 If `subprocess.run` is used then it is replaced by `subprocess_run`
 with boilerplate code if python2 or python3 older than 3.5.
 
+## time-monotonic
+
+If `time.monotonic` is used then it is replaced by `time_monotonic`
+with boilerplate code based on `time.time`. This is needed for 
+python2 or python3 older than 3.3.
+
 ## import-pathlib2
 
 If `import pathlib` is used then it is replaced by `import pathlib2`
