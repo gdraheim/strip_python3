@@ -1,7 +1,7 @@
 [![Type Check](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml)
 [![Lint Check](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml)
 [![Unit Tests](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml)
-[![Code Coverage](https://img.shields.io/badge/55%20test-91%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
+[![Code Coverage](https://img.shields.io/badge/60%20test-91%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
 [![PyPI version](https://badge.fury.io/py/strip-python3.svg)](https://pypi.org/project/strip-python3/)
 
 
@@ -118,11 +118,6 @@ if python2 compatibility is required.
 If `callable(x)` is used then a `def callable` boilerplate is added for python3
 versions where it was not predefined (3.0 and 3.1)
 
-## replace-fstring
-
-If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
-if python2 compatibility requested, as well as python3 older than 3.5.
-
 ## datetime-fromisoformat
 
 If `datetime.datetime.fromisoformat` is used then it is replaced by `datetime_fromisodate`
@@ -150,6 +145,27 @@ If `import tomllib` is used then it is replaced by `import toml`
 if compatiblity with python older than 3.11 is requested. The
 external toml package (to be installed seperately) did exist 
 before and was integrated into the standard lib.
+
+## replace-fstring
+
+If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
+if python2 compatibility requested, as well as python3 older than 3.5.
+
+## replace-annotated-typing
+
+If `var: Annotated[int, Field(gt=0)]` is used then it is replaced by `var: int`
+if python2 compatibility requested, as well as python3 older than 3.9.
+
+## replace-builtin-typing
+
+If `var: list[int]` is used then it is replaced by `var: List[int]`
+if python2 compatibility requested, as well as python3 older than 3.9.
+
+## replace-union-typing
+
+If `var: int|str` is used then it is replaced by `var: Union[int, str]`
+if python2 compatibility requested, as well as python3 older than 3.10.
+It does also replace `var: int|None` by `var: Optional[int]`
 
 ## remove-keywordsonly
 
