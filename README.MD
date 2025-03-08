@@ -1,7 +1,7 @@
 [![Type Check](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml)
 [![Lint Check](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml)
 [![Unit Tests](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml)
-[![Code Coverage](https://img.shields.io/badge/62%20test-91%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
+[![Code Coverage](https://img.shields.io/badge/70%20test-91%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
 [![PyPI version](https://badge.fury.io/py/strip-python3.svg)](https://pypi.org/project/strip-python3/)
 
 
@@ -150,6 +150,16 @@ before and was integrated into the standard lib.
 
 If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
 if python2 compatibility requested, as well as python3 older than 3.5.
+
+## replace-walrus-operator
+
+If `if x := fu(): pass` is used then it is replaced by `x = fu()` followed
+by `if x: pass` if python2 compatibility requested, as well as python3 older than 3.8.
+
+Currently only if-walrus is supported but not while-walrus. Only a direct
+assignment or compare/binop is supported, i.e `if (x:= fu()) > 0` works
+as well as `if (x:= fu()) == "foo"`.
+
 
 ## replace-annotated-typing
 

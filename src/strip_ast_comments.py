@@ -18,6 +18,8 @@ else:
     Num, Str, Bytes = Constant, Constant, Constant
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 8:
     from ast import FunctionType, NamedExpr
+if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 9:
+    pass # from ast import Walrus
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 10:
     from ast import Match, MatchValue, MatchSingleton, MatchSequence, MatchStar, MatchMapping, MatchClass, MatchAs, MatchOr
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 11:

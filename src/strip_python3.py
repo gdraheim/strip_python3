@@ -7,17 +7,21 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.9.1096"
 
-from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar
+from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque
 import sys
 import re
 import os
 import os.path as fs
 import configparser
 import logging
+from collections import deque
 if sys.version_info >= (3,11,0):
     import tomllib
 else:
     import toml as tomllib # type: ignore[no-redef,import-untyped]
+DEBUG_TOML = logging.DEBUG
+DEBUG_TYPING = logging.DEBUG
+
 
 # ........
 # import ast
@@ -73,8 +77,6 @@ logging.addLevelName(DONE, "DONE")
 logging.addLevelName(NOTE, "NOTE")
 logging.addLevelName(HINT, "HINT")
 logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
-DEBUG_TOML = logging.DEBUG
-DEBUG_TYPING = logging.DEBUG
 
 OK = True
 NIX = ""
@@ -90,11 +92,12 @@ class Want:
     remove_keywordonly = to_false(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
     remove_positional = to_false(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
     remove_pyi_positional = to_false(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
+    replace_fstring = to_false(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
+    replace_walrus_operator = to_false(os.environ.get("PYTHON3_REPLACE_WALRUS_OPERATOR", NIX))
     replace_annotated_typing = to_false(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_builtin_typing = to_false(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_union_typing = to_false(os.environ.get("PYTHON3_REPLACE_UNION_TYPING", NIX))
     replace_self_typing = to_false(os.environ.get("PYTHON3_REPLACE_SELF_TYPING", NIX))
-    replace_fstring = to_false(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
     define_range = to_false(os.environ.get("PYTHON3_DEFINE_RANGE", NIX))
     define_basestring =to_false(os.environ.get("PYTHON3_DEFINE_BASESTRING", NIX))
     define_callable = to_false(os.environ.get("PYTHON3_DEFINE_CALLABLE", NIX))
@@ -128,6 +131,200 @@ def text4(content: str) -> str:
             return text
     else:
         return content
+
+# ........................................................................................................
+
+class BlockTransformer:
+    """ only runs visitor on body-elements, storing the latest block head in an attribute """
+    block: Deque[ast.AST]
+
+    def __init__(self) -> None:
+        self.block = deque()
+
+    def visit(self, node: TypeAST) -> TypeAST:
+        """Visit a node."""
+        if isinstance(node, ast.Module):
+            self.block.appendleft(node)
+            modbody: List[ast.stmt] = []
+            for stmt in node.body:
+                logg.log(DEBUG_TYPING, "stmt Module %s", ast.dump(stmt))
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    modbody.append(copy_location(elem, stmt))
+            node.body = modbody
+            self.block.popleft()
+        else:
+            nodes = self.generic_visits(node)
+            if len(nodes) > 0:
+                return nodes[0]
+        return node
+    def generic_visits(self, node: TypeAST) -> List[TypeAST]:
+        if isinstance(node, ast.ClassDef):
+            self.block.appendleft(node)
+            classbody: List[ast.stmt] = []
+            for stmt in node.body:
+                logg.log(DEBUG_TYPING, "stmt ClassDef %s", ast.dump(stmt))
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    classbody.append(copy_location(elem, stmt))
+            node.body = classbody
+            self.block.popleft()
+        elif isinstance(node, ast.FunctionDef):
+            self.block.appendleft(node)
+            funcbody: List[ast.stmt] = []
+            for stmt in node.body:
+                logg.log(DEBUG_TYPING, "stmt FunctionDef %s", ast.dump(stmt))
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    funcbody.append(copy_location(elem, stmt))
+            node.body = funcbody
+            self.block.popleft()
+        elif isinstance(node, ast.With):
+            self.block.appendleft(node)
+            withbody: List[ast.stmt] = []
+            for stmt in node.body:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    withbody.append(copy_location(elem, stmt))
+            node.body = withbody
+            self.block.popleft()
+        elif isinstance(node, ast.If):
+            self.block.appendleft(node)
+            ifbody: List[ast.stmt] = []
+            ifelse: List[ast.stmt] = []
+            for stmt in node.body:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    ifbody.append(copy_location(elem, stmt))
+            for stmt in node.orelse:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    ifelse.append(copy_location(elem, stmt))
+            node.body = ifbody
+            node.orelse = ifelse
+            self.block.popleft()
+        elif isinstance(node, ast.While):
+            self.block.appendleft(node)
+            whilebody: List[ast.stmt] = []
+            whileelse: List[ast.stmt] = []
+            for stmt in node.body:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    whilebody.append(copy_location(elem, stmt))
+            for stmt in node.orelse:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    whileelse.append(copy_location(elem, stmt))
+            node.body = whilebody
+            node.orelse = whileelse
+            self.block.popleft()
+        elif isinstance(node, ast.For):
+            self.block.appendleft(node)
+            forbody: List[ast.stmt] = []
+            forelse: List[ast.stmt] = []
+            for stmt in node.body:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    forbody.append(copy_location(elem, stmt))
+            for stmt in node.orelse:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    forelse.append(copy_location(elem, stmt))
+            node.body = forbody
+            node.orelse = forelse
+            self.block.popleft()
+        elif isinstance(node, ast.Try):
+            self.block.appendleft(node)
+            trybody: List[ast.stmt] = []
+            tryelse: List[ast.stmt] = []
+            tryfinal: List[ast.stmt] = []
+            for stmt in node.body:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    trybody.append(copy_location(elem, stmt))
+            for excpt in node.handlers:
+                excptbody: List[ast.stmt] = []
+                for stmt in excpt.body:
+                    method = 'visits_' + stmt.__class__.__name__
+                    visitor = getattr(self, method, self.generic_visits)
+                    for elem in visitor(stmt):
+                        excptbody.append(copy_location(elem, stmt))
+                excpt.body = excptbody
+            for stmt in node.orelse:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    tryelse.append(copy_location(elem, stmt))
+            for stmt in node.finalbody:
+                method = 'visits_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visits)
+                for elem in visitor(stmt):
+                    tryfinal.append(copy_location(elem, stmt))
+            node.body = trybody
+            node.orelse = tryelse
+            node.finalbody = tryfinal
+            self.block.popleft()
+        else:
+            pass
+        return [node]
+
+class WalrusTransformer(BlockTransformer):
+    def visits_If(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
+        if isinstance(node.test, ast.NamedExpr):
+            test: ast.NamedExpr = node.test
+            logg.log(DEBUG_TYPING, "walrus-test: %s", ast.dump(test))
+            assign = ast.Assign([test.target], test.value)
+            assign = copy_location(assign, node)
+            newtest = ast.Name(test.target.id)
+            newtest = copy_location(newtest, node)
+            node.test = newtest
+            return [assign, node]
+        elif isinstance(node.test, (ast.Compare, ast.BinOp)):
+            test2: Union[ast.Compare, ast.BinOp] = node.test
+            if isinstance(test2.left, ast.NamedExpr):
+                test = test2.left
+                logg.log(DEBUG_TYPING, "walrus-left: %s", ast.dump(test))
+                assign = ast.Assign([test.target], test.value)
+                assign = copy_location(assign, node)
+                newtest = ast.Name(test.target.id)
+                newtest = copy_location(newtest, node)
+                test2.left = newtest
+                return [assign, node]
+            elif isinstance(test2, ast.BinOp) and isinstance(test2.right, ast.NamedExpr):
+                test = test2.right
+                logg.log(DEBUG_TYPING, "walrus-right: %s", ast.dump(test))
+                assign = ast.Assign([test.target], test.value)
+                assign = copy_location(assign, node)
+                newtest = ast.Name(test.target.id)
+                newtest = copy_location(newtest, node)
+                test2.right = newtest
+                return [assign, node]
+            elif isinstance(test2, ast.Compare) and isinstance(test2.comparators[0], ast.NamedExpr):
+                test = test2.comparators[0]
+                logg.log(DEBUG_TYPING, "walrus-compared: %s", ast.dump(test))
+                assign = ast.Assign([test.target], test.value)
+                assign = copy_location(assign, node)
+                newtest = ast.Name(test.target.id)
+                newtest = copy_location(newtest, node)
+                test2.comparators[0] = newtest
+                return [assign, node]
+            else:
+                logg.log(DEBUG_TYPING, "walrus?: %s", ast.dump(test2))
+                return [node]
+        else:
+            logg.log(DEBUG_TYPING, "walrus-if?: %s", ast.dump(node))
+            return [node]
 
 class DetectImportFrom(ast.NodeTransformer):
     def __init__(self) -> None:
@@ -1125,6 +1322,9 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if basetypes.replace:
                 defs3 = DefineIfPython3(basetypes.defines)
                 tree = defs3.visit(tree)
+        if want.replace_walrus_operator:
+            walrus = WalrusTransformer()
+            tree = walrus.visit(tree)
         if want.show_dump:
             logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
         if want.show_dump > 1:
@@ -1183,6 +1383,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "define-basestring": 0, "no-define-basestring": 0, # ..
         "define-range": 0, "no-define-range": 0, # ..
         "replace-fstring": 0, "no-replace-fstring": 0, # ..
+        "replace-walrus-operator": 0, "no-replace-walrus-operator": 0, # ..
         "replace-annotated-typing": 0, "no-replace-annotated-typing": 0, # ..
         "replace-builtin-typing": 0, "no-replace-builtin-typing": 0, # ..
         "replace-union-typing": 0, "no-replace-union-typing": 0, # ..
@@ -1278,6 +1479,7 @@ def main() -> int:
     cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=defs["no-import-backports-zoneinfo"], help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=defs["no-import-toml"], help="3.11 tomllib to external toml")
     cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
+    cmdline.add_option("--no-replace-walrus-operator", action="count", default=defs["no-replace-walrus-operator"], help="3.8 walrus-operator")
     cmdline.add_option("--no-replace-annotated-typing", action="count", default=defs["no-replace-annotated-typing"], help="3.9 Annotated[int, x] (in pyi)")
     cmdline.add_option("--no-replace-builtin-typing", action="count", default=defs["no-replace-builtin-typing"], help="3.9 list[int] (in pyi)")
     cmdline.add_option("--no-replace-union-typing", action="count", default=defs["no-replace-union-typing"], help="3.10 int|str (in pyi)")
@@ -1297,6 +1499,7 @@ def main() -> int:
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo")
     cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import tomllib")
     cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
+    cmdline.add_option("--replace-walrus-operator", action="count", default=defs["replace-walrus-operator"], help="3.8 walrus 'if x := ():' to 'if x:'")
     cmdline.add_option("--replace-annotated-typing", action="count", default=defs["replace-annotated-typing"], help="3.9 Annotated[int, x] converted to int")
     cmdline.add_option("--replace-builtin-typing", action="count", default=defs["replace-builtin-typing"], help="3.9 list[int] converted to List[int]")
     cmdline.add_option("--replace-union-typing", action="count", default=defs["replace-union-typing"], help="3.10 int|str converted to Union[int,str]")
@@ -1363,6 +1566,9 @@ def main() -> int:
             want.replace_fstring = True
             if opt.replace_fstring > 1:
                 want.fstring_numbered = True
+    if back_version < (3,8) or opt.replace_walrus_operator:
+        if not opt.no_replace_walrus_operator:
+            want.replace_walrus_operator = True
     if back_version < (3,0) or opt.define_range:
         if not opt.no_define_range:
             want.define_range = True
