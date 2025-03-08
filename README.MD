@@ -12,12 +12,15 @@ now based on the Python 3.9+ standard library's `'ast.unparse()'`. More specific
 it is using `'ast_comments'` to keep the comments. The implementation wants to make
 it very easy so that you can add your own source code transformations.
 
-As a bonus, `'strip_python3'` can extract typehints to `'*.pyi'` file containing only
+The `'strip_python3'` tool can extract typehints to `'*.pyi'` file containing only
 the outer object-oriented interface. That allows you to ship modern typed python3
 code to older systems, possibly even having only python2 preinstalled. But even
 supporting systems with a base installation of python3.6 can be a challenge where
 this tool can help.
 
+The default configuration is to strip the `*.py` file to python2 syntax that can 
+also work in python3 (using `__print_function__`), and to put a `*.pyi` file next 
+to it containing the typehints in a syntax compatible with python3.6 (with `--pyi`).
 
 # references
 
