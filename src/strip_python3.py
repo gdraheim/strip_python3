@@ -651,6 +651,66 @@ class TypeHints:
                         body.append(assign1)
                     assign3 = ast.AnnAssign(target=assign1.target, annotation=assign1.annotation, value=None, simple=assign1.simple)
                     self.pyi.append(assign3)
+                elif isinstance(child, ast.FunctionDef):
+                    funcdef1: ast.FunctionDef = child
+                    logg.debug("funcdef: %s", ast.dump(funcdef1))
+                    if OK:
+                        if OK:
+                            annos = 0
+                            posonlyargs: List[ast.arg] = []
+                            functionargs: List[ast.arg] = []
+                            kwonlyargs: List[ast.arg] = []
+                            vargarg = funcdef1.args.vararg
+                            kwarg = funcdef1.args.kwarg
+                            if OK:
+                                for arg in funcdef1.args.posonlyargs:
+                                    logg.debug("pos arg: %s", ast.dump(arg))
+                                    posonlyargs.append(ast.arg(arg.arg))
+                                    if arg.annotation:
+                                        annos += 1
+                            if OK:
+                                for arg in funcdef1.args.args:
+                                    logg.debug("fun arg: %s", ast.dump(arg))
+                                    functionargs.append(ast.arg(arg.arg))
+                                    if arg.annotation:
+                                        annos += 1
+                            if OK:
+                                for arg in funcdef1.args.kwonlyargs:
+                                    logg.debug("fun arg: %s", ast.dump(arg))
+                                    kwonlyargs.append(ast.arg(arg.arg))
+                                    if arg.annotation:
+                                        annos += 1
+                            if vargarg is not None:
+                                if vargarg.annotation:
+                                    annos += 1
+                                vargarg = ast.arg(vargarg.arg)
+                            if kwarg is not None:
+                                if kwarg.annotation:
+                                    annos += 1
+                                kwarg = ast.arg(kwarg.arg)
+                            if not annos and not funcdef1.returns:
+                                body.append(funcdef1)
+                            else:
+                                logg.debug("args: %s", ast.dump(funcdef1.args))
+                                if not want.remove_typehints:
+                                    rets2 = funcdef1.returns
+                                    args2 = funcdef1.args
+                                else:
+                                    rets2 = None
+                                    args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
+                                           funcdef1.args.kw_defaults, kwarg, funcdef1.args.defaults)
+                                funcdef2 = ast.FunctionDef(funcdef1.name, args2, funcdef1.body, funcdef1.decorator_list, rets2)
+                                funcdef2.lineno = funcdef1.lineno
+                                body.append(funcdef2)
+                                funcargs3 = funcdef1.args
+                                if posonlyargs and want.remove_pyi_positional:
+                                    posonlyargs3: List[ast.arg] = funcdef1.args.posonlyargs if not want.remove_pyi_positional else []
+                                    functionargs3 = funcdef1.args.args if not want.remove_pyi_positional else funcdef1.args.posonlyargs + funcdef1.args.args
+                                    funcargs3 = ast.arguments(posonlyargs3, functionargs3, vargarg, funcdef1.args.kwonlyargs, # ..
+                                           funcdef1.args.kw_defaults, kwarg, funcdef1.args.defaults)
+                                funcdef3 = ast.FunctionDef(funcdef1.name, funcargs3, [ast.Pass()], funcdef1.decorator_list, funcdef1.returns)
+                                funcdef3.lineno = funcdef1.lineno
+                                self.pyi.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
                     logg.debug("class: %s", ast.dump(child))
                     stmt: List[ast.stmt] = []
@@ -830,7 +890,7 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]]
                     arg1.annotation = new1.annotation
                     typing_require.update(new1.typing)
                     typing_removed.update(new1.removed)
-            kwargs2 = funcdef.args.kwonlyargs
+            kwargs2 = funcdef1.args.kwonlyargs
             if kwargs2:
                 logg.log(DEBUG_TYPING, "funcdef kwargs %s",  [ast.dump(a) for a in kwargs2])
                 for k2, argk2 in enumerate(kwargs2):
