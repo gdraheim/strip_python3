@@ -7,22 +7,22 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.8.1096"
 
-from typing import List, Dict, Optional, Union, Tuple, cast
+from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple
 import sys
 import re
 import os
 import os.path as fs
 import configparser
 import logging
-if sys.version_info < (3,11,0):
-    import toml as tomllib
-else:
+if sys.version_info >= (3,11,0):
     import tomllib
+else:
+    import toml as tomllib # type: ignore[no-redef,import-untyped]
 
 # ........
 # import ast
 # import ast_comments as ast
-import strip_ast_comments as ast
+import strip_ast_comments as ast  # pylint: disable=wrong-import-positioning
 
 # (python3.12) = type() statement
 # (python3.12) = support for generics
@@ -66,6 +66,7 @@ logging.addLevelName(NOTE, "NOTE")
 logging.addLevelName(HINT, "HINT")
 logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
 DEBUG_TOML = logging.DEBUG
+DEBUG_TYPING = logging.DEBUG
 
 OK = True
 NIX = ""
@@ -78,6 +79,8 @@ class Want:
     fstring_numbered = to_false(os.environ.get("PYTHON3_FSTRING_NUMBERED", NIX))
     remove_var_typehints = to_false(os.environ.get("PYTHON3_REMOVE_VAR_TYPEHINTS", NIX))
     remove_typehints = to_false(os.environ.get("PYTHON3_REMOVE_TYPEHINTS", NIX))
+    remove_annotated_typing = to_false(os.environ.get("PYTHON3_REMOVE_ANNOTATED_TYPING", NIX))
+    remove_builtin_typing = to_false(os.environ.get("PYTHON3_REMOVE_ANNOTATED_TYPING", NIX))
     remove_keywordonly = to_false(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
     remove_positional = to_false(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
     remove_pyi_positional = to_false(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
@@ -740,6 +743,123 @@ class TypeHints:
             return ast.Module(body, type_ignores=node.type_ignores)
         return node
 
+class TypesTransformer(ast.NodeTransformer):
+    def __init__(self) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.typing: Set[str] = set()
+        self.removed: Set[str] = set()
+    def visit_Subscript(self, node: ast.Subscript) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        if isinstance(node.value, ast.Name):
+            subname = node.value.id
+            if subname == "list" and want.remove_builtin_typing:
+                self.typing.add("List")
+                value2 = ast.Name("List")
+                slice2: ast.expr = cast(ast.expr, self.generic_visit(node.slice))
+                return ast.Subscript(value2, slice2)
+            if subname == "dict" and want.remove_builtin_typing:
+                self.typing.add("Dict")
+                value3 = ast.Name("Dict")
+                slice3: ast.expr = cast(ast.expr, self.generic_visit(node.slice))
+                return ast.Subscript(value3, slice3)
+            if subname == "Annotated" and want.remove_annotated_typing:
+                if isinstance(node.slice, ast.Tuple):
+                    self.removed.add("Annotated")
+                    elems: ast.Tuple = node.slice
+                    return self.generic_visit(elems.elts[0])
+                return self.generic_visit(node)
+        return self.generic_visit(node)
+
+class Types36(NamedTuple):
+    annotation: ast.expr
+    typing: Set[str]
+    removed: Set[str]
+def types36(ann: ast.expr) -> Types36:
+    types = TypesTransformer()
+    annotation = types.visit(ann)
+    return Types36(annotation, types.typing, types.removed)
+
+def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]] = None) -> ast.Module:
+    type_ignores1: List[ast.TypeIgnore] = type_ignores if type_ignores is not None else []
+    typing_extensions: List[str] = []
+    typing_require: Set[str] = set()
+    typing_removed: Set[str] = set()
+    body: List[ast.stmt] = []
+    for stmt in pyi:
+        if isinstance(stmt, ast.ImportFrom):
+            import1: ast.ImportFrom = stmt
+            if import1.module in ["typing", "typing_extensions"]:
+                for alias in import1.names:
+                    if alias.name not in typing_extensions:
+                        typing_extensions.append(alias.name)
+        elif isinstance(stmt, ast.AnnAssign):
+            assign1: ast.AnnAssign = stmt
+            anng = assign1.annotation
+            logg.log(DEBUG_TYPING, "anng %s", ast.dump(anng))
+            newg = types36(anng)
+            assign1.annotation = newg.annotation
+            typing_require.update(newg.typing)
+            typing_removed.update(newg.removed)
+            body.append(stmt)
+        elif isinstance(stmt, ast.FunctionDef):
+            funcdef1: ast.FunctionDef = stmt
+            for n, arg1 in enumerate(funcdef1.args.args):
+                ann1 = arg1.annotation
+                if ann1:
+                    logg.log(DEBUG_TYPING, "ann[%i] %s", n, ast.dump(ann1))
+                    new1 = types36(ann1)
+                    arg1.annotation = new1.annotation
+                    typing_require.update(new1.typing)
+                    typing_removed.update(new1.removed)
+            ann0 = funcdef1.returns
+            if ann0:
+                logg.log(DEBUG_TYPING, "ann0 %s",ast.dump(ann0))
+                new0 = types36(ann0)
+                funcdef1.returns = new0.annotation
+                typing_require.update(new0.typing)
+                typing_removed.update(new0.removed)
+            body.append(stmt)
+        elif isinstance(stmt, ast.ClassDef):
+            classdef: ast.ClassDef = stmt
+            for part in classdef.body:
+                if isinstance(part, ast.AnnAssign):
+                    assign: ast.AnnAssign = part
+                    annv = assign.annotation
+                    logg.log(DEBUG_TYPING, "annv %s", ast.dump(annv))
+                    newv = types36(annv)
+                    assign.annotation = newv.annotation
+                    typing_require.update(newv.typing)
+                    typing_removed.update(newv.removed)
+                elif isinstance(part, ast.FunctionDef):
+                    funcdef: ast.FunctionDef = part
+                    for n, arg in enumerate(funcdef.args.args):
+                        annp = arg.annotation
+                        if annp:
+                            logg.log(DEBUG_TYPING, "annp[%i] %s", n, ast.dump(annp))
+                            newp = types36(annp)
+                            arg.annotation = newp.annotation
+                            typing_require.update(newp.typing)
+                            typing_removed.update(newp.removed)
+                    annr = funcdef.returns
+                    if annr:
+                        logg.log(DEBUG_TYPING, "annr %s",ast.dump(annr))
+                        newr = types36(annr)
+                        funcdef.returns = newr.annotation
+                        typing_require.update(newr.typing)
+                        typing_removed.update(newr.removed)
+                else:
+                    logg.warning("unknown pyi part %s", type(part))
+            body.append(stmt)
+        else:
+            logg.warning("unknown pyi stmt %s", type(stmt))
+            body.append(stmt)
+    oldimports = [typ for typ in typing_extensions if typ not in typing_removed]
+    newimports = [typ for typ in typing_require if typ not in oldimports]
+    if newimports or oldimports:
+        imports = ast.ImportFrom(module="typing", names=[ast.alias(name) for name in newimports + oldimports], level=0)
+        body = [imports] + body
+    typehints = ast.Module(body, type_ignores=type_ignores1)
+    return typehints
+
 # ............................................................................... MAIN
 
 EACH_REMOVE3 = 1
@@ -899,13 +1019,15 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 if pyi:
                     typehintsfile = out+"i"
                     logg.debug("--pyi => %s", typehintsfile)
+                    type_ignores: List[ast.TypeIgnore] = []
                     if isinstance(tree1, ast.Module):
-                        typehints = ast.Module(types.pyi, type_ignores=tree1.type_ignores)
-                        with open(typehintsfile, "w", encoding="utf-8") as w:
-                            done = ast.unparse(typehints)
-                            w.write(done)
-                            if done and not done.endswith("\n"):
-                                w.write("\n")
+                        type_ignores = tree1.type_ignores
+                    typehints = pyi_module(types.pyi, type_ignores=type_ignores)
+                    with open(typehintsfile, "w", encoding="utf-8") as w:
+                        done = ast.unparse(typehints)
+                        w.write(done)
+                        if done and not done.endswith("\n"):
+                            w.write("\n")
 
     return 0
 
@@ -921,6 +1043,8 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "no-define-print-function": 0, "no-define-float-division": 0, "no-define-absolute-import": 0, # ..
         "no-replace-fstring": 0, "no-define-range": 0, "no-define-basestring":0, "no-define-callable": 0,  # ..
         "no-remove-keywordonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0,
+        "remove-annotated-typing": 0, "no-remove-annotated-typing": 0,
+        "remove-builtin-typing": 0, "no-remove-builtin-typing": 0,
         "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0,
         "subprocess-run": 0, "no-subprocess-run": 0, 
         "import-pathlib2": 0, "no-import-pathlib2": 0, 
@@ -1014,6 +1138,8 @@ def main() -> int:
     cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
+    cmdline.add_option("--no-remove-annotated-typing", action="count", default=defs["no-remove-annotated-typing"], help="3.11 Annotated[int, x] (in pyi)")
+    cmdline.add_option("--no-remove-builtin-typing", action="count", default=defs["no-remove-builtin-typing"], help="3.10 list[int] (in pyi)")
     cmdline.add_option("--define-range", action="count", default=defs["define-range"], help="3.0 define range() to xrange() iterator")
     cmdline.add_option("--define-basestring", action="count", default=defs["define-basestring"], help="3.0 isinstance(str) is basestring python2")
     cmdline.add_option("--define-callable", action="count", default=defs["define-callable"], help="3.2 callable(x) as in python2")
@@ -1029,6 +1155,8 @@ def main() -> int:
     cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
     cmdline.add_option("--remove-pyi-positionalonly", action="count", default=defs["remove-pyi-positionalonly"], help="3.8 positionalonly parameters in *.pyi")
+    cmdline.add_option("--remove-annotated-typing", action="count", default=defs["remove-annotated-typing"], help="3.11 Annotated[int, x] converted to int")
+    cmdline.add_option("--remove-builtin-typing", action="count", default=defs["remove-builtin-typing"], help="3.10 list[int] converted to List[int]")
     cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast()")
     cmdline.add_option("--remove-var-typehints", action="count", default=defs["remove-var-typehints"], help="only 3.6 variable annotations (typehints)")
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
@@ -1071,6 +1199,12 @@ def main() -> int:
         want.remove_var_typehints = True
     if back_version < (3,5) or opt.remove_typehints:
         want.remove_typehints = True
+    if back_version < (3,9) or opt.remove_builtin_typing:
+        if not opt.no_remove_builtin_typing:
+            want.remove_builtin_typing = True
+    if back_version < (3,9) or opt.remove_annotated_typing:
+        if not opt.no_remove_annotated_typing:
+            want.remove_annotated_typing = True
     if back_version < (3,6) or opt.replace_fstring:
         if not opt.no_replace_fstring:
             want.replace_fstring = True
