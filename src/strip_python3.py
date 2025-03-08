@@ -5,7 +5,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "0.8.1096"
+__version__ = "0.9.1096"
 
 from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple
 import sys
