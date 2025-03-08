@@ -151,6 +151,11 @@ before and was integrated into the standard lib.
 If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
 if python2 compatibility requested, as well as python3 older than 3.5.
 
+The transformation scheme works nicely with any expression. So that
+you can write `F"string {len(part)}: {part}"` which gets expanded to:
+
+    "string {}: {}".format(len(part), part)
+
 ## replace-walrus-operator
 
 If `if x := fu(): pass` is used then it is replaced by `x = fu()` followed
