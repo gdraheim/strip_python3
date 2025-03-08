@@ -17,7 +17,7 @@ V=-v
 all: help
 
 help:
-	$(PYTHON) strip_python3.py --help
+	$(PYTHON) $F --help
 
 check: ; $(PYTHON) $(TESTS) $V
 test_0%: ; $(PYTHON) $(TESTS) $V $@

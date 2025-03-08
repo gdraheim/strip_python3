@@ -37,6 +37,7 @@ NIX = ""
 LONGER = 2
 ENDSLEEP = 0.1
 FIXCOVERAGE = True
+RMCOVERAGE = True
 
 basestring = str
 
@@ -249,6 +250,8 @@ class StripTest(unittest.TestCase):
             with open(newcoverage, "wb") as out:
                 out.write(text2)
                 written.append(newcoverage)
+            if RMCOVERAGE:
+                os.unlink(".coverage")
         if os.path.isfile(F"{testdir}/.coverage"):
             logg.log(DEBUG_TOML, "%s: found %s", testname, F"{testdir}/.coverage")
             newcoverage = ".coverage."+testname+".testdir"
@@ -261,6 +264,8 @@ class StripTest(unittest.TestCase):
             with open(newcoverage, "wb") as out:
                 out.write(text2)
                 written.append(newcoverage)
+            if RMCOVERAGE:
+                os.unlink(F"{testdir}/.coverage")
         logg.log(DEBUG_TOML, "coverage written %s", written)
     def begin(self) -> str:
         self._started = time.monotonic() # pylint: disable=attribute-defined-outside-init
@@ -270,7 +275,10 @@ class StripTest(unittest.TestCase):
         runtime = time.monotonic() - self._started
         self.assertLess(runtime, maximum * LONGER)
     # all tests should start with '0'.
-    def test_0001(self) -> None:
+    def test_0000(self) -> None:
+        if os.path.isfile(".coverage"):
+            os.unlink(".coverage")
+    def test_0011(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --help")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -278,7 +286,7 @@ class StripTest(unittest.TestCase):
         self.assertFalse(run.err)
         self.assertTrue(greps(run.out, "this help message"))
         self.rm_testdir()
-    def test_0011(self) -> None:
+    def test_0021(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -300,7 +308,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = True
         """))
         self.rm_testdir()
-    def test_0012(self) -> None:
+    def test_0022(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show --py36")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -322,7 +330,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = False
         """))
         self.rm_testdir()
-    def test_0014(self) -> None:
+    def test_0024(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -349,7 +357,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = False
         """))
         self.rm_testdir()
-    def test_0015(self) -> None:
+    def test_0025(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -376,7 +384,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = False
         """))
         self.rm_testdir()
-    def test_0016(self) -> None:
+    def test_0026(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -404,7 +412,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = True
         """))
         self.rm_testdir()
-    def test_0017(self) -> None:
+    def test_0027(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -433,7 +441,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0018(self) -> None:
+    def test_0028(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -469,7 +477,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = False
         """)))
         self.rm_testdir()
-    def test_0024(self) -> None:
+    def test_0034(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -496,7 +504,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = False
         """))
         self.rm_testdir()
-    def test_0025(self) -> None:
+    def test_0035(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -523,7 +531,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = False
         """))
         self.rm_testdir()
-    def test_0026(self) -> None:
+    def test_0036(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -551,7 +559,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = True
         """))
         self.rm_testdir()
-    def test_0028(self) -> None:
+    def test_0038(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
