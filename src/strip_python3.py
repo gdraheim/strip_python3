@@ -283,7 +283,7 @@ class WalrusTransformer(BlockTransformer):
     def visits_If(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
         if isinstance(node.test, ast.NamedExpr):
             test: ast.NamedExpr = node.test
-            logg.log(DEBUG_TYPING, "walrus-test: %s", ast.dump(test))
+            logg.log(DEBUG_TYPING, "ifwalrus-test: %s", ast.dump(test))
             assign = ast.Assign([test.target], test.value)
             assign = copy_location(assign, node)
             newtest = ast.Name(test.target.id)
@@ -294,7 +294,7 @@ class WalrusTransformer(BlockTransformer):
             test2: Union[ast.Compare, ast.BinOp] = node.test
             if isinstance(test2.left, ast.NamedExpr):
                 test = test2.left
-                logg.log(DEBUG_TYPING, "walrus-left: %s", ast.dump(test))
+                logg.log(DEBUG_TYPING, "ifwalrus-left: %s", ast.dump(test))
                 assign = ast.Assign([test.target], test.value)
                 assign = copy_location(assign, node)
                 newtest = ast.Name(test.target.id)
@@ -303,7 +303,7 @@ class WalrusTransformer(BlockTransformer):
                 return [assign, node]
             elif isinstance(test2, ast.BinOp) and isinstance(test2.right, ast.NamedExpr):
                 test = test2.right
-                logg.log(DEBUG_TYPING, "walrus-right: %s", ast.dump(test))
+                logg.log(DEBUG_TYPING, "ifwalrus-right: %s", ast.dump(test))
                 assign = ast.Assign([test.target], test.value)
                 assign = copy_location(assign, node)
                 newtest = ast.Name(test.target.id)
@@ -312,7 +312,7 @@ class WalrusTransformer(BlockTransformer):
                 return [assign, node]
             elif isinstance(test2, ast.Compare) and isinstance(test2.comparators[0], ast.NamedExpr):
                 test = test2.comparators[0]
-                logg.log(DEBUG_TYPING, "walrus-compared: %s", ast.dump(test))
+                logg.log(DEBUG_TYPING, "ifwalrus-compared: %s", ast.dump(test))
                 assign = ast.Assign([test.target], test.value)
                 assign = copy_location(assign, node)
                 newtest = ast.Name(test.target.id)
@@ -320,11 +320,98 @@ class WalrusTransformer(BlockTransformer):
                 test2.comparators[0] = newtest
                 return [assign, node]
             else:
-                logg.log(DEBUG_TYPING, "walrus?: %s", ast.dump(test2))
+                logg.log(DEBUG_TYPING, "ifwalrus?: %s", ast.dump(test2))
                 return [node]
         else:
-            logg.log(DEBUG_TYPING, "walrus-if?: %s", ast.dump(node))
+            logg.log(DEBUG_TYPING, "ifwalrus-if?: %s", ast.dump(node))
             return [node]
+
+class WhileWalrusTransformer(BlockTransformer):
+    def visits_While(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
+        if isinstance(node.test, ast.NamedExpr):
+            test: ast.NamedExpr = node.test
+            logg.log(DEBUG_TYPING, "whwalrus-test: %s", ast.dump(test))
+            assign = ast.Assign([test.target], test.value)
+            assign = copy_location(assign, node)
+            newtest = ast.Name(test.target.id)
+            newtest = copy_location(newtest, node)
+            newtrue = ast.Constant(True)
+            newtrue = copy_location(newtrue, node)
+            node.test = newtrue
+            oldbody = node.body
+            oldelse = node.orelse
+            node.body = []
+            node.orelse = []
+            newif = ast.If(newtest, oldbody, oldelse + [ast.Break()])
+            newif = copy_location(newif, node)
+            node.body = [assign, newif]
+            return [node]
+        elif isinstance(node.test, (ast.Compare, ast.BinOp)):
+            test2: Union[ast.Compare, ast.BinOp] = node.test
+            if isinstance(test2.left, ast.NamedExpr):
+                test = test2.left
+                logg.log(DEBUG_TYPING, "whwalrus-left: %s", ast.dump(test))
+                assign = ast.Assign([test.target], test.value)
+                assign = copy_location(assign, node)
+                newtest = ast.Name(test.target.id)
+                newtest = copy_location(newtest, node)
+                test2.left = newtest
+                newtrue = ast.Constant(True)
+                newtrue = copy_location(newtrue, node)
+                node.test = newtrue
+                oldbody = node.body
+                oldelse = node.orelse
+                node.body = []
+                node.orelse = []
+                newif = ast.If(test2, oldbody, oldelse + [ast.Break()])
+                newif = copy_location(newif, node)
+                node.body = [assign, newif]
+                return [node]
+            elif isinstance(test2, ast.BinOp) and isinstance(test2.right, ast.NamedExpr):
+                test = test2.right
+                logg.log(DEBUG_TYPING, "whwalrus-right: %s", ast.dump(test))
+                assign = ast.Assign([test.target], test.value)
+                assign = copy_location(assign, node)
+                newtest = ast.Name(test.target.id)
+                newtest = copy_location(newtest, node)
+                test2.right = newtest
+                newtrue = ast.Constant(True)
+                newtrue = copy_location(newtrue, node)
+                node.test = newtrue
+                oldbody = node.body
+                oldelse = node.orelse
+                node.body = []
+                node.orelse = []
+                newif = ast.If(test2, oldbody, oldelse + [ast.Break()])
+                newif = copy_location(newif, node)
+                node.body = [assign, newif]
+                return [node]
+            elif isinstance(test2, ast.Compare) and isinstance(test2.comparators[0], ast.NamedExpr):
+                test = test2.comparators[0]
+                logg.log(DEBUG_TYPING, "whwalrus-compared: %s", ast.dump(test))
+                assign = ast.Assign([test.target], test.value)
+                assign = copy_location(assign, node)
+                newtest = ast.Name(test.target.id)
+                newtest = copy_location(newtest, node)
+                test2.comparators[0] = newtest
+                newtrue = ast.Constant(True)
+                newtrue = copy_location(newtrue, node)
+                node.test = newtrue
+                oldbody = node.body
+                oldelse = node.orelse
+                node.body = []
+                node.orelse = []
+                newif = ast.If(test2, oldbody, oldelse + [ast.Break()])
+                newif = copy_location(newif, node)
+                node.body = [assign, newif]
+                return [node]
+            else:
+                logg.log(DEBUG_TYPING, "whwalrus?: %s", ast.dump(test2))
+                return [node]
+        else:
+            logg.log(DEBUG_TYPING, "whwalrus-if?: %s", ast.dump(node))
+            return [node]
+
 
 class DetectImportFrom(ast.NodeTransformer):
     def __init__(self) -> None:
@@ -1325,6 +1412,8 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         if want.replace_walrus_operator:
             walrus = WalrusTransformer()
             tree = walrus.visit(tree)
+            whwalrus = WhileWalrusTransformer()
+            tree = whwalrus.visit(tree)
         if want.show_dump:
             logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
         if want.show_dump > 1:
