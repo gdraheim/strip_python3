@@ -59,6 +59,24 @@ The differences to the output of code beautyfiers have become minimal. Note howe
 that the code removal does sometimes make comments appear on lines where they don't 
 belong to.
 
+# configuration
+
+Configuration occurs in this order - with last overriding first
+ * environment variables - on `PYTHON3_REMOVE_POSITIONAL=true`
+ * setup.cfg settings -  in `[strip-python3]` on `remove_positional=true`
+ * pyproject.toml settings - in `[tool.strip-python3]` on `remove_positional=true`
+ * commandline options - using `--remove-positional` option
+ * setup.cfg python-version in `[strip-python3]` on `python_version=3.6`
+ * pyproject.toml python-version - in `[toml.strip-python3]` on `python_version=3.6`
+ * commandline python-version - using `--python-version=3.6`
+ * setup.cfg no-setting `[strip-python3]` on `no_remove_positional=true`
+ * pyproject.toml no-setting - in `[toml.strip-python3]` on `no_remove_positional=true`
+ * commandline no-setting - using `--no-remove-positional` option
+
+ Some implementation options can be selected only by environment variables to
+ allow for extended testing. They don't show up as commandline options while
+ you can see most configuration options from `strip_python3.py --help`.
+ 
 # transformations
 
 Transformations are automatically selected by the minimum target python version

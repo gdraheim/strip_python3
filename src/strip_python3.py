@@ -10,8 +10,15 @@ __version__ = "0.8.1096"
 from typing import List, Dict, Optional, Union, Tuple, cast
 import sys
 import re
+import os
 import os.path as fs
+import configparser
 import logging
+if sys.version_info < (3,11,0):
+    import toml as tomllib
+else:
+    import tomllib
+
 # ........
 # import ast
 # import ast_comments as ast
@@ -63,26 +70,29 @@ DEBUG_TOML = logging.DEBUG
 OK = True
 NIX = ""
 
+def to_false(x: str) -> bool:
+    return x not in ["", "n", "N", "no", "NO", "none", "None", "NONE", "false", "False", "FALSE", "-", "."]
+
 class Want:
-    fstring_numbered = False
     show_dump = 0
-    remove_var_typehints = False
-    remove_typehints = False
-    remove_keywordonly = False
-    remove_positional = False
-    remove_pyi_positional = False
-    replace_fstring = False
-    define_range = False
-    define_basestring = False
-    define_callable = False
-    define_print_function = False
-    define_float_division = False
-    define_absolute_import = False
-    datetime_fromisoformat = False
-    subprocess_run = False
-    import_pathlib2 = False
-    import_backports_zoneinfo = False
-    import_toml = False
+    fstring_numbered = to_false(os.environ.get("PYTHON3_FSTRING_NUMBERED", NIX))
+    remove_var_typehints = to_false(os.environ.get("PYTHON3_REMOVE_VAR_TYPEHINTS", NIX))
+    remove_typehints = to_false(os.environ.get("PYTHON3_REMOVE_TYPEHINTS", NIX))
+    remove_keywordonly = to_false(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
+    remove_positional = to_false(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
+    remove_pyi_positional = to_false(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
+    replace_fstring = to_false(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
+    define_range = to_false(os.environ.get("PYTHON3_DEFINE_RANGE", NIX))
+    define_basestring =to_false(os.environ.get("PYTHON3_DEFINE_BASESTRING", NIX))
+    define_callable = to_false(os.environ.get("PYTHON3_DEFINE_CALLABLE", NIX))
+    define_print_function = to_false(os.environ.get("PYTHON3_DEFINE_PRINT_FUNCTION", NIX))
+    define_float_division = to_false(os.environ.get("PYTHON3_DEFINE_FLOAT_DIVISION", NIX))
+    define_absolute_import = to_false(os.environ.get("PYTHON3_DEFINE_ABSOLUTE_IMPORT", NIX))
+    datetime_fromisoformat = to_false(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
+    subprocess_run = to_false(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
+    import_pathlib2 = to_false(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
+    import_backports_zoneinfo = to_false(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
+    import_toml = to_false(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
 
 want = Want()
 
@@ -146,7 +156,7 @@ class RequireImportFrom:
             done = False
             if not imports.found:
                 for stmt in module.body:
-                    if isinstance(stmt, ast.Comment):
+                    if isinstance(stmt, (ast.Comment, ast.Constant)):
                         body.append(stmt)
                     elif done:
                         body.append(stmt)
@@ -300,7 +310,7 @@ class DefineIfPython2:
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
-                if isinstance(stmt, (ast.ImportFrom, ast.Import, ast.Comment)):
+                if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
@@ -377,7 +387,7 @@ class DefineIfPython3:
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
-                if isinstance(stmt, (ast.ImportFrom, ast.Import, ast.Comment)):
+                if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
@@ -921,7 +931,6 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         if fs.isfile(configfile):
             if configfile.endswith(".toml"):
                 logg.log(DEBUG_TOML, "found toml configfile %s", configfile)
-                import tomllib # pylint: disable=import-outside-toplevel
                 with open(configfile, "rb") as f:
                     conf = tomllib.load(f)
                     section1: Dict[str, Union[str, int, bool]] = {}
@@ -952,7 +961,6 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
             elif configfile.endswith(".cfg"):
                 logg.log(DEBUG_TOML, "found ini configfile %s", configfile)
-                import configparser # pylint: disable=import-outside-toplevel
                 confs = configparser.ConfigParser()
                 confs.read(configfile)
                 if "strip-python3" in confs:
