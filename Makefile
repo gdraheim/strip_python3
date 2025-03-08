@@ -10,7 +10,7 @@ PYTHON = python3.11
 PYTHON_VERSION = 3.11
 TWINE = twine-3.11
 AST4_PY = src/strip_ast_comments.py
-TESTS_PY = strip_python3.tests.py
+TESTS_PY = tests/python3_transformations.py
 TESTS = $(TESTS_PY) --python=$(PYTHON)
 V=-v
 
@@ -19,8 +19,7 @@ all: help
 help:
 	$(PYTHON) strip_python3.py --help
 
-check: tests
-tests: ; $(PYTHON) $(TESTS) $V
+check: ; $(PYTHON) $(TESTS) $V
 test_0%: ; $(PYTHON) $(TESTS) $V $@
 
 st_0%: ; $(PYTHON) $(TESTS) $V te$@ --coverage
@@ -29,7 +28,7 @@ st_0%: ; $(PYTHON) $(TESTS) $V te$@ --coverage
 coverage:
 	$(PYTHON) $(TESTS) $V --coverage
 
-VERFILES = $F *.py *.toml
+VERFILES = $F tests/*.py *.toml
 version:
 	@ grep -l __version__ $(VERFILES) | { while read f; do : \
 	; Y=`date +%Y -d "$(FOR)"` ; X=$$(expr $$Y - $B) \
@@ -84,6 +83,8 @@ mypy:
 	zypper install -y python3-click python3-pathspec
 type:
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $F
+	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) tests/*.py
+
 
 PYLINT = pylint
 PYLINT_OPTIONS =
@@ -91,3 +92,4 @@ pylint:
 	zypper install -y python3-pylint
 lint:
 	$(PYLINT) $(PYLINT_OPTIONS) $F
+	$(PYLINT) $(PYLINT_OPTIONS) tests/*.py

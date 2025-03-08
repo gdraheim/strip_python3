@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,line-too-long,multiple-statements,too-many-lines
+# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-public-methods,too-many-branches,too-many-statements,consider-using-with,no-else-return
 """ tests for strip_python3 """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
