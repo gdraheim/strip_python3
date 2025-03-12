@@ -89,35 +89,39 @@ def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
 #         (python 3.11) Protocols, reveal_type(x), get_overloads
 #         (python 3.11)  assert_never(unreachable)
 
-def to_false(x: str) -> bool:
-    return x not in ["", "n", "N", "no", "NO", "none", "None", "NONE", "false", "False", "FALSE", "-", "."]
+def to_int(x: str) -> int:
+    if x.isdigit():
+        return int(x)
+    if x in ["y", "yes", "true", "True", "ok", "OK"]:
+        return 1
+    return 0
 
 class Want:
     show_dump = 0
-    fstring_numbered = to_false(os.environ.get("PYTHON3_FSTRING_NUMBERED", NIX))
-    remove_var_typehints = to_false(os.environ.get("PYTHON3_REMOVE_VAR_TYPEHINTS", NIX))
-    remove_typehints = to_false(os.environ.get("PYTHON3_REMOVE_TYPEHINTS", NIX))
-    remove_keywordonly = to_false(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
-    remove_positional = to_false(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
-    remove_pyi_positional = to_false(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
-    replace_fstring = to_false(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
-    replace_walrus_operator = to_false(os.environ.get("PYTHON3_REPLACE_WALRUS_OPERATOR", NIX))
-    replace_annotated_typing = to_false(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
-    replace_builtin_typing = to_false(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
-    replace_union_typing = to_false(os.environ.get("PYTHON3_REPLACE_UNION_TYPING", NIX))
-    replace_self_typing = to_false(os.environ.get("PYTHON3_REPLACE_SELF_TYPING", NIX))
-    define_range = to_false(os.environ.get("PYTHON3_DEFINE_RANGE", NIX))
-    define_basestring =to_false(os.environ.get("PYTHON3_DEFINE_BASESTRING", NIX))
-    define_callable = to_false(os.environ.get("PYTHON3_DEFINE_CALLABLE", NIX))
-    define_print_function = to_false(os.environ.get("PYTHON3_DEFINE_PRINT_FUNCTION", NIX))
-    define_float_division = to_false(os.environ.get("PYTHON3_DEFINE_FLOAT_DIVISION", NIX))
-    define_absolute_import = to_false(os.environ.get("PYTHON3_DEFINE_ABSOLUTE_IMPORT", NIX))
-    datetime_fromisoformat = to_false(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
-    subprocess_run = to_false(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
-    time_monotonic = to_false(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
-    import_pathlib2 = to_false(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
-    import_backports_zoneinfo = to_false(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
-    import_toml = to_false(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
+    fstring_numbered = to_int(os.environ.get("PYTHON3_FSTRING_NUMBERED", NIX))
+    remove_var_typehints = to_int(os.environ.get("PYTHON3_REMOVE_VAR_TYPEHINTS", NIX))
+    remove_typehints = to_int(os.environ.get("PYTHON3_REMOVE_TYPEHINTS", NIX))
+    remove_keywordonly = to_int(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
+    remove_positional = to_int(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
+    remove_pyi_positional = to_int(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
+    replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
+    replace_walrus_operator = to_int(os.environ.get("PYTHON3_REPLACE_WALRUS_OPERATOR", NIX))
+    replace_annotated_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
+    replace_builtin_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
+    replace_union_typing = to_int(os.environ.get("PYTHON3_REPLACE_UNION_TYPING", NIX))
+    replace_self_typing = to_int(os.environ.get("PYTHON3_REPLACE_SELF_TYPING", NIX))
+    define_range = to_int(os.environ.get("PYTHON3_DEFINE_RANGE", NIX))
+    define_basestring =to_int(os.environ.get("PYTHON3_DEFINE_BASESTRING", NIX))
+    define_callable = to_int(os.environ.get("PYTHON3_DEFINE_CALLABLE", NIX))
+    define_print_function = to_int(os.environ.get("PYTHON3_DEFINE_PRINT_FUNCTION", NIX))
+    define_float_division = to_int(os.environ.get("PYTHON3_DEFINE_FLOAT_DIVISION", NIX))
+    define_absolute_import = to_int(os.environ.get("PYTHON3_DEFINE_ABSOLUTE_IMPORT", NIX))
+    datetime_fromisoformat = to_int(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
+    subprocess_run = to_int(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
+    time_monotonic = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
+    import_pathlib2 = to_int(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
+    import_backports_zoneinfo = to_int(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
+    import_toml = to_int(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
 
 want = Want()
 
@@ -540,16 +544,6 @@ class DetectFunctionCalls(ast.NodeTransformer):
                 self.imported[moname] = asname
                 self.importas[asname] = moname
         return self.generic_visit(node)
-
-        for alias in node.names:
-            if alias.asname:
-                self.imported[alias.name] = alias.asname
-                self.importas[alias.asname] = alias.name
-            else:
-                self.imported[alias.name] = alias.name
-                self.importas[alias.name] = alias.name
-        return self.generic_visit(node)
-
     def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
         self.divs += 1
         return self.generic_visit(node)
@@ -1677,73 +1671,73 @@ def main() -> int:
     logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
     if pyi_version < (3,8) or opt.remove_pyi_positionalonly:
         if not opt.no_remove_pyi_positionalonly:
-            want.remove_pyi_positional = True
+            want.remove_pyi_positional = max(1, opt.remove_pyi_positionalonly)
     if back_version < (3,8) or opt.remove_positionalonly:
         if not opt.no_remove_positionalonly:
-            want.remove_positional = True
+            want.remove_positional = max(1, opt.remove_positionalonly)
     if back_version < (3,0) or opt.remove_keywordonly:
         if not opt.no_remove_keywordonly:
-            want.remove_keywordonly = True
+            want.remove_keywordonly = max(1, opt.remove_keywordonly)
     if back_version < (3,6) or opt.remove_typehints or opt.remove_var_typehints:
-        want.remove_var_typehints = True
+        want.remove_var_typehints = max(1,opt.remove_typehints,opt.remove_var_typehints)
     if back_version < (3,5) or opt.remove_typehints:
-        want.remove_typehints = True
+        want.remove_typehints = max(1,opt.remove_typehints)
     if back_version < (3,9) or opt.replace_builtin_typing:
         if not opt.no_replace_builtin_typing:
-            want.replace_builtin_typing = True
+            want.replace_builtin_typing = max(1,opt.replace_builtin_typing)
     if back_version < (3,9) or opt.replace_annotated_typing:
         if not opt.no_replace_annotated_typing:
-            want.replace_annotated_typing = True
+            want.replace_annotated_typing = max(1,opt.replace_annotated_typing)
     if back_version < (3,10) or opt.replace_union_typing:
         if not opt.no_replace_union_typing:
-            want.replace_union_typing = True
+            want.replace_union_typing = max(1,opt.replace_union_typing)
     if back_version < (3,11) or opt.replace_self_typing:
         if not opt.no_replace_self_typing:
-            want.replace_self_typing = True
+            want.replace_self_typing = max(1,opt.replace_self_typing)
     if back_version < (3,6) or opt.replace_fstring:
         if not opt.no_replace_fstring:
-            want.replace_fstring = True
-            if opt.replace_fstring > 1:
-                want.fstring_numbered = True
+            want.replace_fstring = max(1, opt.replace_fstring)
+            if want.replace_fstring > 1:
+                want.fstring_numbered = 1
     if back_version < (3,8) or opt.replace_walrus_operator:
         if not opt.no_replace_walrus_operator:
-            want.replace_walrus_operator = True
+            want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
     if back_version < (3,0) or opt.define_range:
         if not opt.no_define_range:
-            want.define_range = True
+            want.define_range = max(1,opt.define_range)
     if back_version < (3,0) or opt.define_basestring:
         if not opt.no_define_basestring:
-            want.define_basestring = True
+            want.define_basestring = max(1, opt.define_basestring)
     if back_version < (3,2) or opt.define_callable:
         if not opt.no_define_callable:
-            want.define_callable = True
+            want.define_callable = max(1, opt.define_callable)
     if back_version < (3,0) or opt.define_print_function:
         if not opt.no_define_print_function:
-            want.define_print_function = True
+            want.define_print_function = max(1, opt.define_print_function)
     if back_version < (3,0) or opt.define_float_division:
         if not opt.no_define_float_division:
-            want.define_float_division = True
+            want.define_float_division = max(1,opt.define_float_division)
     if back_version < (3,0) or opt.define_absolute_import:
         if not opt.no_define_absolute_import:
-            want.define_absolute_import = True
+            want.define_absolute_import = max(1, opt.define_absolute_import)
     if back_version < (3,7) or opt.datetime_fromisoformat:
         if not opt.no_datetime_fromisoformat:
-            want.datetime_fromisoformat = True
+            want.datetime_fromisoformat = max(1,opt.datetime_fromisoformat)
     if back_version < (3,5) or opt.subprocess_run:
         if not opt.no_subprocess_run:
-            want.subprocess_run = True
+            want.subprocess_run = max(1,opt.subprocess_run)
     if back_version < (3,3) or opt.time_monotonic:
         if not opt.no_time_monotonic:
-            want.time_monotonic = True
+            want.time_monotonic = max(1, opt.time_monotonic)
     if back_version < (3,3) or opt.import_pathlib2:
         if not opt.no_import_pathlib2:
-            want.import_pathlib2 = True
+            want.import_pathlib2 = max(1, opt.import_pathlib2)
     if back_version < (3,9) or opt.import_backports_zoneinfo:
         if not opt.no_import_backports_zoneinfo:
-            want.import_backports_zoneinfo = True
+            want.import_backports_zoneinfo = max(1, opt.import_backports_zoneinfo)
     if back_version < (3,11) or opt.import_toml:
         if not opt.no_import_toml:
-            want.import_toml = True
+            want.import_toml = max(1, opt.import_toml)
     if opt.show:
         logg.log(NOTE, "%s = %s", "python-version-int", back_version)
         logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
