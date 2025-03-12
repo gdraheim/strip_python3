@@ -25,8 +25,8 @@ if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 11:
     from ast import IntEnum, FunctionType, TryStar
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 12:
-    from ast import TypeAlias, TypedVar, ParamSpec, TypedVarTuple
-from ast import dump, stmt, expr, alias, arg, arguments, keyword, TypeIgnore
+    from ast import TypeAlias, TypedVar, ParamSpec, TypedVarTuple, TypeIgnore
+from ast import dump, stmt, expr, alias, arg, arguments, keyword
 from collections.abc import Iterable
 
 if hasattr(ast, "copy_location"):
@@ -142,7 +142,8 @@ def _get_tree_intervals_and_update_ast_nodes(
     for node in ast.walk(node):
         attr_intervals = []
         for attr in _CONTAINER_ATTRS:
-            if items := getattr(node, attr, None):
+            items = getattr(node, attr, None)
+            if items:
                 if not isinstance(items, Iterable):
                     continue
                 attr_intervals.append(

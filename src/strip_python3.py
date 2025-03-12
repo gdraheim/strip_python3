@@ -18,15 +18,34 @@ from collections import deque
 if sys.version_info >= (3,11,0):
     import tomllib
 else:
-    import toml as tomllib # type: ignore[no-redef,import-untyped]
+    try:
+        import toml as tomllib # type: ignore[no-redef,import-untyped]
+    except ImportError:
+        tomllib = None # type: ignore[assignment]
 DEBUG_TOML = logging.DEBUG
 DEBUG_TYPING = logging.DEBUG
+NIX = ""
+OK = True
 
+DONE = (logging.ERROR + logging.WARNING) // 2
+NOTE = (logging.INFO + logging.WARNING) // 2
+HINT = (logging.INFO + logging.DEBUG) // 2
+logging.addLevelName(DONE, "DONE")
+logging.addLevelName(NOTE, "NOTE")
+logging.addLevelName(HINT, "HINT")
+logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
+
+if sys.version_info < (3,9,0):
+    logg.info("python3.9 has ast.unparse()")
+    logg.fatal("you need alteast python3.9 to run strip-python3!")
+    sys.exit(11)
 
 # ........
 # import ast
 # import ast_comments as ast
 import strip_ast_comments as ast  # pylint: disable=wrong-import-position
+
+from ast import TypeIgnore
 
 TypeAST = TypeVar("TypeAST", bound=ast.AST) # pylint: disable=invalid-name
 def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
@@ -69,17 +88,6 @@ def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
 # PEP 675 (python 3.11) LiteralString
 #         (python 3.11) Protocols, reveal_type(x), get_overloads
 #         (python 3.11)  assert_never(unreachable)
-
-DONE = (logging.ERROR + logging.WARNING) // 2
-NOTE = (logging.INFO + logging.WARNING) // 2
-HINT = (logging.INFO + logging.DEBUG) // 2
-logging.addLevelName(DONE, "DONE")
-logging.addLevelName(NOTE, "NOTE")
-logging.addLevelName(HINT, "HINT")
-logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
-
-OK = True
-NIX = ""
 
 def to_false(x: str) -> bool:
     return x not in ["", "n", "N", "no", "NO", "none", "None", "NONE", "false", "False", "FALSE", "-", "."]
@@ -522,6 +530,26 @@ class DetectFunctionCalls(ast.NodeTransformer):
                 self.imported[alias.name] = alias.name
                 self.importas[alias.name] = alias.name
         return self.generic_visit(node)
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.ImportFrom = node
+        if imports.module:
+            modulename = ("." * imports.level) + imports.module
+            for symbol in imports.names:
+                moname = modulename + "." + symbol.name
+                asname = symbol.asname if symbol.asname else symbol.name
+                self.imported[moname] = asname
+                self.importas[asname] = moname
+        return self.generic_visit(node)
+
+        for alias in node.names:
+            if alias.asname:
+                self.imported[alias.name] = alias.asname
+                self.importas[alias.asname] = alias.name
+            else:
+                self.imported[alias.name] = alias.name
+                self.importas[alias.name] = alias.name
+        return self.generic_visit(node)
+
     def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
         self.divs += 1
         return self.generic_visit(node)
@@ -1168,8 +1196,8 @@ def types36(ann: ast.expr, classname: Optional[str] = None) -> Types36:
         annotation = types.visit(ann)
         return Types36(annotation, types.typing, types.removed, {})
 
-def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[ast.TypeIgnore]] = None) -> ast.Module:
-    type_ignores1: List[ast.TypeIgnore] = type_ignores if type_ignores is not None else []
+def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = None) -> ast.Module:
+    type_ignores1: List[TypeIgnore] = type_ignores if type_ignores is not None else []
     typing_extensions: List[str] = []
     typing_require: Set[str] = set()
     typing_removed: Set[str] = set()
@@ -1292,7 +1320,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
             text = f.read()
-        tree1 = ast.parse(text, type_comments=True)
+        tree1 = ast.parse(text)
         types = TypeHints()
         tree = types.visit(tree1)
         strip = StripHints()
@@ -1322,15 +1350,15 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 def {fromisoformat}(x):
                     import re
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d\\d\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) )
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)))
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)) )))
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)) )
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)) )))
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)) )
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1), int(m.group(2), int(m.group(3)) )))
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)) )
                     raise ValueError("not a datetime isoformat: "+x)
                 """))
                 isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
@@ -1338,14 +1366,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if "subprocess.run" in calls.found and want.subprocess_run:
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
-                subprocessrundef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
-                class CalledProcessError({subprocess_module}.SubprocessError):
-                    def __init__(self, args, returncode, stdout, stderr):
-                        self.cmd = args
-                        self.returncode = returncode
-                        self.stdout = stdout
-                        self.stderr = stderr
-                        self.output = self.stdout
+                subprocessrundef33 = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
                 class CompletedProcess:
                     def __init__(self, args, returncode, stdout, stderr):
                         self.args = args
@@ -1354,14 +1375,32 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                         self.stderr = stderr
                     def check_returncode(self):
                         if self.returncode:
-                            raise CalledProcessError(self.args, self.returncode, self.stdout, self.stderr)
+                            raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
                 def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
-                    proc = Popen(args, stdin=stdin, input=input, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, timeout=timeout, env=env)
+                    proc = {subprocess_module}.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
                     try:
                         outs, errs = proc.communicate(input=input, timeout=timeout)
                     except {subprocess_module}.TimeoutExpired:
                         proc.kill()
                         outs, errs = proc.communicate()
+                    completed = CompletedProcess(args, proc.returncode, outs, errs)
+                    if check:
+                        completed.check_returncode()
+                    return completed
+                """))
+                subprocessrundef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
+                class CompletedProcess:
+                    def __init__(self, args, returncode, outs, errs):
+                        self.args = args
+                        self.returncode = returncode
+                        self.stdout = outs
+                        self.stderr = errs
+                    def check_returncode(self):
+                        if self.returncode:
+                            raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
+                def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
+                    proc = {subprocess_module}.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
+                    outs, errs = proc.communicate(input=input)
                     completed = CompletedProcess(args, proc.returncode, outs, errs)
                     if check:
                         completed.check_returncode()
@@ -1453,7 +1492,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 if pyi:
                     typehintsfile = out+"i"
                     logg.debug("--pyi => %s", typehintsfile)
-                    type_ignores: List[ast.TypeIgnore] = []
+                    type_ignores: List[TypeIgnore] = []
                     if isinstance(tree1, ast.Module):
                         type_ignores = tree1.type_ignores
                     typehints = pyi_module(types.pyi, type_ignores=type_ignores)
@@ -1495,7 +1534,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
 
     for configfile in files:
         if fs.isfile(configfile):
-            if configfile.endswith(".toml"):
+            if configfile.endswith(".toml") and tomllib:
                 logg.log(DEBUG_TOML, "found toml configfile %s", configfile)
                 with open(configfile, "rb") as f:
                     conf = tomllib.load(f)
