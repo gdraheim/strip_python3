@@ -1309,7 +1309,7 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
-def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0) -> int:
+def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0, minversion: Tuple[int, int] = (2,7)) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
@@ -1360,13 +1360,14 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if "subprocess.run" in calls.found and want.subprocess_run:
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
-                subprocessrundef33 = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
+                # there is a timeout value available since Python 3.3
+                subprocessrundef33 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), orelse=text4(F"""
                 class CompletedProcess:
-                    def __init__(self, args, returncode, stdout, stderr):
+                    def __init__(self, args, returncode, outs, errs):
                         self.args = args
                         self.returncode = returncode
-                        self.stdout = stdout
-                        self.stderr = stderr
+                        self.stdout = outs
+                        self.stderr = errs
                     def check_returncode(self):
                         if self.returncode:
                             raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
@@ -1382,7 +1383,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                         completed.check_returncode()
                     return completed
                 """))
-                subprocessrundef = DefineIfPython3([F"def {defname}(x): return {subprocess_module}.run(x)"], atleast=(3,5), orelse=text4(F"""
+                subprocessrundef27 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), orelse=text4(F"""
                 class CompletedProcess:
                     def __init__(self, args, returncode, outs, errs):
                         self.args = args
@@ -1400,6 +1401,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                         completed.check_returncode()
                     return completed
                 """))
+                subprocessrundef = subprocessrundef33 if minversion >= (3,3) else subprocessrundef27
                 subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
             if "time.monotonic" in calls.found and want.time_monotonic:
@@ -1758,7 +1760,7 @@ def main() -> int:
     eachfile = EACH_REMOVE3 if opt.remove3 else 0
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
-    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=opt.pyi)
+    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=opt.pyi, minversion=back_version)
 
 if __name__ == "__main__":
     sys.exit(main())

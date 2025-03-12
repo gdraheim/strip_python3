@@ -51,6 +51,28 @@ st__1%: ; $(PYTHON) $(EXECS) $V te$@ --coverage
 	docker exec $(CONTAINER)-python36 $(PYTHON39) /$(notdir $(EXECS)) -vv $(notdir $@) --python=/usr/bin/python3 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || docker cp $(CONTAINER)-python36:/.coverage .coverage.cov36
 	docker rm -f $(CONTAINER)-python36
+39/test%:
+	docker rm -f $(CONTAINER)-python39
+	docker run -d --name=$(CONTAINER)-python39 strip-python$(dir $@)test sleep 9999
+	docker exec $(CONTAINER)-python39 mkdir -p /src
+	docker cp $(EXECS) $(CONTAINER)-python39:/
+	docker cp src/strip_ast_comments.py $(CONTAINER)-python39:/src/
+	docker cp src/strip_python3.py $(CONTAINER)-python39:/src/
+	docker exec $(CONTAINER)-python39 chmod +x /src/strip_python3.py
+	docker exec $(CONTAINER)-python39 $(PYTHON39) /$(notdir $(EXECS)) -vv $(notdir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V
+	- test -z "$(COVERAGE1)" || docker cp $(CONTAINER)-python39:/.coverage .coverage.cov39
+	docker rm -f $(CONTAINER)-python39
+311/test%:
+	docker rm -f $(CONTAINER)-python311
+	docker run -d --name=$(CONTAINER)-python311 strip-python$(dir $@)test sleep 9999
+	docker exec $(CONTAINER)-python311 mkdir -p /src
+	docker cp $(EXECS) $(CONTAINER)-python311:/
+	docker cp src/strip_ast_comments.py $(CONTAINER)-python311:/src/
+	docker cp src/strip_python3.py $(CONTAINER)-python311:/src/
+	docker exec $(CONTAINER)-python311 chmod +x /src/strip_python3.py
+	docker exec $(CONTAINER)-python311 python3.11 /$(notdir $(EXECS)) -vv $(notdir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
+	- test -z "$(COVERAGE1)" || docker cp $(CONTAINER)-python311:/.coverage .coverage.cov311
+	docker rm -f $(CONTAINER)-python311
 
 
 coverage:

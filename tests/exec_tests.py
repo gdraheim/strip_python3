@@ -54,6 +54,7 @@ def decodes(text: Union[str, bytes, None]) -> str:
             return text.decode(encoded)
         except:
             return text.decode("latin-1")
+    logg.fatal("decodes %s", type(text))
     return text
 def q_str(part: Union[str, int, None]) -> str:
     if part is None:
@@ -75,14 +76,14 @@ def sx____(cmd: Union[str, List[str]], shell: bool = True) -> int:
     return subprocess.call(cmd, shell=shell)
 
 class CalledProcessError(subprocess.SubprocessError):
-    def __init__(self, args: Union[str, List[str]], returncode: int = 0, stdout: str = NIX, stderr: str = NIX) -> None:
+    def __init__(self, args: Union[str, List[str]], returncode: int = 0, stdout: Union[str,bytes] = NIX, stderr: Union[str,bytes] = NIX) -> None:
         self.cmd = args
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
         self.output = self.stdout
 class CompletedProcess:
-    def __init__(self, args: Union[str, List[str]], returncode: int = 0, stdout: str = NIX, stderr: str = NIX) -> None:
+    def __init__(self, args: Union[str, List[str]], returncode: int = 0, stdout: Union[str,bytes] = NIX, stderr: Union[str,bytes] = NIX) -> None:
         self.args = args
         self.returncode = returncode
         self.stdout = stdout
@@ -92,10 +93,10 @@ class CompletedProcess:
             raise CalledProcessError(self.args, self.returncode, self.stdout, self.stderr)
     @property
     def err(self) -> str:
-        return self.stderr.rstrip()
+        return decodes(self.stderr).rstrip()
     @property
     def out(self) -> str:
-        return self.stdout.rstrip()
+        return decodes(self.stdout).rstrip()
 
 def X(args: Union[str, List[str]], stdin: Optional[int]=None, input: Optional[bytes]=None, stdout: Optional[int]=None, stderr: Optional[int]=None,
     shell: Optional[bool]=None, cwd: Optional[str]=None, timeout: Optional[int]=None, check: bool=False, env: Optional[Mapping[bytes, str]]=None) -> CompletedProcess:
@@ -109,7 +110,7 @@ def X(args: Union[str, List[str]], stdin: Optional[int]=None, input: Optional[by
     except subprocess.TimeoutExpired:
         proc.kill()
         outs, errs = proc.communicate()
-    completed = CompletedProcess(args, proc.returncode, decodes(outs), decodes(errs))
+    completed = CompletedProcess(args, proc.returncode, outs, errs)
     if check:
         completed.check_returncode()
     return completed
@@ -374,11 +375,12 @@ class StripPythonExecTest(unittest.TestCase):
         text_file(F"{tmp}/test3.py", F"""
         import sys
         import subprocess
+        def strb(x): return x.decode('utf-8') if isinstance(x, bytes) else str(x)
         def func1() -> str:
             return subprocess.run("{tmp}/run.sh", stdout=subprocess.PIPE).stdout
-        print(str(func1()).replace("o","uh"))
+        print(strb(func1()).replace("o","uh"))
         """)
-        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} {vv}")
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
@@ -400,11 +402,12 @@ class StripPythonExecTest(unittest.TestCase):
         text_file(F"{tmp}/test3.py", F"""
         import sys
         import subprocess as sp
+        def strb(x): return x.decode('utf-8') if isinstance(x, bytes) else str(x)
         def func1() -> str:
             return sp.run("{tmp}/run.sh", stdout=sp.PIPE).stdout
-        print(str(func1()).replace("o","uh"))
+        print(strb(func1()).replace("o","uh"))
         """)
-        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} {vv}")
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
@@ -412,6 +415,37 @@ class StripPythonExecTest(unittest.TestCase):
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "uhkay")
+        self.assertFalse(greps(script, "timeout=timeout"))
+        self.rm_testdir()
+        self.end()
+    def test_1413(self) -> None:
+        """ check we have boilerplate for subprocess.run"""
+        vv = self.begin()
+        python = PYTHON
+        if "python2" in python:
+            self.skipTest("checking atleast python3.3")
+        tmp = self.testdir()
+        shell_file(F"{tmp}/run.sh", """
+        #! /bin/sh
+        echo "okay"
+        """)
+        text_file(F"{tmp}/test3.py", F"""
+        import sys
+        import subprocess as sp
+        def strb(x): return x.decode('utf-8') if isinstance(x, bytes) else str(x)
+        def func1() -> str:
+            return sp.run("{tmp}/run.sh", stdout=sp.PIPE).stdout
+        print(strb(func1()).replace("o","uh"))
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} {vv} --python-version=3.3")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "def sp_run"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertEqual(x1.out, "uhkay")
+        self.assertTrue(greps(script, "timeout=timeout"))
         self.rm_testdir()
         self.end()
 
