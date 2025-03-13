@@ -5,7 +5,7 @@
 # pylint: disable=missing-class-docstring,missing-function-docstring,unused-variable,unused-argument,unspecified-encoding,redefined-outer-name,using-constant-test,invalid-name
 # pylint: disable=fixme
 __copyright__ = "(C) Guido Draheim, licensed under the MIT license"""
-__version__ = "2.0.1092"
+__version__ = "2.0.1104"
 
 
 from typing import List, Iterator, Union, Optional, TextIO, Mapping, Iterable

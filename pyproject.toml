@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "strip_python3"
-version = "0.9.1097"
+version = "0.9.1104"
 description = ""
 readme = { "file" = "tmp/README.MD", content-type = "text/markdown" }
 license = { file = "LICENSE" }
