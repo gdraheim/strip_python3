@@ -266,6 +266,7 @@ and each output file will be named like "myfile.py" and "myfile.pyi". Otherwise
 let "-2" append a "_2" so that "myfile.py" becomes "myfile_2.py" and "myfile_2.pyi"
 after transformations.
 
+If no `*.pyi` file is wanted then disable it with "--no-pyi" again.
 
 # Development
 
