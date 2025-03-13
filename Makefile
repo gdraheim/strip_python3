@@ -186,4 +186,4 @@ pylint:
 	zypper install -y python3-pylint
 lint:
 	$(PYLINT) $(PYLINT_OPTIONS) $F
-	$(PYLINT) $(PYLINT_OPTIONS) tests/*.py
+	for py in tests/*.py; do $(PYLINT) $(PYLINT_OPTIONS) $$py || exit 1; done

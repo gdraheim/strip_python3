@@ -268,6 +268,12 @@ after transformations.
 
 # Development
 
+  * make lint
+  * make check
+  * make python
+  * make checks
+  * make version
+
 I take patches!
 
 The source code has a lot of code duplications and ifelse lists. That is intentional to allow anyone to quickly add corner cases.

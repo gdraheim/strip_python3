@@ -3,7 +3,7 @@
 
 # pylint: disable=line-too-long,too-many-lines,bare-except,broad-exception-caught,pointless-statement,multiple-statements,f-string-without-interpolation,import-outside-toplevel
 # pylint: disable=missing-class-docstring,missing-function-docstring,unused-variable,unused-argument,unspecified-encoding,redefined-outer-name,using-constant-test,invalid-name
-# pylint: disable=fixme
+# pylint: disable=fixme,duplicate-code,consider-using-with,too-many-public-methods,too-many-arguments,too-many-positional-arguments
 __copyright__ = "(C) Guido Draheim, licensed under the MIT license"""
 __version__ = "2.0.1104"
 
