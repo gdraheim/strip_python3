@@ -291,22 +291,22 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         self.coverage()
-        self.assertEqual(run.stderr, text4("""
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
         NOTE:strip:python-version-int = (2, 7)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = True
-        NOTE:strip:define-range = True
-        NOTE:strip:define-callable = True
-        NOTE:strip:define-print-function = True
-        NOTE:strip:define-float-division = True
-        NOTE:strip:define-absolute-import = True
-        NOTE:strip:replace-fstring = True
-        NOTE:strip:remove-keywordsonly = True
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = True
-        """))
+        NOTE:strip:define-basestring = 1
+        NOTE:strip:define-range = 1
+        NOTE:strip:define-callable = 1
+        NOTE:strip:define-print-function = 1
+        NOTE:strip:define-float-division = 1
+        NOTE:strip:define-absolute-import = 1
+        NOTE:strip:replace-fstring = 1
+        NOTE:strip:remove-keywordsonly = 1
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 1
+        """)))
         self.rm_testdir()
     def test_0022(self) -> None:
         strip = coverage(STRIP)
@@ -316,18 +316,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = False
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = False
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 0
+        NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
     def test_0024(self) -> None:
@@ -343,18 +343,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = False
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = False
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 0
+        NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
     def test_0025(self) -> None:
@@ -370,18 +370,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = True
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 1
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
     def test_0026(self) -> None:
@@ -390,7 +390,7 @@ class StripTest(unittest.TestCase):
         text_file(F"{tmp}/pyproject.toml", """
         [tool.strip-python3]
         python-version = "3.5"
-        remove-typehints = true
+        remove-typehints = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -398,18 +398,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = True
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = True
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 1
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 1
         """))
         self.rm_testdir()
     def test_0027(self) -> None:
@@ -418,7 +418,7 @@ class StripTest(unittest.TestCase):
         text_file(F"{tmp}/pyproject.toml", """
         [tool.strip-python3]
         python-version = "3.5"
-        no-replace-fstring = true
+        no-replace-fstring = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -426,18 +426,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = False
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 0
         """))
         self.coverage()
         self.rm_testdir()
@@ -450,9 +450,9 @@ class StripTest(unittest.TestCase):
         pyi-version = 35
         no-replace-fstring = 1
         define-callable = 0
-        define-range = true
+        define-range = 1
         define-basestring = 1979-05-27T07:32:00Z
-        define-unknown = true
+        define-unknown = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -463,18 +463,18 @@ class StripTest(unittest.TestCase):
         pyproject.toml[define-unknown]: unknown setting found
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = True
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = False
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 1
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 0
         """)))
         self.rm_testdir()
     def test_0034(self) -> None:
@@ -490,18 +490,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = False
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = False
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 0
+        NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
     def test_0035(self) -> None:
@@ -517,18 +517,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = True
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 1
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
     def test_0036(self) -> None:
@@ -537,7 +537,7 @@ class StripTest(unittest.TestCase):
         text_file(F"{tmp}/setup.cfg", """
         [strip-python3]
         python-version = 3.5
-        remove-typehints = true
+        remove-typehints = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -545,18 +545,18 @@ class StripTest(unittest.TestCase):
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = False
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = True
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = True
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 1
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 1
         """))
         self.rm_testdir()
     def test_0038(self) -> None:
@@ -567,9 +567,9 @@ class StripTest(unittest.TestCase):
         python-version = 3.5
         no-replace-fstring = 1
         define-callable = 0
-        define-range = true
+        define-range = 1
         define-basestring = unknown
-        define-unknown = true
+        define-unknown = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -579,18 +579,18 @@ class StripTest(unittest.TestCase):
         setup.cfg[define-unknown]: unknown setting found
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
-        NOTE:strip:define-basestring = False
-        NOTE:strip:define-range = True
-        NOTE:strip:define-callable = False
-        NOTE:strip:define-print-function = False
-        NOTE:strip:define-float-division = False
-        NOTE:strip:define-absolute-import = False
-        NOTE:strip:replace-fstring = False
-        NOTE:strip:remove-keywordsonly = False
-        NOTE:strip:remove-positionalonly = True
-        NOTE:strip:remove-pyi-positionalonly = True
-        NOTE:strip:remove-var-typehints = True
-        NOTE:strip:remove-typehints = False
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 1
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 0
         """)))
         self.rm_testdir()
     def test_0101(self) -> None:
@@ -2313,19 +2313,19 @@ class StripTest(unittest.TestCase):
                 import re
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d\\\\d\\\\d\\\\d)', x)
                 if m:
-                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
+                    return datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d)', x)
                 if m:
-                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)))
+                    return datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d)', x)
                 if m:
-                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))))
+                    return datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d)', x)
                 if m:
-                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)))))
+                    return datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d)', x)
                 if m:
-                    return datetime.datetime(int(m.group(1), int(m.group(2), int(m.group(3)))))
+                    return datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
                 raise ValueError('not a datetime isoformat: ' + x)
         
         def func1(x):
@@ -2359,19 +2359,19 @@ class StripTest(unittest.TestCase):
                 import re
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d\\\\d\\\\d\\\\d)', x)
                 if m:
-                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))))
+                    return Time(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d).(\\\\d\\\\d\\\\d)', x)
                 if m:
-                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)))
+                    return Time(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d):(\\\\d\\\\d)', x)
                 if m:
-                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))))
+                    return Time(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d).(\\\\d\\\\d):(\\\\d\\\\d)', x)
                 if m:
-                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)))))
+                    return Time(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
                 m = re.match('(\\\\d\\\\d\\\\d\\\\d)-(\\\\d\\\\d)-(\\\\d\\\\d)', x)
                 if m:
-                    return Time(int(m.group(1), int(m.group(2), int(m.group(3)))))
+                    return Time(int(m.group(1)), int(m.group(2)), int(m.group(3)))
                 raise ValueError('not a datetime isoformat: ' + x)
         
         def func1(x):
@@ -2389,42 +2389,78 @@ class StripTest(unittest.TestCase):
         def func1() -> str:
             return subprocess.run("echo ok", shell=True).stdout
         """)
-        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        logg.debug("%s: %s", F"{tmp}/test.py", lines4(open(F"{tmp}/test.py")))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         import subprocess
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
-
-            def subprocess_run(x):
-                return subprocess.run(x)
+            subprocess_run = subprocess.run
         else:
-        
-            class CalledProcessError(subprocess.SubprocessError):
-        
-                def __init__(self, args, returncode, stdout, stderr):
-                    self.cmd = args
-                    self.returncode = returncode
-                    self.stdout = stdout
-                    self.stderr = stderr
-                    self.output = self.stdout
         
             class CompletedProcess:
         
-                def __init__(self, args, returncode, stdout, stderr):
+                def __init__(self, args, returncode, outs, errs):
                     self.args = args
                     self.returncode = returncode
-                    self.stdout = stdout
-                    self.stderr = stderr
+                    self.stdout = outs
+                    self.stderr = errs
         
                 def check_returncode(self):
                     if self.returncode:
-                        raise CalledProcessError(self.args, self.returncode, self.stdout, self.stderr)
+                        raise subprocess.CalledProcessError(self.returncode, self.args)
 
             def subprocess_run(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
-                proc = Popen(args, stdin=stdin, input=input, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, timeout=timeout, env=env)
+                proc = subprocess.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
+                outs, errs = proc.communicate(input=input)
+                completed = CompletedProcess(args, proc.returncode, outs, errs)
+                if check:
+                    completed.check_returncode()
+                return completed
+        
+        def func1():
+            return subprocess_run('echo ok', shell=True).stdout
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0412(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import subprocess
+        def func1() -> str:
+            return subprocess.run("echo ok", shell=True).stdout
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} --python-version=3.3")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        logg.debug("%s: %s", F"{tmp}/test.py", lines4(open(F"{tmp}/test.py")))
+        py = file_text4(F"{tmp}/test.py")
+        self.assertEqual(lines4(py), lines4(text4("""
+        import subprocess
+        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
+            subprocess_run = subprocess.run
+        else:
+        
+            class CompletedProcess:
+        
+                def __init__(self, args, returncode, outs, errs):
+                    self.args = args
+                    self.returncode = returncode
+                    self.stdout = outs
+                    self.stderr = errs
+        
+                def check_returncode(self):
+                    if self.returncode:
+                        raise subprocess.CalledProcessError(self.returncode, self.args)
+
+            def subprocess_run(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
+                proc = subprocess.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
                 try:
                     outs, errs = proc.communicate(input=input, timeout=timeout)
                 except subprocess.TimeoutExpired:
@@ -2664,6 +2700,8 @@ def runtests() -> None:
                 continue
             testclass = globals()[classname]
             for method in sorted(dir(testclass)):
+                if cmdline_arg.endswith("/"):
+                    cmdline_arg = cmdline_arg[:-1]
                 if "*" not in cmdline_arg:
                     cmdline_arg += "*"
                 if len(cmdline_arg) > 2 and cmdline_arg[1] == "_":
