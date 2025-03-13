@@ -29,5 +29,5 @@ jobs:
     - name: 'make type (mypy strict type checking)'
       id: check
       run: |
-        make type -C software PYTHON=python3.12 MYPY=mypy MYPY_OPTIONS=--ignore-missing-imports
+        make type -C software PYTHON=python3.12 MYPY=mypy MYPY_OPTIONS=--disable-error-code=import-not-found
     
