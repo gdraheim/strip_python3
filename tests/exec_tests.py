@@ -8,7 +8,7 @@ __copyright__ = "(C) Guido Draheim, licensed under the MIT license"""
 __version__ = "2.0.1092"
 
 
-from typing import List, Tuple, Generator, Iterator, Union, Optional, TextIO, Mapping
+from typing import List, Tuple, Generator, Iterator, Union, Optional, TextIO, Mapping, Iterable
 
 import subprocess
 import os
@@ -54,7 +54,6 @@ def decodes(text: Union[str, bytes, None]) -> str:
             return text.decode(encoded)
         except:
             return text.decode("latin-1")
-    logg.fatal("decodes %s", type(text))
     return text
 def q_str(part: Union[str, int, None]) -> str:
     if part is None:
@@ -130,13 +129,14 @@ def lines4(textlines: Union[str, List[str], Iterator[str], TextIO]) -> List[str]
     for line in _lines4(textlines):
         linelist.append(line.rstrip())
     return linelist
-def each_grep(pattern: str, textlines: Union[str, List[str], TextIO]) -> Iterator[str]:
+def each_grep(patterns: Iterable[str], textlines: Union[str, List[str], TextIO]) -> Iterator[str]:
     for line in _lines4(textlines):
-        if re.search(pattern, line.rstrip()):
-            yield line.rstrip()
+        for pattern in patterns:
+            if re.search(pattern, line.rstrip()):
+                yield line.rstrip()
 def grep(pattern: str, textlines: Union[str, List[str], TextIO]) -> List[str]:
-    return list(each_grep(pattern, textlines))
-def greps(textlines: Union[str, List[str], TextIO], pattern: str) -> List[str]:
+    return list(each_grep([pattern], textlines))
+def greps(textlines: Union[str, List[str], TextIO], *pattern: str) -> List[str]:
     return list(each_grep(pattern, textlines))
 
 def text_file(filename: str, content: str) -> None:
@@ -448,7 +448,116 @@ class StripPythonExecTest(unittest.TestCase):
         self.assertTrue(greps(script, "timeout=timeout"))
         self.rm_testdir()
         self.end()
-
+    def test_1421(self) -> None:
+        """ check we have a fallback import for pathlib"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import sys
+        import pathlib
+        def func1(x: str) -> pathlib.PurePath:
+            return pathlib.PurePath(x)
+        print(func1("c://a"))
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "pathlib2 as pathlib"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out + x1.err, "No module named pathlib2", "c:/a"))
+        self.rm_testdir()
+        self.end()
+    def test_1422(self) -> None:
+        """ check we have a fallback import for pathlib"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import sys
+        import pathlib as pt
+        def func1(x: str) -> pt.PurePath:
+            return pt.PurePath(x)
+        print(func1("c://a"))
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "pathlib2 as pt"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out + x1.err, "No module named pathlib2", "c:/a"))
+        self.rm_testdir()
+        self.end()
+    def test_1431(self) -> None:
+        """ check we have a fallback import for tomllib"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import sys
+        import tomllib
+        def func1(x: str) -> Dict[str, Any]:
+            return tomllib.loads(x)
+        print(func1("[section]\\nvalue = 1"))
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "toml as tomllib"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out + x1.err, "No module named toml", "No module named 'toml'", "{'section': {'value': 1}}"))
+        self.rm_testdir()
+        self.end()
+    def test_1432(self) -> None:
+        """ check we have a fallback import for tomllib"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import sys
+        import tomllib as tm
+        def func1(x: str) -> Dict[str, Any]:
+            return tm.loads(x)
+        print(func1("[section]\\nvalue = 1"))
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "toml as tm"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out + x1.err, "No module named toml", "No module named 'toml'", "{'section': {'value': 1}}"))
+        self.rm_testdir()
+        self.end()
+    def test_1441(self) -> None:
+        """ check we have a fallback import for zoneinfo"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import sys
+        import zoneinfo
+        def func1() -> List[str]:
+            return zoneinfo.available_timezones()
+        print(func1())
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "from backports import zoneinfo"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out + x1.err, "No module named backports", "No module named 'backports'", "Europe/Berlin"))
+        self.rm_testdir()
+        self.end()
 
 if __name__ == "__main__":
     from optparse import OptionParser  # pylint: disable=deprecated-module
