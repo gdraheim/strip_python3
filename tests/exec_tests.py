@@ -40,6 +40,7 @@ IMAGE= "ubuntu:22.04"
 PYTHON="python3"
 PYTHON3="python3.9"
 STRIP="src/strip_python3.py"
+VV="-vv"
 
 _maindir = os.path.dirname(sys.argv[0])
 _mirror = os.path.join(_maindir, "docker_mirror.py")
@@ -240,7 +241,7 @@ class StripPythonExecTest(unittest.TestCase):
     def begin(self) -> str:
         self._started = time.monotonic() # pylint: disable=attribute-defined-outside-init
         logg.info("[[%s]]", datetime.datetime.fromtimestamp(self._started).strftime("%H:%M:%S"))
-        return "-vv"
+        return VV
     def end(self, maximum: int = 99) -> None:
         runtime = time.monotonic() - self._started
         self.assertLess(runtime, maximum)
@@ -331,7 +332,7 @@ class StripPythonExecTest(unittest.TestCase):
             return datetime.fromisoformat(x)
         print(func1("2024-12-01").strftime("%Y%m%dx"))
         """)
-        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} {vv}")
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
@@ -353,7 +354,7 @@ class StripPythonExecTest(unittest.TestCase):
             return Time.fromisoformat(x)
         print(func1("2024-12-01").strftime("%Y%m%dx"))
         """)
-        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} {vv}")
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
@@ -437,7 +438,7 @@ class StripPythonExecTest(unittest.TestCase):
             return sp.run("{tmp}/run.sh", stdout=sp.PIPE).stdout
         print(strb(func1()).replace("o","uh"))
         """)
-        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} {vv} --python-version=3.3")
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} --python-version=3.3")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
@@ -597,6 +598,7 @@ if __name__ == "__main__":
     DOCKER = opt.docker
     PYTHON = opt.python
     PYTHON3 = opt.python3
+    VV = "-v" + ("v" * opt.verbose)
     #
     if opt.chdir:
         os.chdir(opt.chdir)

@@ -40,6 +40,7 @@ LONGER = 2
 ENDSLEEP = 0.1
 FIXCOVERAGE = True
 RMCOVERAGE = True
+VV = "-v"
 
 basestring = str
 
@@ -273,7 +274,7 @@ class StripTest(unittest.TestCase):
     def begin(self) -> str:
         self._started = time.monotonic() # pylint: disable=attribute-defined-outside-init
         logg.debug("[[%s]]", datetime.datetime.fromtimestamp(self._started).strftime("%H:%M:%S"))
-        return "-vv"
+        return VV
     def end(self, maximum: int = 99) -> None:
         runtime = time.monotonic() - self._started
         self.assertLess(runtime, maximum * LONGER)
@@ -826,7 +827,7 @@ class StripTest(unittest.TestCase):
         class B:
            b: int
            c: str""")
-        run = sh(F"{strip} {tmp}/tmp1.py > {tmp}/tmp2.py --pyi")
+        run = sh(F"{strip} {tmp}/tmp1.py > {tmp}/tmp2.py {vv} --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
@@ -844,7 +845,7 @@ class StripTest(unittest.TestCase):
         class B:
            b: int
            c: str""")
-        run = sh(F"{strip} {tmp}/tmp1.py -o . > {tmp}/tmp2.py --pyi")
+        run = sh(F"{strip} {tmp}/tmp1.py -o . > {tmp}/tmp2.py {vv} --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
@@ -2767,6 +2768,7 @@ def runtests() -> None:
     PYTHON = opt.python
     KEEP = opt.keep
     COVERAGE = opt.coverage
+    VV = "-v" + ("v" * opt.verbose)
     #
     logfile = None
     if opt.logfile:
