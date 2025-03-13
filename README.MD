@@ -276,10 +276,11 @@ after transformations.
   * for release:
      * make version (and run github actions)
      * make coverage (and update README.MD)
+     * make build (as a test before tagging)
      * git tag and git push --tags (for github)
      * make build (and push to pypi)
 
-I take patches!
+__I take patches!__
 
 The source code has a lot of code duplications and ifelse lists. That is intentional to allow anyone to quickly add corner cases.
 
