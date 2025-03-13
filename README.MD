@@ -272,7 +272,7 @@ after transformations.
   * make check
   * make python
   * make checks
-  * make version
+  * make version (for release)
 
 I take patches!
 
