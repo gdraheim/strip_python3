@@ -7,7 +7,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "0.9.1104"
+__version__ = "1.0.1104"
 
 from typing import List, Union, Optional, Iterator, Iterable, NamedTuple
 import unittest
@@ -797,6 +797,60 @@ class StripTest(unittest.TestCase):
         py, pyi = file_text(F"{tmp}/tmp2.py"), file_text(F"{tmp}/tmp2.pyi")
         self.assertEqual(py, "class B:^    pass^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
+        self.coverage()
+        self.rm_testdir()
+    def test_0117(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a: int 
+        class B:
+           b: int
+           c: str""")
+        run = sh(F"{strip} {tmp}/tmp1.py > {tmp}/tmp2.py {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
+        py = file_text(F"{tmp}/tmp2.py")
+        self.assertEqual(py, "class B:^    pass^")
+        self.coverage()
+        self.rm_testdir()
+    def test_0118(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a: int 
+        class B:
+           b: int
+           c: str""")
+        run = sh(F"{strip} {tmp}/tmp1.py > {tmp}/tmp2.py --pyi")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
+        py = file_text(F"{tmp}/tmp2.py")
+        self.assertEqual(py, "class B:^    pass^## typehints:^a: int^^class B:^    b: int^    c: str^")
+        self.coverage()
+        self.rm_testdir()
+    def test_0119(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a: int 
+        class B:
+           b: int
+           c: str""")
+        run = sh(F"{strip} {tmp}/tmp1.py -o . > {tmp}/tmp2.py --pyi")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
+        py = file_text(F"{tmp}/tmp2.py")
+        self.assertEqual(py, "## typehints:^a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
     def test_0121(self) -> None:
