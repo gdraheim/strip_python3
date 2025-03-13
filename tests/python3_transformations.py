@@ -746,17 +746,17 @@ class StripTest(unittest.TestCase):
     def test_0114(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         a: int 
         class B:
            b: int
            c: str""")
-        run = sh(F"{strip} -3 {tmp}/tmp3.py --pyi")
+        run = sh(F"{strip} -3 {tmp}/test3.py --pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
-        py, pyi = file_text(F"{tmp}/tmp.py"), file_text(F"{tmp}/tmp.pyi")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text(F"{tmp}/test.py"), file_text(F"{tmp}/test.pyi")
         self.assertEqual(py, "class B:^    pass^")
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
@@ -2093,17 +2093,17 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import sys
         def func1():
             for x in range(3):
                 print(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} --nop")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} --nop")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         import sys
         if sys.version_info[0] < 3:
@@ -2119,17 +2119,17 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import sys
         def func1(x: Any):
             if isinstance(x, str):
                 print(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} --nop")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} --nop")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         import sys
         if sys.version_info[0] >= 3:
@@ -2145,17 +2145,17 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import sys
         def func1(x: Any):
             if callable(x):
                 repr(x())
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         import sys
         if sys.version_info[0] == 3 and sys.version_info[1] >= 0 and (sys.version_info[1] < 2):
@@ -2173,16 +2173,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import sys
         def func1(x: Any):
             print(x())
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         from __future__ import print_function
         import sys
@@ -2196,16 +2196,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         #! /usr/bin/env python
         def func1(x: Any):
             print(x())
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         #! /usr/bin/env python
         from __future__ import print_function
@@ -2219,16 +2219,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import sys
         def func1(x: Any):
             repr(x / 2)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         from __future__ import division
         import sys
@@ -2242,16 +2242,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import sys
         def func1(x: Any):
             print(x / 2)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         from __future__ import division
         from __future__ import print_function
@@ -2266,16 +2266,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         from .exceptions import MyException
         def func1(x: Any):
             print(x / 2)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         from __future__ import absolute_import
         from __future__ import division
@@ -2291,16 +2291,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import datetime.datetime
         def func1(x: x) -> datetime.datetime:
             return datetime.datetime.fromisoformat(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         import datetime.datetime
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
@@ -2337,16 +2337,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import datetime.datetime as Time
         def func1(x: x) -> datetime.datetime:
             return Time.fromisoformat(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         import datetime.datetime as Time
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
@@ -2384,16 +2384,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import subprocess
         def func1() -> str:
             return subprocess.run("echo ok", shell=True).stdout
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         import subprocess
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
@@ -2444,16 +2444,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import pathlib
         def func1(x: str) -> pathlib.PurePath:
             return pathlib.PurePath(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 3):
             import pathlib2 as pathlib
@@ -2469,16 +2469,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import pathlib as fs
         def func1(x: str) -> fs.PurePath:
             return fs.PurePath(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 3):
             import pathlib2 as fs
@@ -2494,16 +2494,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import tomllib
         def func1(x: str) -> Dict[str, Any]:
             return tomllib.loads(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 11):
             import toml as tomllib
@@ -2519,16 +2519,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import tomllib as toml
         def func1(x: str) -> Dict[str, Any]:
             return toml.loads(x)
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 11):
             import toml as toml
@@ -2544,16 +2544,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import zoneinfo
         def func1() -> List[str]:
             return zoneinfo.available_timezones()
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 9):
             from backports import zoneinfo
@@ -2569,16 +2569,16 @@ class StripTest(unittest.TestCase):
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
-        text_file(F"{tmp}/tmp3.py", """
+        text_file(F"{tmp}/test3.py", """
         import zoneinfo as tz
         def func1() -> List[str]:
             return tz.available_timezones()
         """)
-        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
-        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
-        py = file_text4(F"{tmp}/tmp.py")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 9):
             from backports import zoneinfo as tz
