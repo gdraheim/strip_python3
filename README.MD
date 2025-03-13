@@ -14,13 +14,14 @@ it very easy so that you can add your own source code transformations.
 
 The `'strip-python3'` tool can extract typehints to `'*.pyi'` file containing only
 the outer object-oriented interface. That allows you to ship modern typed python3
-code to older systems, possibly even having only python2 preinstalled. But even
-supporting systems with a base installation of python3.6 can be a challenge where
-this tool can help.
+code to older systems, possibly even having only python2 preinstalled. The extra
+pyi however will allow to run it on older systems with a python3.6 installed.
 
 The default configuration is to strip the `*.py` file to python2 syntax that can 
-also work in python3 (using `__print_function__`), and to put a `*.pyi` file next 
-to it containing the typehints in a syntax compatible with python3.6 (with `--pyi`).
+also work in python3 (using `__print_function__`), and (when using `-2` or `-3`)
+to put a `*.pyi` file next to it containing the typehints in a syntax compatible 
+with python3.6. When not using `-2` or `-3` it just prints the type-stripped and
+backward-transformed python script to stdout.
 
 # references
 
@@ -272,7 +273,10 @@ after transformations.
   * make check
   * make python
   * make checks
-  * make version (for release)
+  * for release:
+     * make version (and run github actions)
+     * make coverage (and update README.MD)
+     * make build (and push to pypi)
 
 I take patches!
 

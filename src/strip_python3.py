@@ -1598,7 +1598,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
 def main() -> int:
     defs = read_defaults("pyproject.toml", "setup.cfg")
     from optparse import OptionParser # pylint: disable=deprecated-module, import-outside-toplevel
-    cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip(), epilog=": -o - : by default the transformation result is printed to standard output")
+    cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip(), epilog=": -o - : default is to print the type-stripped and back-transformed py code")
     cmdline.formatter.max_help_position = 37
     cmdline.add_option("-v", "--verbose", action="count", default=defs["verbose"], help="increase logging level")
     cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
@@ -1629,17 +1629,17 @@ def main() -> int:
     cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
     cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
     cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
-    cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or boilerplate")
-    cmdline.add_option("--time-monotonic", action="count", default=defs["time-monotonic"], help="3.3 time.monotonic or boilerplate time.time")
-    cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib")
-    cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo")
-    cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import tomllib")
+    cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or use boilerplate")
+    cmdline.add_option("--time-monotonic", action="count", default=defs["time-monotonic"], help="3.3 time.monotonic or use time.time")
+    cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib2 as pathlib")
+    cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo from backports")
+    cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import toml as tomllib")
     cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
     cmdline.add_option("--replace-walrus-operator", action="count", default=defs["replace-walrus-operator"], help="3.8 walrus 'if x := ():' to 'if x:'")
     cmdline.add_option("--replace-annotated-typing", action="count", default=defs["replace-annotated-typing"], help="3.9 Annotated[int, x] converted to int")
     cmdline.add_option("--replace-builtin-typing", action="count", default=defs["replace-builtin-typing"], help="3.9 list[int] converted to List[int]")
     cmdline.add_option("--replace-union-typing", action="count", default=defs["replace-union-typing"], help="3.10 int|str converted to Union[int,str]")
-    cmdline.add_option("--replace-self-typing", action="count", default=defs["replace-self-typing"], help="3.11 Self converted to SelfClass a TypeVar")
+    cmdline.add_option("--replace-self-typing", action="count", default=defs["replace-self-typing"], help="3.11 Self converted to SelfClass TypeVar")
     cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast()")
     cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
@@ -1650,10 +1650,11 @@ def main() -> int:
     cmdline.add_option("--python-version", metavar="2.7", default=defs["python-version"], help="set python features by version")
     cmdline.add_option("-6", "--py36", action="count", default=0, help="set python feat to --python-version=3.6")
     cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
-    cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten")
-    cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py becomes file_2.py")
-    cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py becomes file.py")
-    cmdline.add_option("-y", "--pyi", action="count", default=0, help="generate file.pyi include as well")
+    cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
+    cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
+    cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
+    cmdline.add_option("-n", "--no-pyi", "--no-make-pyi", action="count", default=0, help="do not generate file.pyi includes")
+    cmdline.add_option("-y", "--pyi", "--make-pyi", action="count", default=0, help="generate file.pyi includes as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
@@ -1761,7 +1762,8 @@ def main() -> int:
     eachfile = EACH_REMOVE3 if opt.remove3 else 0
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
-    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=opt.pyi, minversion=back_version)
+    make_pyi = opt.pyi or opt.append2 or opt.remove3 or opt.inplace
+    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not opt.no_pyi, minversion=back_version)
 
 if __name__ == "__main__":
     sys.exit(main())
