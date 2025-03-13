@@ -1476,7 +1476,9 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         else:
             out = "-"
         if out not in written:
-            if out in ["-"]:
+            if out in ["", "."]:
+                pass
+            elif out in ["-"]:
                 if done:
                     print(done)
             else:
@@ -1486,19 +1488,22 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                         w.write("\n")
                 logg.info("written %s", out)
                 written.append(out)
-                if pyi:
-                    typehintsfile = out+"i"
-                    logg.debug("--pyi => %s", typehintsfile)
-                    type_ignores: List[TypeIgnore] = []
-                    if isinstance(tree1, ast.Module):
-                        type_ignores = tree1.type_ignores
-                    typehints = pyi_module(types.pyi, type_ignores=type_ignores)
+            if pyi:
+                typehintsfile = out+"i"
+                logg.debug("--pyi => %s", typehintsfile)
+                type_ignores: List[TypeIgnore] = []
+                if isinstance(tree1, ast.Module):
+                    type_ignores = tree1.type_ignores
+                typehints = pyi_module(types.pyi, type_ignores=type_ignores)
+                done = ast.unparse(typehints)
+                if out in ["", ".", "-"]:
+                    print("## typehints:")
+                    print(done)
+                else:
                     with open(typehintsfile, "w", encoding="utf-8") as w:
-                        done = ast.unparse(typehints)
                         w.write(done)
                         if done and not done.endswith("\n"):
                             w.write("\n")
-
     return 0
 
 def beautify_dump(x: str) -> str:
