@@ -276,6 +276,7 @@ after transformations.
   * for release:
      * make version (and run github actions)
      * make coverage (and update README.MD)
+     * git tag and git push --tags (for github)
      * make build (and push to pypi)
 
 I take patches!

@@ -29,5 +29,5 @@ jobs:
     - name: 'make lint (pylint static source code checking)'
       id: check
       run: |
-        make lint -C software PYTHON=python3.12 PYLINT=pylint
+        make lint -C software PYTHON=python3.12 PYLINT=pylint PYLINT_OPTIONS=--disable=unknown-option-value
     
