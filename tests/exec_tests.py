@@ -2,13 +2,13 @@
 """ Testcases for strip-python3 transformation and execution with different python versions """
 
 # pylint: disable=line-too-long,too-many-lines,bare-except,broad-exception-caught,pointless-statement,multiple-statements,f-string-without-interpolation,import-outside-toplevel
-# pylint: disable=missing-function-docstring,unused-variable,unused-argument,unspecified-encoding,redefined-outer-name,using-constant-test,invalid-name
+# pylint: disable=missing-class-docstring,missing-function-docstring,unused-variable,unused-argument,unspecified-encoding,redefined-outer-name,using-constant-test,invalid-name
 # pylint: disable=fixme
 __copyright__ = "(C) Guido Draheim, licensed under the MIT license"""
 __version__ = "2.0.1092"
 
 
-from typing import List, Tuple, Generator, Iterator, Union, Optional, TextIO, Mapping, Iterable
+from typing import List, Iterator, Union, Optional, TextIO, Mapping, Iterable
 
 import subprocess
 import os
@@ -97,7 +97,7 @@ class CompletedProcess:
     def out(self) -> str:
         return decodes(self.stdout).rstrip()
 
-def X(args: Union[str, List[str]], stdin: Optional[int]=None, input: Optional[bytes]=None, stdout: Optional[int]=None, stderr: Optional[int]=None,
+def X(args: Union[str, List[str]], stdin: Optional[int]=None, inputs: Optional[bytes]=None, stdout: Optional[int]=None, stderr: Optional[int]=None,
     shell: Optional[bool]=None, cwd: Optional[str]=None, timeout: Optional[int]=None, check: bool=False, env: Optional[Mapping[bytes, str]]=None) -> CompletedProcess:
     """ a variant of subprocess.run() """
     shell = isinstance(args, str) if shell is None else shell
@@ -105,7 +105,7 @@ def X(args: Union[str, List[str]], stdin: Optional[int]=None, input: Optional[by
     stderr = subprocess.PIPE if stderr is None else stderr
     proc = subprocess.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
     try:
-        outs, errs = proc.communicate(input=input, timeout=timeout)
+        outs, errs = proc.communicate(input=inputs, timeout=timeout)
     except subprocess.TimeoutExpired:
         proc.kill()
         outs, errs = proc.communicate()
@@ -619,7 +619,10 @@ if __name__ == "__main__":
                 continue
             testclass = globals()[classname]
             for method in sorted(dir(testclass)):
-                if "*" not in arg: arg += "*"
+                if arg.endswith("/"):
+                    arg = arg[:-1]
+                if "*" not in arg: 
+                    arg += "*"
                 if len(arg) > 2 and arg[1] == "_":
                     arg = "test" + arg[1:]
                 if fnmatch(method, arg):
