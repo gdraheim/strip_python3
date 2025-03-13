@@ -1,13 +1,13 @@
 #! /usr/bin/env python3
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,line-too-long,multiple-statements,too-many-lines
-# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-public-methods,too-many-branches,too-many-statements,consider-using-with,no-else-return
+# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-public-methods,too-many-branches,too-many-statements,consider-using-with,no-else-return,unspecified-encoding
 """ tests for strip_python3 """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "0.9.1104"
 
-from typing import List, Union, Optional, Iterator, NamedTuple
+from typing import List, Union, Optional, Iterator, Iterable, NamedTuple
 import unittest
 from fnmatch import fnmatchcase as fnmatch
 import inspect
@@ -92,22 +92,23 @@ def decodes_(text: Union[bytes, str]) -> Optional[str]:
             return text.decode("latin-1")
     return text
 
-def _lines(lines: Union[str, List[str]]) -> List[str]:
+def _lines(lines: Union[str, Iterable[str]]) -> Iterable[str]:
     if isinstance(lines, basestring):
         lines = lines.split("\n")
         if len(lines) and lines[-1] == "":
             lines = lines[:-1]
+        return lines
     return lines
-def lines4(text: Union[str, List[str]]) -> List[str]:
+def lines4(text: Union[str, Iterable[str]]) -> List[str]:
     lines = []
     for line in _lines(text):
         lines.append(line.rstrip())
     return lines
-def _grep(pattern: str, lines: Union[str, List[str]]) -> Iterator[str]:
+def _grep(pattern: str, lines: Union[str, Iterable[str]]) -> Iterator[str]:
     for line in _lines(lines):
         if re.search(pattern, line.rstrip()):
             yield line.rstrip()
-def grep(pattern: str, lines: Union[str, List[str]]) -> List[str]:
+def grep(pattern: str, lines: Union[str, Iterable[str]]) -> List[str]:
     return list(_grep(pattern, lines))
 def greps(lines: Union[str, List[str]], pattern: str) -> List[str]:
     return list(_grep(pattern, lines))

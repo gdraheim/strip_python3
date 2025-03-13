@@ -621,7 +621,7 @@ if __name__ == "__main__":
             for method in sorted(dir(testclass)):
                 if arg.endswith("/"):
                     arg = arg[:-1]
-                if "*" not in arg: 
+                if "*" not in arg:
                     arg += "*"
                 if len(arg) > 2 and arg[1] == "_":
                     arg = "test" + arg[1:]
