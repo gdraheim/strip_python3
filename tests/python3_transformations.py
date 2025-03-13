@@ -2745,7 +2745,7 @@ class StripTest(unittest.TestCase):
 
 
 def runtests() -> None:
-    global PYTHON, KEEP, COVERAGE # pylint: disable=global-statement
+    global PYTHON, KEEP, COVERAGE, VV # pylint: disable=global-statement
     from optparse import OptionParser  # pylint: disable=deprecated-module,import-outside-toplevel
     cmdline = OptionParser("%prog [options] test*",
                       epilog=__doc__.strip().split("\n", 1)[0])
