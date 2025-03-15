@@ -5,7 +5,7 @@
 # pylint: disable=missing-class-docstring,missing-function-docstring,unused-variable,unused-argument,unspecified-encoding,redefined-outer-name,using-constant-test,invalid-name
 # pylint: disable=fixme,duplicate-code,consider-using-with,too-many-public-methods,too-many-arguments,too-many-positional-arguments
 __copyright__ = "(C) Guido Draheim, licensed under the MIT license"""
-__version__ = "1.0.1104"
+__version__ = "1.0.1105"
 
 
 from typing import List, Iterator, Union, Optional, TextIO, Mapping, Iterable
@@ -251,6 +251,36 @@ class StripPythonExecTest(unittest.TestCase):
         python3 = PYTHON3
         testdir = self.testdir()
         sh____(F"{python} --version")
+        self.rm_testdir()
+    def test_1101(self) -> None:
+        """ check that we can run python"""
+        vv = self.begin()
+        python = PYTHON
+        python3 = PYTHON3
+        testdir = self.testdir()
+        text_file(F"{testdir}/test3.py", """
+        class A:
+           a: int
+           b: str
+           def __init(a: int, b:str) -> None:
+              self.a = a
+              self.b = b
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{testdir}/test.py"))
+        self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
+        text_file(F"{testdir}/test4.py", """
+        import test
+        x = test.A()
+        x.b = 22
+        print(x.b)
+        """)
+        x1 = X(F"{python} {testdir}/test4.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertEqual(x1.out, "22")
+        x1 = X(F"{python} -m mypy {testdir}/test4.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertEqual(x1.err, "no module named mypy")
         self.rm_testdir()
     def test_1331(self) -> None:
         """ check that we can print() in python"""
