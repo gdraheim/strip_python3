@@ -5,7 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/strip_python3.svg)](https://pypi.org/project/strip-python3/)
 
 
-# remove python3 typehints and transform sources to older python compatibility
+# remove python3 typehints and easily transform sources to older python compatibility
 
 This project has been inspired by `'strip-hints'` and `'py-backwards'` but it is
 now based on the Python 3.9+ standard library's `'ast.unparse()'`. More specifically
