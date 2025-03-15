@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "strip_python3"
 version = "1.0.1104"
-description = ""
+description = "easy way to remove python3 typehints and to transform sources to older python compatibility"
 readme = { "file" = "tmp/README.MD", content-type = "text/markdown" }
 license = { file = "LICENSE" }
 authors = [ { name = "Guido U. Draheim", "email" = "Guido.Draheim@gmx.de" }]
@@ -16,6 +16,7 @@ classifiers = [
    "Operating System :: POSIX :: Linux",
    "Environment :: Console",
    "Programming Language :: Python :: 3",
+   "Programming Language :: Python :: 3.9",
    "Topic :: Software Development :: Code Generators",
    "Typing :: Typed"
 ]
