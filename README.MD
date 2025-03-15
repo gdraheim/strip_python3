@@ -56,13 +56,14 @@ is required with a code base that makes it easier to get contributions by users.
 
 Specifically for removing typehints, the "strip-hints" project shows how to use the
 standard python "tokenizer" module which is clearly better than using some grep/sed
-style text transformations. In both variants however you need to guess what kind of code
-you have on a specific line, which is where "ast"-based approaches have a much easier
-time. The standard python3 "unparse()" is however producing source code that is 
-formatted already good enough for shipping via pypi and other distribution channels. 
+style text transformations. In both text-based variants however you need to guess what 
+kind of code you have on a specific line, which is where "ast"-based approaches have 
+a much easier time. The standard python3 "unparse()" however produces code that
+is effectivly reformatted. As it follows the python standard formatting that is
+alrady good enough for shipping via pypi and other distribution channels. 
 The differences to the output of code beautyfiers have become minimal. Note however 
 that the code removal does sometimes make comments appear on lines where they don't 
-belong to.
+belong to. And it seems 'ast.unparse' has not been used extensivly so far.
 
 # configuration
 
