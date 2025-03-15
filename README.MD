@@ -5,12 +5,13 @@
 [![PyPI version](https://badge.fury.io/py/strip_python3.svg)](https://pypi.org/project/strip-python3/)
 
 
-# easy way to transform and remove python3 typehints
+# remove python3 typehints and transform sources to older python compatibility
 
 This project has been inspired by `'strip-hints'` and `'py-backwards'` but it is
 now based on the Python 3.9+ standard library's `'ast.unparse()'`. More specifically
 it is using `'ast_comments'` to keep the comments. The implementation wants to make
-it very easy so that you can add your own source code transformations.
+it very easy so that you can add your own source code transformations to support
+compatibility with older python versions.
 
 The `'strip-python3'` tool can extract typehints to `'*.pyi'` file containing only
 the outer object-oriented interface. That allows you to ship modern typed python3
