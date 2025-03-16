@@ -1780,7 +1780,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
         logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
-        self.assertEqual(py, text4("""
+        self.assertEqual(lines4(py), lines4(text4("""
         from pydantic import Field
 
         class B:
@@ -1805,7 +1805,7 @@ class StripTest(unittest.TestCase):
                 else:
                     pass
                 return 0
-        """))
+        """)))
         self.assertEqual(pyi, text4("""
         from typing import List
         a: int

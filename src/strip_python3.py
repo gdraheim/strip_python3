@@ -8,7 +8,7 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "1.0.1105"
 
-from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque
+from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque, Iterable
 import sys
 import re
 import os
@@ -162,27 +162,31 @@ class BlockTransformer:
             modbody: List[ast.stmt] = []
             for stmt in node.body:
                 logg.log(DEBUG_TYPING, "stmt Module %s", ast.dump(stmt))
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
                 for elem in visitor(stmt):
                     modbody.append(copy_location(elem, stmt))
             node.body = modbody
             self.block.popleft()
         else:
-            nodes = self.generic_visits(node)
+            nodes = self.generic_visit(node)
             if len(nodes) > 0:
                 return nodes[0]
         return node
-    def generic_visits(self, node: TypeAST) -> List[TypeAST]:
+    def generic_visit(self, node: TypeAST) -> List[TypeAST]:
         if isinstance(node, ast.ClassDef):
             self.block.appendleft(node)
             classbody: List[ast.stmt] = []
             for stmt in node.body:
                 logg.log(DEBUG_TYPING, "stmt ClassDef %s", ast.dump(stmt))
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    classbody.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        classbody.append(copy_location(elem, stmt))
+                else:
+                    classbody.append(result)
             node.body = classbody
             self.block.popleft()
         elif isinstance(node, ast.FunctionDef):
@@ -190,20 +194,28 @@ class BlockTransformer:
             funcbody: List[ast.stmt] = []
             for stmt in node.body:
                 logg.log(DEBUG_TYPING, "stmt FunctionDef %s", ast.dump(stmt))
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    funcbody.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        funcbody.append(copy_location(elem, stmt))
+                else:
+                    funcbody.append(copy_location(result, stmt))
             node.body = funcbody
             self.block.popleft()
         elif isinstance(node, ast.With):
             self.block.appendleft(node)
             withbody: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    withbody.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        withbody.append(copy_location(elem, stmt))
+                else:
+                    withbody.append(copy_location(result, stmt))
             node.body = withbody
             self.block.popleft()
         elif isinstance(node, ast.If):
@@ -211,15 +223,23 @@ class BlockTransformer:
             ifbody: List[ast.stmt] = []
             ifelse: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    ifbody.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        ifbody.append(copy_location(elem, stmt))
+                else:
+                    ifbody.append(copy_location(result, stmt))
             for stmt in node.orelse:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    ifelse.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        ifelse.append(copy_location(elem, stmt))
+                else:
+                    ifelse.append(copy_location(result, stmt))
             node.body = ifbody
             node.orelse = ifelse
             self.block.popleft()
@@ -228,15 +248,23 @@ class BlockTransformer:
             whilebody: List[ast.stmt] = []
             whileelse: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    whilebody.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        whilebody.append(copy_location(elem, stmt))
+                else:
+                    whilebody.append(copy_location(result, stmt))
             for stmt in node.orelse:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    whileelse.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        whileelse.append(copy_location(elem, stmt))
+                else:
+                    whileelse.append(copy_location(result, stmt))
             node.body = whilebody
             node.orelse = whileelse
             self.block.popleft()
@@ -245,15 +273,19 @@ class BlockTransformer:
             forbody: List[ast.stmt] = []
             forelse: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
                 for elem in visitor(stmt):
                     forbody.append(copy_location(elem, stmt))
             for stmt in node.orelse:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    forelse.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        forelse.append(copy_location(elem, stmt))
+                else:
+                    forelse.append(copy_location(result, stmt))
             node.body = forbody
             node.orelse = forelse
             self.block.popleft()
@@ -263,28 +295,44 @@ class BlockTransformer:
             tryelse: List[ast.stmt] = []
             tryfinal: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    trybody.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        trybody.append(copy_location(elem, stmt))
+                else:
+                    trybody.append(copy_location(result, stmt))
             for excpt in node.handlers:
                 excptbody: List[ast.stmt] = []
                 for stmt in excpt.body:
-                    method = 'visits_' + stmt.__class__.__name__
-                    visitor = getattr(self, method, self.generic_visits)
-                    for elem in visitor(stmt):
-                        excptbody.append(copy_location(elem, stmt))
-                excpt.body = excptbody
+                    method = 'visit_' + stmt.__class__.__name__
+                    visitor = getattr(self, method, self.generic_visit)
+                    result = visitor(stmt)
+                    if isinstance(result, Iterable):
+                        for elem in result:
+                            excptbody.append(copy_location(elem, stmt))
+                    else:
+                        excptbody.append(copy_location(result, stmt))
+                    excpt.body = excptbody
             for stmt in node.orelse:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    tryelse.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        tryelse.append(copy_location(elem, stmt))
+                else:
+                    tryelse.append(copy_location(result, stmt))
             for stmt in node.finalbody:
-                method = 'visits_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visits)
-                for elem in visitor(stmt):
-                    tryfinal.append(copy_location(elem, stmt))
+                method = 'visit_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit)
+                result = visitor(stmt)
+                if isinstance(result, Iterable):
+                    for elem in result:
+                        tryfinal.append(copy_location(elem, stmt))
+                else:
+                    tryfinal.append(copy_location(result, stmt))
             node.body = trybody
             node.orelse = tryelse
             node.finalbody = tryfinal
@@ -294,7 +342,7 @@ class BlockTransformer:
         return [node]
 
 class WalrusTransformer(BlockTransformer):
-    def visits_If(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
+    def visit_If(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
         if isinstance(node.test, ast.NamedExpr):
             test: ast.NamedExpr = node.test
             logg.log(DEBUG_TYPING, "ifwalrus-test: %s", ast.dump(test))
@@ -341,7 +389,7 @@ class WalrusTransformer(BlockTransformer):
             return [node]
 
 class WhileWalrusTransformer(BlockTransformer):
-    def visits_While(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
+    def visit_While(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
         if isinstance(node.test, ast.NamedExpr):
             test: ast.NamedExpr = node.test
             logg.log(DEBUG_TYPING, "whwalrus-test: %s", ast.dump(test))
