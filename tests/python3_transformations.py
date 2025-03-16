@@ -2183,7 +2183,6 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
     def test_0214(self) -> None:
-        logg.fatal("0214")
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2205,7 +2204,6 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
     def test_0215(self) -> None:
-        logg.fatal("0214")
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2226,6 +2224,28 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
+    def test_0216(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        a = 1.
+        b = 'x'
+        y = F"z{a=}"
+        """)
+        run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} --py36")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        self.assertEqual(py, text4("""
+        a = 1.0
+        b = 'x'
+        y = f'za={a!r}'
+        """))
+        self.coverage()
+        self.rm_testdir()
+
     def test_0301(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
