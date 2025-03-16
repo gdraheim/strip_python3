@@ -756,6 +756,7 @@ class DefineIfPython3:
             return node
 
 class FStringToFormat(ast.NodeTransformer):
+    """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
     def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name # pragma: nocover
         """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
         # NOTE: I did not manage to create a test case that triggers this visitor
