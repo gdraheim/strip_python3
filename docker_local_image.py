@@ -16,7 +16,7 @@ __version__ = "1.7.7101"
 
 # generalized from the testsuite.py in the docker-systemctl-replacement project
 
-_maindir = os.path.dirname(sys.argv[0])
+_maindir = os.path.dirname(sys.argv[0]) or "."
 _mirror = os.path.join(_maindir, "docker_mirror.py")
 
 NIX = ""
@@ -107,7 +107,9 @@ def docker_local_build(cmd2: List[str] = []) -> int:
     refresh = NIX
     distro = NIX
     package = NIX
+    logg.info("-- %s", cmd2)
     for ncmd in cmd2:
+        logg.info("--next %s", ncmd)
         arg = NIX
         if not cmd:
             if ncmd in prefixes:
@@ -134,6 +136,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["INTO","into","TAG","tag"]:
+                logg.info("--into %s", arg)
                 if into:
                     runcmds = runexe.split(" ") + runcmd.split(" ") if runexe else runcmd.split(" ")
                     runs = F"-c 'USER {runuser}'" if runuser else NIX
@@ -161,8 +164,10 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 continue
             if cmd in  ["USER", "user"]:
                 runuser = arg
+                cmd = NIX
                 continue
             if cmd in  ["SEARCH", "search"]:
+                logg.info("--search %s", arg)
                 if not refresh:
                     refresh = package_refresh(distro)
                     if refresh:
@@ -173,7 +178,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["INSTALL", "install"]:
-                logg.debug("install %s", arg)
+                logg.debug("--install %s", arg)
                 if not refresh:
                     refresh = package_refresh(distro)
                     logg.debug("install %s", refresh)
@@ -192,6 +197,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["MAKE", "MAKE"]:
+                logg.info("--make %s", arg)
                 if arg.startswith(":"):
                     dst = arg[1:]
                 else:
@@ -206,6 +212,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["COPY", "copy"]:
+                logg.info("--copy %s", arg)
                 if ":" in arg:
                     src, dst = arg.split(":", 1)
                 else:
@@ -214,6 +221,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["SAVE", "save"]:
+                logg.info("--save %s", arg)
                 if ":" in arg:
                     src, dst = arg.split(":", 1)
                 else:
@@ -222,6 +230,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["SYMLINK", "symlink"]:
+                logg.info("--symlink %s", arg)
                 if ":" in arg:
                     src, dst = arg.split(":", 1)
                 else:
@@ -235,6 +244,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in  ["TEST", "test"]:
+                logg.info("--test %s", arg)
                 if arg.startswith(":"):
                     dst = arg[1:]
                     sh____(F"{docker} exec {into} wc -l {dst}")
@@ -244,6 +254,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
                 cmd = NIX
                 continue
             if cmd in ["COMMIT", "commit"]:
+                logg.info("--commit")
                 if into:
                     runcmds = runexe.split(" ") + runcmd.split(" ") if runexe else runcmd.split(" ")
                     runs = F"-c 'USER {runuser}'" if runuser else NIX
@@ -261,6 +272,7 @@ def docker_local_build(cmd2: List[str] = []) -> int:
             cmd = NIX
             logg.error("cmd %s no arg %s", cmd, arg)
     if into:
+        logg.info("--ends")
         runcmds = runexe.split(" ") + runcmd.split(" ") if runexe else runcmd.split(" ")
         runs = "-c 'USER {runuser}'" if runuser else NIX
         cmds = "-c 'CMD {runcmds}'" if runcmd else NIX

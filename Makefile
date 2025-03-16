@@ -74,7 +74,7 @@ test%/39:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/311:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
-	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test311 sleep 9999
+	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
 	$(DOCKER) cp $(EXECS) $(CONTAINER)-python$(notdir $@):/
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
@@ -156,10 +156,10 @@ $(CONTAINER)/test312: ; ./docker_local_image.py FROM ubuntu:24.04 INTO $@ INSTAL
 $(CONTAINER)/test27:  ; ./docker_local_image.py FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python2" TEST "python3.9 --version" TEST "python2 --version"
 $(CONTAINER)/test36:  ; ./docker_local_image.py FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python3" TEST "python3.9 --version" TEST "python3 --version"
 $(CONTAINER)/test39:  ; ./docker_local_image.py FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python39" SYMLINK /usr/bin/python3.9:python3 TEST "python3.9 --version" TEST "python3 --version" 
-$(CONTAINER)/test311: ; ./docker_local_image.py -vv FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 $(EXTRA)" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:python3.9 TEST "python3.9 --version" TEST "python3 --version"
-$(CONTAINER)/test311-mypy: ; $(MAKE) strip-python311/test EXTRA=python311-mypy
+$(CONTAINER)/test311: ; ./docker_local_image.py FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 $(EXTRA)" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:python3.9 TEST "python3.9 --version" TEST "python3 --version"
+$(CONTAINER)/test3111: ; $(MAKE) $(CONTAINER)/test311 EXTRA=python311-mypy
 
-mypy: $(CONTAINER)/test311-mypy
+mypython: $(CONTAINER)/test3111
 python: stop python27 python36 python39 python311
 stop:
 	$(DOCKER) ps -q -f status=exited | xargs --no-run-if-empty $(DOCKER) rm
