@@ -82,7 +82,7 @@ you can add a split-step in between which extracts the pyi type hints and
 downgrades some features to be compatible with say atleast Python 3.6.
 
 That's what I am doing. The splitted sources are put into a subdirectory
-and pip-build and twine-upload are run from there. That __IS__ easy.
+and pip-build and twine-upload are run from there. That __is__ actually easy.
 
 # configuration
 
