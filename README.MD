@@ -65,6 +65,23 @@ The differences to the output of code beautyfiers have become minimal. Note howe
 that the code removal does sometimes make comments appear on lines where they don't 
 belong to. And it seems 'ast.unparse' has not been used extensivly so far.
 
+# split your deployment
+
+Pydantic requires atleast Python 3.8 (v2.10 Jan 2025). 
+Mypy requires atleast Python 3.9 (v1.15 Feb 2025).
+The main Linux distros ship with an additional Python 3.11.
+Many developers have switched their IDE like Visual Code to Python 3.11.
+That has a major impact why modern Python features are getting used.
+
+With `strip-python3` developers can continue to work and test with a
+modern python version on their own infrastructure. But for the
+delivery to some customer servers and to publication sites like pypi.org, 
+you can add a split-step in between which extracts the pyi type hints and
+downgrades some features to be compatible with say atleast Python 3.6.
+
+That's what I am doing. The splitted sources are put into a subdirectory
+and pip-build and twine-upload are run from there. Easy.
+
 # configuration
 
 Configuration occurs in this order - with last overriding first
