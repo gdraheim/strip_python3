@@ -69,9 +69,11 @@ belong to. And it seems 'ast.unparse' has not been used extensivly so far.
 
 Pydantic requires atleast Python 3.8 (v2.10 Jan 2025). 
 Mypy requires atleast Python 3.9 (v1.15 Feb 2025).
-The main Linux distros ship with an additional Python 3.11.
-Many developers have switched their IDE like Visual Code to Python 3.11.
-That has a major impact why modern Python features are getting used.
+The main Linux distros ship with an additional Python 3.11 (EPEL v9, Almalinux 9.5,
+Opensuse 15.4+) or default to atleast Python 3.10 (Ubuntu 22.04 python3 is 3.10, 
+Ubuntu 24.04 python3 is 3.12). Many developers have switched their IDE like 
+Visual Code to atleast Python 3.10 in 2024. That has a major impact why modern 
+Python features are getting used.
 
 With `strip-python3` developers can continue to work and test with a
 modern python version on their own infrastructure. But for the
@@ -80,7 +82,7 @@ you can add a split-step in between which extracts the pyi type hints and
 downgrades some features to be compatible with say atleast Python 3.6.
 
 That's what I am doing. The splitted sources are put into a subdirectory
-and pip-build and twine-upload are run from there. Easy.
+and pip-build and twine-upload are run from there. That __IS__ easy.
 
 # configuration
 
