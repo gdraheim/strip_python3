@@ -1,7 +1,8 @@
 MIT License
 
 Copyright (c) 2025 Guido U. Draheim
-Copyright (c) 2022, Dmitry Makarov (for ast-comments only)
+Copyright (c) 2022 Dmitry Makarov | for ast-comments only
+Copyright (c) 2018 alethiophile (Tome Hunt) | for qtoml.decoder only
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
