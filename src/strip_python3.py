@@ -20,9 +20,12 @@ if sys.version_info >= (3,11,0):
     import tomllib
 else:
     try:
-        import toml as tomllib # type: ignore[no-redef,import-untyped]
+        import tomli as tomllib # type: ignore[no-redef,import-untyped]
     except ImportError:
-        tomllib = None # type: ignore[assignment]
+        try:
+            import strip_qtoml_decoder as tomllib
+        except ImportError:
+            tomllib = None # type: ignore[assignment]
 DEBUG_TOML = logging.DEBUG
 DEBUG_TYPING = logging.DEBUG
 NIX = ""
@@ -39,7 +42,7 @@ logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace
 if sys.version_info < (3,9,0):
     logg.info("python3.9 has ast.unparse()")
     logg.fatal("you need alteast python3.9 to run strip-python3!")
-    sys.exit(11)
+    sys.exit(os.EX_SOFTWARE)
 
 # ........
 # import ast
