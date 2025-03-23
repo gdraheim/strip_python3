@@ -280,7 +280,7 @@ class StripPythonExecTest(unittest.TestCase):
         self.assertEqual(x1.out, "22")
         x1 = X(F"{python} -m mypy {testdir}/test4.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
-        self.assertEqual(x1.err, "no module named mypy")
+        self.assertTrue(greps(x1.err, "no module named mypy", "No module named mypy"))
         self.rm_testdir()
     def test_1331(self) -> None:
         """ check that we can print() in python"""
