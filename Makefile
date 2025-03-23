@@ -58,7 +58,7 @@ test%/36:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(notdir $@) --python=/usr/bin/python3 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/39:
@@ -69,7 +69,7 @@ test%/39:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(notdir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/311:
@@ -80,7 +80,7 @@ test%/311:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(notdir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 
@@ -141,6 +141,9 @@ copy:
 	cp -v ../docker-mirror-packages-repo/docker_mirror.pyi .
 	cp -v ../docker-mirror-packages-repo/docker_image.py .
 
+LOCAL=--local
+DOCKER_IMAGE = ./docker_image.py $(LOCAL)
+
 python27: $(CONTAINER)/test27
 python36: $(CONTAINER)/test36
 python39: $(CONTAINER)/test39
@@ -148,15 +151,15 @@ python310: $(CONTAINER)/test310
 python311: $(CONTAINER)/test311
 python312: $(CONTAINER)/test312
 
-$(CONTAINER)/testt27: ; ./docker_image.py FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc python2" TEST "python2 --version"
-$(CONTAINER)/testt36: ; ./docker_image.py FROM ubuntu:18.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
-$(CONTAINER)/test310: ; ./docker_image.py FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
-$(CONTAINER)/test312: ; ./docker_image.py FROM ubuntu:24.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
+$(CONTAINER)/testt27: ; $(DOCKER_IMAGE) FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc python2" TEST "python2 --version"
+$(CONTAINER)/testt36: ; $(DOCKER_IMAGE) FROM ubuntu:18.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
+$(CONTAINER)/test310: ; $(DOCKER_IMAGE) FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
+$(CONTAINER)/test312: ; $(DOCKER_IMAGE) FROM ubuntu:24.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
 
-$(CONTAINER)/test27:  ; ./docker_image.py FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python2" TEST "python3.9 --version" TEST "python2 --version"
-$(CONTAINER)/test36:  ; ./docker_image.py FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python3" TEST "python3.9 --version" TEST "python3 --version"
-$(CONTAINER)/test39:  ; ./docker_image.py FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python39" SYMLINK /usr/bin/python3.9:python3 TEST "python3.9 --version" TEST "python3 --version" 
-$(CONTAINER)/test311: ; ./docker_image.py FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 $(EXTRA)" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:python3.9 TEST "python3.9 --version" TEST "python3 --version"
+$(CONTAINER)/test27:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python2" TEST "$(PYTHON39) --version" TEST "python2 --version"
+$(CONTAINER)/test36:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 python3" TEST "$(PYTHON39) --version" TEST "python3 --version"
+$(CONTAINER)/test39:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python39" SYMLINK /usr/bin/python3.9:python3 TEST "$(PYTHON39) --version" TEST "python3 --version" 
+$(CONTAINER)/test311: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 $(EXTRA)" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:$(PYTHON39) TEST "$(PYTHON39) --version" TEST "python3 --version"
 $(CONTAINER)/test3111: ; $(MAKE) $(CONTAINER)/test311 EXTRA=python311-mypy
 
 mypython: $(CONTAINER)/test3111
