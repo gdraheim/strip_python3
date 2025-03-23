@@ -118,7 +118,7 @@ build:
 	$(PYTHON) -m build
 	$(MAKE) fix-metadata-version
 	$(TWINE) check dist/*
-	: $(TWINE) upload dist/*
+	: $(TWINE) upload dist/* --verbose
 
 tmp/README.MD: README.MD Makefile
 	@ test -d tmp || mkdir tmp
