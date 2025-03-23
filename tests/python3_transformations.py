@@ -7,7 +7,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "1.0.1107"
+__version__ = "1.0.1117"
 
 from typing import List, Union, Optional, Iterator, Iterable, NamedTuple
 import unittest
@@ -2552,7 +2552,8 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         logg.debug("%s: %s", F"{tmp}/test.py", lines4(open(F"{tmp}/test.py")))
         py = file_text4(F"{tmp}/test.py")
-        self.assertEqual(lines4(py), lines4(text4("""
+        a, b = "(outs, errs) =", "outs, errs =" # python3.9 vs python3.11 ast.unparser
+        self.assertEqual(lines4(py.replace(a, b)), lines4(text4("""
         import subprocess
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
             subprocess_run = subprocess.run
@@ -2598,7 +2599,8 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         logg.debug("%s: %s", F"{tmp}/test.py", lines4(open(F"{tmp}/test.py")))
         py = file_text4(F"{tmp}/test.py")
-        self.assertEqual(lines4(py), lines4(text4("""
+        a, b = "(outs, errs) =", "outs, errs =" # python3.9 vs python3.11 ast.unparser
+        self.assertEqual(lines4(py.replace(a, b)), lines4(text4("""
         import subprocess
         if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
             subprocess_run = subprocess.run
