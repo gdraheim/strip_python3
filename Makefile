@@ -23,7 +23,9 @@ help:
 	$(PYTHON) $F --help
 
 checks: test test27 test36 test39 test311
-check: test
+check39: ; $(MAKE) test PYTHON=python3.9
+check3: ; $(MAKE) test
+check: check3 check39
 	: " ready for $(MAKE) checks ? "
 
 test: ; $(PYTHON) $(TESTS) $V $@
@@ -113,6 +115,7 @@ build:
 	$(MAKE) tmp/README.MD
 	# $(PIP3) install --root=~/local . -v --no-compile
 	$(PYTHON) -m build
+	$(MAKE) fix-metadata-version
 	$(TWINE) check dist/*
 	: $(TWINE) upload dist/*
 
@@ -133,6 +136,15 @@ uns uninstall:
 show:
 	@ $(PIP3) show --files `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//' pyproject.toml` \
 	| sed -e "s:[^ ]*/[.][.]/\\([a-z][a-z]*\\)/:~/.local/\\1/:"
+
+
+fix-metadata-version:
+	ls dist/*
+	rm -rf dist.tmp; mkdir dist.tmp
+	cd dist.tmp; for z in ../dist/*; do case "$$z" in *.whl) unzip $$z ;; *) tar xzvf $$z;; esac \
+	; ( find . -name PKG-INFO ; find . -name METADATA ) | while read f; do echo FOUND $$f; sed -i -e "s/Metadata-Version: 2.4/Metadata-Version: 2.2/" $$f; done \
+	; case "$$z" in *.whl) zip -r $$z * ;; *) tar czvf $$z *;; esac ; ls -l $$z; done
+
 
 # .....................
 
@@ -156,7 +168,7 @@ $(CONTAINER)/testt36: ; $(DOCKER_IMAGE) FROM ubuntu:18.04 INTO $@ INSTALL "pytho
 $(CONTAINER)/test310: ; $(DOCKER_IMAGE) FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
 $(CONTAINER)/test312: ; $(DOCKER_IMAGE) FROM ubuntu:24.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
 
-$(CONTAINER)/test27:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.5 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python2" TEST "$(PYTHON39) --version" TEST "python2 --version"
+$(CONTAINER)/test27:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python2" TEST "$(PYTHON39) --version" TEST "python2 --version"
 $(CONTAINER)/test36:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 python3" TEST "$(PYTHON39) --version" TEST "python3 --version"
 $(CONTAINER)/test39:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python39" SYMLINK /usr/bin/python3.9:python3 TEST "$(PYTHON39) --version" TEST "python3 --version" 
 $(CONTAINER)/test311: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 $(EXTRA)" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:$(PYTHON39) TEST "$(PYTHON39) --version" TEST "python3 --version"
