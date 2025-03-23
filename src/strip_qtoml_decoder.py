@@ -1,4 +1,9 @@
-#!python3
+#! /usr/bin/env python3
+# https://github.com/alethiophile/qtoml/blob/master/qtoml/decoder.py
+
+__author__ = "Tom Hunt (alethiophile@github)"
+__license__ = "MIT License"
+__version__ = "0.3.1"
 
 import re, datetime
 
