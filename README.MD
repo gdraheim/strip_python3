@@ -298,9 +298,8 @@ If no `*.pyi` file is wanted then disable it with "--no-pyi" again.
   * for release:
      * make version (and run github actions)
      * make coverage (and update README.MD)
-     * make build (as a test before tagging)
+     * make build (and push to pyi)
      * git tag and git push --tags (for github)
-     * make build (and push to pypi)
 
 __I take patches!__
 
