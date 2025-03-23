@@ -668,7 +668,7 @@ if __name__ == "__main__":
         logg.info("xml results into %s", opt.xmlresults)
     if not logfile:
         if xmlresults:
-            import xmlrunner # type: ignore[import-error] # pylint: disable=import-error
+            import xmlrunner # type: ignore[import-error,import-untyped] # pylint: disable=import-error
             TestRunner = xmlrunner.XMLTestRunner
             testresult = TestRunner(xmlresults, verbosity=opt.verbose).run(suite)
         else:
@@ -677,7 +677,7 @@ if __name__ == "__main__":
     else:
         TestRunner = unittest.TextTestRunner
         if xmlresults:
-            import xmlrunner # type: ignore[import-error] # pylint: disable=import-error
+            import xmlrunner # type: ignore[import-error,import-untyped] # pylint: disable=import-error
             TestRunner = xmlrunner.XMLTestRunner
         testresult = TestRunner(logfile.stream, verbosity=opt.verbose).run(suite) # type: ignore
     if not testresult.wasSuccessful():

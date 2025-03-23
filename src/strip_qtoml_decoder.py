@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 # https://github.com/alethiophile/qtoml/blob/master/qtoml/decoder.py
+# mypy: ignore-errors
 
 __author__ = "Tom Hunt (alethiophile@github)"
 __license__ = "MIT License"

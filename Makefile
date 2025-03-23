@@ -11,6 +11,7 @@ PYTHON3 = python3
 PYTHON = python3.11
 PYTHON_VERSION = 3.11
 TWINE = twine-3.11
+QTOML_PY = src/strip_qtoml_decoder.py
 AST4_PY = src/strip_ast_comments.py
 TESTS_PY = tests/python3_transformations.py
 TESTS = $(TESTS_PY) --python=$(PYTHON)
@@ -184,7 +185,7 @@ stop:
 # .....................
 
 MYPY = mypy-3.11
-MYPY_EXCLUDES = --exclude /$(notdir $(AST4_PY))
+MYPY_EXCLUDES = --exclude /$(notdir $(AST4_PY)) --exclude /$(notdir $(QTOML_PY))
 MYPY_WITH = --strict --show-error-codes --show-error-context 
 MYPY_OPTIONS = --no-warn-unused-ignores --implicit-reexport --python-version $(PYTHON_VERSION)
 mypy:
