@@ -2263,7 +2263,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         import sys
-        if sys.version_info[0] < 3:
+        if sys.version_info < (3, 0):
             range = xrange
         
         def func1():
@@ -2289,7 +2289,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         import sys
-        if sys.version_info[0] >= 3:
+        if sys.version_info >= (3, 0):
             basestring = str
         
         def func1(x):
@@ -2315,7 +2315,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
         import sys
-        if sys.version_info[0] == 3 and sys.version_info[1] >= 0 and (sys.version_info[1] < 2):
+        if sys.version_info >= (3, 0) and sys.version_info < (3, 2):
         
             def callable(x):
                 return hasattr(x, '__call__')
@@ -2460,7 +2460,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         import datetime.datetime
-        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
+        if sys.version_info >= (3, 7):
 
             def datetime_fromisoformat(x):
                 return datetime.datetime.fromisoformat(x)
@@ -2506,7 +2506,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
         import datetime.datetime as Time
-        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 7):
+        if sys.version_info >= (3, 7):
 
             def Time_fromisoformat(x):
                 return Time.fromisoformat(x)
@@ -2555,7 +2555,7 @@ class StripTest(unittest.TestCase):
         a, b = "(outs, errs) =", "outs, errs =" # python3.9 vs python3.11 ast.unparser
         self.assertEqual(lines4(py.replace(a, b)), lines4(text4("""
         import subprocess
-        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
+        if sys.version_info >= (3, 5):
             subprocess_run = subprocess.run
         else:
         
@@ -2602,7 +2602,7 @@ class StripTest(unittest.TestCase):
         a, b = "(outs, errs) =", "outs, errs =" # python3.9 vs python3.11 ast.unparser
         self.assertEqual(lines4(py.replace(a, b)), lines4(text4("""
         import subprocess
-        if sys.version_info[0] > 3 or (sys.version_info[0] == 3 and sys.version_info[1] >= 5):
+        if sys.version_info >= (3, 5):
             subprocess_run = subprocess.run
         else:
         
@@ -2650,7 +2650,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 3):
+        if sys.version_info < (3, 3):
             import pathlib2 as pathlib
         else:
             import pathlib
@@ -2675,7 +2675,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 3):
+        if sys.version_info < (3, 3):
             import pathlib2 as fs
         else:
             import pathlib as fs
@@ -2700,7 +2700,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 11):
+        if sys.version_info < (3, 11):
             import toml as tomllib
         else:
             import tomllib
@@ -2725,7 +2725,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 11):
+        if sys.version_info < (3, 11):
             import toml as toml
         else:
             import tomllib as toml
@@ -2750,7 +2750,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 9):
+        if sys.version_info < (3, 9):
             from backports import zoneinfo
         else:
             import zoneinfo
@@ -2775,7 +2775,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
-        if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 9):
+        if sys.version_info < (3, 9):
             from backports import zoneinfo as tz
         else:
             import zoneinfo as tz

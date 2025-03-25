@@ -34,8 +34,8 @@ test_0%: ; $(PYTHON) $(TESTS) $V $@ --failfast
 st_0%: ; $(PYTHON) $(TESTS) $V te$@ --coverage
 
 EXECS= tests/exec_tests.py
-test__1%: ; $(PYTHON) $(EXECS) $V $@
-st__1%: ; $(PYTHON) $(EXECS) $V te$@ --coverage
+test_1%: ; $(PYTHON) $(EXECS) $V $@
+st_1%: ; $(PYTHON) $(EXECS) $V te$@ --coverage
 
 test27: ; $(MAKE) test_/27
 test36: ; $(MAKE) test_/36
