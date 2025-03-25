@@ -2111,6 +2111,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py = file_text4(F"{tmp}/tmp1_2.py")
         self.assertEqual(py, text4("""
         a = 1.0
@@ -2132,6 +2133,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py = file_text4(F"{tmp}/tmp1_2.py")
         self.assertEqual(py, text4("""
         a = 1.0
@@ -2153,6 +2155,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py = file_text4(F"{tmp}/tmp1_2.py")
         self.assertEqual(py, text4("""
         a = 1.0
@@ -2174,6 +2177,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py = file_text4(F"{tmp}/tmp1_2.py")
         self.assertEqual(py, text4("""
         a = 1.0
@@ -2195,6 +2199,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
         py = file_text4(F"{tmp}/tmp.py")
         self.assertEqual(py, text4("""
         a = 1.0
@@ -2216,6 +2221,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
         py = file_text4(F"{tmp}/tmp.py")
         self.assertEqual(py, text4("""
         a = 1.0
@@ -2237,6 +2243,7 @@ class StripTest(unittest.TestCase):
         logg.debug("err=%s\nout=%s", run.err, run.out)
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
         py = file_text4(F"{tmp}/tmp.py")
         self.assertEqual(py, text4("""
         a = 1.0
