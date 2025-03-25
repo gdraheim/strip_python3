@@ -2112,12 +2112,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py = file_text4(F"{tmp}/tmp1_2.py")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = '{:.2} {}'.format(a, b)
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
     def test_0202(self) -> None:
@@ -2134,12 +2136,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py = file_text4(F"{tmp}/tmp1_2.py")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = '{:.2} {!s}'.format(a, b)
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
     def test_0203(self) -> None:
@@ -2156,12 +2160,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py = file_text4(F"{tmp}/tmp1_2.py")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = '{:.2}'.format(a)
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
     def test_0204(self) -> None:
@@ -2178,12 +2184,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
-        py = file_text4(F"{tmp}/tmp1_2.py")
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = '{}'.format(a)
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
     def test_0214(self) -> None:
@@ -2200,12 +2208,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
-        py = file_text4(F"{tmp}/tmp.py")
+        py, pyi = file_text4(F"{tmp}/tmp.py"), file_text4(F"{tmp}/tmp.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = 'a={!r}'.format(a)
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
     def test_0215(self) -> None:
@@ -2222,12 +2232,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
-        py = file_text4(F"{tmp}/tmp.py")
+        py, pyi = file_text4(F"{tmp}/tmp.py"), file_text4(F"{tmp}/tmp.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = 'za={!r}'.format(a)
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
     def test_0216(self) -> None:
@@ -2244,12 +2256,14 @@ class StripTest(unittest.TestCase):
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
-        py = file_text4(F"{tmp}/tmp.py")
+        py, pyi = file_text4(F"{tmp}/tmp.py"), file_text4(F"{tmp}/tmp.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
         self.assertEqual(py, text4("""
         a = 1.0
         b = 'x'
         y = f'za={a!r}'
         """))
+        self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
 
