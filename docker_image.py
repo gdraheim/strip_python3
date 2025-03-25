@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
-# pylint: disable=line-too-long,bare-except,dangerous-default-value
+# pylint: disable=line-too-long,too-many-locals,too-many-branches,too-many-statements,too-many-return-statements
+# pylint: disable=dangerous-default-value,no-else-return,consider-using-with
 """ build images using the local docker_mirror.py repo packages. """
 from typing import List, Union, Optional, Mapping
 from datetime import datetime as Time
@@ -12,7 +13,7 @@ logg = logging.getLogger("local" if __name__ == "___main__" else __name__)
 __copyright__ = "(C) 2025 Guido Draheim"
 __contact__ = "https://github.com/gdraheim/docker-mirror-packages-repo"
 __license__ = "CC0 Creative Commons Zero (Public Domain)"
-__version__ = "1.7.7107"
+__version__ = "1.7.7123"
 
 # generalized from the testsuite.py in the docker-systemctl-replacement project
 
@@ -33,17 +34,19 @@ BASEDEF=os.environ.get("DOCKER_IMAGE_BASE", os.environ.get("DOCKER_IMAGE_FROM", 
 DOCKERDEF = os.environ.get("DOCKER_EXE", os.environ.get("DOCKER_BIN", "docker"))
 PYTHONDEF = os.environ.get("DOCKER_PYTHON", os.environ.get("DOCKER_PYTHON3", "python3"))
 MIRRORDEF=os.environ.get("DOCKER_MIRROR_PY", os.environ.get("DOCKER_MIRROR", _mirror))
-INTO = [] if not INTODEF else [INTODEF]
+INTO = INTODEF
 BASE = BASEDEF
 PYTHON = PYTHONDEF
 MIRROR = MIRRORDEF
 DOCKER = DOCKERDEF
 DOCKERFILE = FILEDEF
-ADDHOST=[]
+ADDHOST: List[str] = []
 ADDEPEL=0
 UPDATES=0
 UNIVERSE=0
 LOCAL=0
+BUILDENVS = [env.strip() for env in os.environ.get("DOCKER_IMAGE_BUILD_ENVS", NIX).split(" ") if env.strip()]
+BUILDARGS = [env.strip() for env in os.environ.get("DOCKER_IMAGE_BUILD_ARGS", NIX).split(" ") if env.strip()]
 
 if sys.version_info >= (3,10):
     from typing import TypeAlias
@@ -59,7 +62,7 @@ def decodes(text: Union[str, bytes, None]) -> str:
             encoded = "utf-8"
         try:
             return text.decode(encoded)
-        except:
+        except UnicodeDecodeError:
             return text.decode("latin-1")
     return text
 def sh____(cmd: Union[str, List[str]], shell: bool = True) -> int:
@@ -91,17 +94,21 @@ def q_str(part: Union[str, int, None]) -> str:
         return str(part)
     return "'%s'" % part  # pylint: disable=consider-using-f-string
 
-def package_tool(distro: str = NIX):
+def package_tool(distro: str = NIX) -> str:
     if "centos" in distro or "almalinux" in distro or "rhel" in distro:
-        return "yum --setopt=repo_gpgcheck=false"
+        return "yum --setopt=repo_gpgcheck=false --setopt=sslverify=false"
     if "opensuse" in distro:
         return "zypper --no-gpg-checks --no-refresh"
     return "apt-get -o Acquire::AllowInsecureRepositories=true"
-def package_refresh(distro: str = NIX):
+def package_refresh(distro: str = NIX) -> str:
+    if "centos" in distro or "almalinux" in distro or "rhel" in distro:
+        return "yum --setopt=repo_gpgcheck=false --setopt=sslverify=false check-update"
     if "opensuse" in distro:
         return "zypper --no-gpg-checks refresh"
     return "apt-get -o Acquire::AllowInsecureRepositories=true update"
-def package_search(distro: str = NIX):
+def package_search(distro: str = NIX) -> str:
+    if "centos" in distro or "almalinux" in distro or "rhel" in distro:
+        return "yum --setopt=repo_gpgcheck=false --setopt=sslverify=false search"
     if "opensuse" in distro:
         return "zypper --no-refresh search"
     return "apt-cache search"
@@ -110,7 +117,7 @@ def docker_local_build(cmdlist: List[str] = [], cyclic: Optional[List[str]] = No
     """" cmd2 should be given as pairs (cmd,arg) but some items are recognized by their format directly"""
     needsargument = ["FROM","from", "INTO", "into", "TAG", "tag", "COPY", "copy", "SAVE", "save",
                 "SEARCH", "search", "INSTALL", "install","USER", "user","RUN", "run", "TEST", "test", 
-                "SYMLINK", "symlink"]
+                "SYMLINK", "symlink", "ENV", "env"]
     cyclic = cyclic if cyclic is not None else []
     mirror = MIRROR
     mirroroptions = []
@@ -136,6 +143,7 @@ def docker_local_build(cmdlist: List[str] = [], cyclic: Optional[List[str]] = No
     refresh = NIX
     distro = NIX
     package = NIX
+    envs = BUILDENVS.copy() + BUILDARGS.copy()
     logg.info("-- %s", cmdlist)
     for nextarg in cmdlist:
         if waitcmd:
@@ -224,6 +232,11 @@ def docker_local_build(cmdlist: List[str] = [], cyclic: Optional[List[str]] = No
             sh____(F"{docker} rm -f {into}")
             sh____(F"{docker} run -d --name={into} --rm=true {addhosts} {building} sleep {timeout}")
             continue
+        if cmd in ["ENV", "env"]:
+            if not arg:
+                logg.warning("no env value given")
+                continue
+            envs.append(arg)
         if cmd in  ["EXE", "exe"]:
             if not arg:
                 logg.warning("no exe value given")
@@ -275,22 +288,6 @@ def docker_local_build(cmdlist: List[str] = [], cyclic: Optional[List[str]] = No
             else:
                 sx____(F"{docker} exec {into} {package} install -y {pack}")
             continue
-        if cmd in  ["MAKE", "MAKE"]:
-            if arg.startswith(":"):
-                dst = arg[1:]
-            else:
-                dst = arg
-            if not dst:
-                logg.warning("no make dst given")
-                continue
-            if dst.endswith("/"):
-                sx____(F"{docker} exec {into} mkdir -p {dst}")
-            else:
-                if "/" in dst:
-                    dstdir = os.path.dirname(dst)
-                    sx____(F"{docker} exec {into} mkdir -p {dstdir}")
-                sx____(F"{docker} exec {into} touch {dst}")
-            continue
         if cmd in  ["COPY", "copy"]:
             logg.info("--copy %s", arg)
             if ":" in arg:
@@ -319,26 +316,47 @@ def docker_local_build(cmdlist: List[str] = [], cyclic: Optional[List[str]] = No
                 src, dst = arg.split(":", 1)
             else:
                 src, dst = arg, "/tmp"
+            _exec = "exec" if not envs else "exec" + "".join([F" -e '{env}'" for env in envs])
             if "/" not in dst and "/" in src:
                 srcdir=os.path.dirname(src)
                 srcname=os.path.basename(src)
-                sx____(F"{docker} exec {into} ln -s {srcname} {srcdir}/{dst}")
+                sx____(F"{docker} {_exec} {into} ln -s {srcname} {srcdir}/{dst}")
             else:
-                sx____(F"{docker} exec {into} ln -s {src} {dst}")
+                sx____(F"{docker} {_exec} {into} ln -s {src} {dst}")
             continue
-        if cmd in  ["TEST", "test"]:
-            logg.info("--test %s", arg)
+        if cmd in  ["MAKE", "MAKE"]:
             if arg.startswith(":"):
                 dst = arg[1:]
-                sh____(F"{docker} exec {into} wc -l {dst}")
             else:
                 dst = arg
-                sh____(F"{docker} exec {into} {dst}")
+            if not dst:
+                logg.warning("no make dst given")
+                continue
+            if dst.endswith("/"):
+                sx____(F"{docker} exec {into} mkdir -p {dst}")
+            else:
+                if "/" in dst:
+                    dstdir = os.path.dirname(dst)
+                    sx____(F"{docker} exec {into} mkdir -p {dstdir}")
+                sx____(F"{docker} exec {into} touch {dst}")
+            continue
+        if cmd in  ["TEST", "test"]:
+            _exec = "exec" if not envs else "exec" + "".join([F" -e '{env}'" for env in envs])
+            if arg.startswith(":"):
+                dst = arg[1:]
+                sh____(F"{docker} {_exec} {into} wc -l {dst}")
+            else:
+                dst = arg
+                sh____(F"{docker} {_exec} {into} {dst}")
             continue
         if cmd in  ["RUN", "run"]:
             logg.info("- RUN %s", arg)
             dst = arg.replace("'", "\\'")
-            sh____(F"{docker} exec {into} bash -c '{dst}'")
+            _exec = "exec" if not envs else "exec" + "".join([F" -e '{env}'" for env in envs])
+            if runuser:
+                sh____(F"{docker} {_exec} --user {runuser} {into} bash -c '{dst}'")
+            else:
+                sh____(F"{docker} {_exec} {into} bash -c '{dst}'")
             continue
         if cmd in ["COMMIT", "commit"]:
             logg.info("--commit")
@@ -373,6 +391,7 @@ if __name__ == "__main__":
     cmdline.add_option("->", "--mirror", metavar="PY", default=MIRROR, help="different path to [%default]")
     cmdline.add_option("-D", "--docker", metavar="EXE", default=DOCKER, help="use another docker container tool [%default]")
     cmdline.add_option("-P", "--python", metavar="EXE", default=PYTHON, help="use another python execution engine [%default]")
+    cmdline.add_option("--build-arg", action="append", default=BUILDARGS, help="adding RUN build args [%default]")
     cmdline.add_option("--epel", action="store_true", default=ADDEPEL, help="addhosts for epel as well [%default]")
     cmdline.add_option("--updates", "--update", action="store_true", default=UPDATES, help="addhosts using updates variant [%default]")
     cmdline.add_option("--universe", action="store_true", default=UNIVERSE, help="addhosts using universe variant [%default]")
@@ -380,13 +399,14 @@ if __name__ == "__main__":
     cmdline.add_option("-l", "--local", "--localmirrors", action="count", default=0, help="fail if local mirror not found [%default]")
     cmdline.add_option("-C", "--chdir", metavar="PATH", default="", help="change directory before building [%default]")
     cmdline.add_option("-b", "--base", "--from", metavar="N", default=BASE, help="FROM %default (or CENTOS)")
-    cmdline.add_option("-t", "--into", "--tag", metavar="N", action="append", default=INTO, help="INTO %default tags")
+    cmdline.add_option("-t", "--into", "--tag", metavar="N", default=INTO, help="INTO %default tag")
     cmdline.add_option("-f", "--file", metavar="M", default=DOCKERFILE, help="set [%default] name for BUILD")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = logging.WARNING - opt.verbose * 10 + opt.quiet * 10)
     DOCKER=opt.docker
     PYTHON=opt.python
     MIRROR=opt.mirror
+    BUILDARGS=opt.build_arg
     BASE=opt.base
     INTO=opt.into
     CHDIR=opt.chdir
@@ -397,4 +417,3 @@ if __name__ == "__main__":
     UNIVERSE = opt.universe  # ubuntu universe repo
     LOCAL = opt.local
     sys.exit(docker_local_build(cmdline_args))
-

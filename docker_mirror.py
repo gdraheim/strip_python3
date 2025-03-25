@@ -1,11 +1,13 @@
 #! /usr/bin/python3
-# pylint: disable=possibly-unused-variable,unused-variable,line-too-long
+# pylint: disable=possibly-unused-variable,unused-variable,line-too-long,too-many-lines
+# pylint: disable=too-many-branches,too-many-locals,too-many-public-methods,too-few-public-methods,too-many-return-statements
+# pylint: disable=no-else-return,consider-using-with,consider-using-max-builtin,consider-using-get,consider-using-generator
 from __future__ import print_function
 
 __copyright__ = "(C) 2025 Guido Draheim"
 __contact__ = "https://github.com/gdraheim/docker-mirror-packages-repo"
 __license__ = "CC0 Creative Commons Zero (Public Domain)"
-__version__ = "1.7.7107"
+__version__ = "1.7.7123"
 
 from collections import OrderedDict
 import os.path
@@ -20,7 +22,7 @@ import socket
 import time
 import configparser
 
-if sys.version[0] == '2': # pragma: nocover
+if sys.version_info < (3,0): # pragma: nocover
     range = xrange # pylint: disable=redefined-builtin, used-before-assignment, undefined-variable
     stringtypes = basestring # pylint: disable=undefined-variable
 else:
@@ -78,6 +80,8 @@ ALMA["9.3-20231124"] = "9.3"
 ALMA["9.3-20240410"] = "9.3"
 ALMA["9.4-20240506"] = "9.4"
 ALMA["9.4-20240530"] = "9.4"
+ALMA["9.5-20241118"] = "9.5"
+ALMA["9.5-20250307"] = "9.5"
 
 DIST = {}
 DIST["12.04"] = "precise"  # Precise Pangolin
@@ -100,6 +104,20 @@ DIST["22.10"] = "kinetic"  # Kinetic Kudu
 DIST["23.04"] = "lunatic"  # Lunatic Lobster
 DIST["23.10"] = "mantic"   # Mantic Minotaur
 DIST["24.04"] = "noble"    # Noble Numbat       (April 2029)
+DIST["24.10"] = "oracular" # Oracular Oriole
+DIST["25.04"] = "plucky"   # Plucky Puffin
+DIST["25.10"] = "qbeta"    # Beta Q             (April 2031)
+
+DEBIANDIST = {}
+DEBIANDIST["6"] = "squeeze"
+DEBIANDIST["7"] = "wheezy"
+DEBIANDIST["8"] = "jessie"
+DEBIANDIST["9"] = "stretch"
+DEBIANDIST["10"] = "buster"
+DEBIANDIST["11"] = "bullseye"
+DEBIANDIST["12"] = "bookworm"
+DEBIANDIST["13"] = "trixie"
+DEBIANDIST["13"] = "forky"
 
 OPENSUSE = {}
 OPENSUSE["13.2"] = "opensuse"  # no docker image
@@ -287,6 +305,8 @@ class DockerMirrorPackagesRepo:
             return self.get_opensuse_latest(image)
         if image.startswith("ubuntu:"):
             return self.get_ubuntu_latest(image)
+        if image.startswith("debian:"):
+            return self.get_ubuntu_latest(image)
         return ""
     def get_docker_latest_version(self, image):
         """ converts a shorthand version into the version string used on an image name. """
@@ -307,6 +327,9 @@ class DockerMirrorPackagesRepo:
         if image.startswith("ubuntu:"):
             version = image[len("ubuntu:"):]
             return self.get_ubuntu_latest_version(version)
+        if image.startswith("debian:"):
+            version = image[len("debian:"):]
+            return self.get_debian_latest_version(version)
         return ""
     def get_docker_mirror(self, image):
         """ attach local centos-repo / opensuse-repo to docker-start enviroment.
@@ -325,6 +348,8 @@ class DockerMirrorPackagesRepo:
             return self.get_opensuse_docker_mirror(image)
         if image.startswith("ubuntu:"):
             return self.get_ubuntu_docker_mirror(image)
+        if image.startswith("debian:"):
+            return self.get_debian_docker_mirror(image)
         return None
     def get_docker_mirrors(self, image):
         """ attach local centos-repo / opensuse-repo to docker-start enviroment.
@@ -353,6 +378,8 @@ class DockerMirrorPackagesRepo:
             mirrors = self.get_opensuse_docker_mirrors(image)
         if image.startswith("ubuntu:"):
             mirrors = self.get_ubuntu_docker_mirrors(image)
+        if image.startswith("debian:"):
+            mirrors = self.get_debian_docker_mirrors(image)
         if ":" in image:
             if image in config.sections():
                 cname1 = config[image].get("cname", "")
@@ -420,6 +447,39 @@ class DockerMirrorPackagesRepo:
         return self.docker_mirror(rmi, rep, ver, "archive.ubuntu.com", "security.ubuntu.com")
     def get_ubuntu_docker_mirrors(self, image):
         main = self.get_ubuntu_docker_mirror(image)
+        return [main]
+    def get_debian_latest_version(self, version):
+        """ allows to use 'debian:10' or 'debian:buster' """
+        ver = version
+        if ver in ["latest"]:
+            ver = ""
+        if "." not in ver:
+            latest = ""
+            for release in sorted(DEBIANDIST):
+                codename = DEBIANDIST[release]
+                if len(ver) >= 3 and ver.startswith(codename):
+                    logg.debug("release (%s) %s", release, codename)
+                    if latest < release:
+                        latest = release
+                elif release.startswith(ver):
+                    logg.debug("release %s (%s)", release, codename)
+                    if latest < release:
+                        latest = release
+            if latest:
+                ver = latest
+        return ver or version
+    def get_debian_docker_mirror(self, image):
+        """ detects a local debian mirror or starts a local
+            docker container with a debian repo mirror. It
+            will return the extra_hosts setting to start
+            other docker containers"""
+        rmi = IMAGESREPO
+        rep = "debian-repo"
+        if UPDATES: rep = "debian-repo/updates"
+        ver = self.get_debian_latest_version(onlyversion(image))
+        return self.docker_mirror(rmi, rep, ver, "deb.debian.org")
+    def get_debian_docker_mirrors(self, image):
+        main = self.get_debian_docker_mirror(image)
         return [main]
     def get_centos_latest(self, image, default=None):
         if image.startswith("centos:"):
@@ -582,13 +642,13 @@ class DockerMirrorPackagesRepo:
         epelimages = self.get_epel_docker_mirror_images(rep)
         diskrepos = self.get_epel_docker_mirror_disks(rep, "mirrors.fedoraproject.org")
         epelrepos = epelimages + list(diskrepos.keys())
-        logg.debug("select %s from images %s", released, epelrepos)
-        for image in epelrepos:
-            tagline = re.sub(".*:", "", image)
+        logg.debug("[%s] select %s from images %s", rep, released, epelrepos)
+        for epelrepo in epelrepos:
+            tagline = re.sub(".*:", "", epelrepo)
             tagname = re.sub(" .*", "", tagline)
             created = tagname.split(".")[-1]
             accepts = tagname.startswith(major(version))
-            logg.debug(": %s (%s) (%s) %s:%s", image, created, released, major(version), accepts and "x" or "ignore")
+            logg.debug(": %s (%s) (%s) %s:%s", epelrepo, created, released, major(version), accepts and "x" or "ignore")
             if created >= released and accepts:
                 if not later or later > tagname:
                     later = tagname
@@ -631,7 +691,7 @@ class DockerMirrorPackagesRepo:
         for sec in config.sections():
             if sec.startswith(rep+":"):
                 cname = sec.replace(":","-")
-                mirror = DockerMirror(cname, config[sec]["image"], hosts, config[sec]["mount"])
+                mirror = DockerMirror(cname, config[sec]["image"], list(hosts), config[sec]["mount"])
                 logg.info("found epel disk %s", mirror)
                 found[sec] = mirror
         return found
@@ -818,13 +878,16 @@ class DockerMirrorPackagesRepo:
     def starts(self, image=None):
         if not NODETECT:
             image = self.detect(image)
+        if not image:
+            logg.error("no image provided")
+            sys.exit(os.EX_USAGE)
         logg.debug("starts image = %s", image)
         mirrors = self.start_containers(image)
         if LOCAL:
             notfound = [mirror for mirror, addr in mirrors.items() if addr is None]
             if notfound:
                 logg.error("   no docker mirror image for %s", (" ".join(notfound)))
-                sys.exit(1)
+                sys.exit(os.EX_OSFILE)
         self.wait_mirrors(mirrors)
         if ADDHOSTS:
             return " ".join(self.add_hosts(image, mirrors))
@@ -833,6 +896,9 @@ class DockerMirrorPackagesRepo:
     def stops(self, image=None):
         if not NODETECT:
             image = self.detect(image)
+        if not image:
+            logg.error("no image provided")
+            sys.exit(os.EX_USAGE)
         mirrors = self.stop_containers(image)
         if ADDHOSTS:
             names = sorted(mirrors.keys())
@@ -996,4 +1062,4 @@ if __name__ == "__main__":
         print(repo_scripts())
     else:
         print("unknown command", opt.command)
-        sys.exit(1)
+        sys.exit(os.EX_UNAVAILABLE)
