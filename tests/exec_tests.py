@@ -589,6 +589,55 @@ class StripPythonExecTest(unittest.TestCase):
         self.assertTrue(greps(x1.out + x1.err, "No module named backports", "No module named 'backports'", "Europe/Berlin"))
         self.rm_testdir()
         self.end()
+    def test_1451(self) -> None:
+        """ check we have a fallback for time.monotonic"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import time, sys
+        def func1() -> int:
+            started = time.monotonic()
+            time.sleep(0.8)
+            stopped = time.monotonic()
+            return stopped-started
+        print(func1())
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "def time_monotonic"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out, "0.80", "0.81"))
+        self.rm_testdir()
+        self.end()
+    def test_1452(self) -> None:
+        """ check we have a fallback for time.monotonic_ns"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import time, sys
+        def func1() -> int:
+            started = time.monotonic_ns()
+            time.sleep(0.8)
+            stopped = time.monotonic_ns()
+            return stopped-started
+        print("X", func1())
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "def time_monotonic_ns"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out, "X 80", "X 81"))
+        self.rm_testdir()
+        self.end()
+
 
 if __name__ == "__main__":
     from optparse import OptionParser  # pylint: disable=deprecated-module
