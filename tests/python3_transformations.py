@@ -1164,6 +1164,84 @@ class StripTest(unittest.TestCase):
                 pass"""))
         self.coverage()
         self.rm_testdir()
+    def test_0152(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import Dict
+        a: int 
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
+               y[self.c] = self.b
+               return y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+        
+            def __add__(self, y):
+                y[self.c] = self.b
+                return y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import Dict
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_0153(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        a: int 
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: dict[str, int]) -> dict[str, int]:
+               y[self.c] = self.b
+               return y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(py, text4("""
+        class B:
+        
+            def __add__(self, y):
+                y[self.c] = self.b
+                return y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import Dict
+        a: int
+        
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
+
     def test_0161(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
@@ -1461,6 +1539,40 @@ class StripTest(unittest.TestCase):
         from pydantic import Field
         a: int 
         def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> list[str]:
+            x = int(b)
+            return [self.c] + y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
+        self.assertEqual(py, text4("""
+        from pydantic import Field
+        
+        def adds(self, y, a=0, b=0):
+            x = int(b)
+            return [self.c] + y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List, Optional
+        a: int
+        
+        def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
+            pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_0176(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import Annotated
+        from pydantic import Field
+        a: int 
+        def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> list[str]:
             x = int(b)
             return [self.c] + y
         """)
@@ -2812,6 +2924,182 @@ class StripTest(unittest.TestCase):
 
         def func1():
             return tz.available_timezones()
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0451(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import time
+        def func1() -> int:
+            started = time.monotonic()
+            time.sleep(0.8)
+            stopped = time.monotonic()
+            return stopped-started
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        import time
+        if sys.version_info >= (3, 3):
+            time_monotonic = time.monotonic
+        else:
+        
+            def time_monotonic():
+                return time.time()
+
+        def func1():
+            started = time_monotonic()
+            time.sleep(0.8)
+            stopped = time_monotonic()
+            return stopped - started
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0452(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import time
+        def func1() -> int:
+            started = time.monotonic_ns()
+            time.sleep(0.8)
+            stopped = time.monotonic_ns()
+            return stopped-started
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        import time
+        if sys.version_info >= (3, 7):
+            time_monotonic_ns = time.monotonic_ns
+        else:
+        
+            def time_monotonic_ns():
+                return int(time.time() * 1000000000)
+
+        def func1():
+            started = time_monotonic_ns()
+            time.sleep(0.8)
+            stopped = time_monotonic_ns()
+            return stopped - started
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0453(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import time as tm
+        def func1() -> int:
+            started = tm.monotonic()
+            tm.sleep(0.8)
+            stopped = tm.monotonic()
+            return stopped-started
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        import time as tm
+        if sys.version_info >= (3, 3):
+            tm_monotonic = tm.monotonic
+        else:
+        
+            def tm_monotonic():
+                return time.time()
+
+        def func1():
+            started = tm_monotonic()
+            tm.sleep(0.8)
+            stopped = tm_monotonic()
+            return stopped - started
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_0454(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        import time as tm
+        def func1() -> int:
+            started = tm.monotonic_ns()
+            tm.sleep(0.8)
+            stopped = tm.monotonic_ns()
+            return stopped-started
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        import time as tm
+        if sys.version_info >= (3, 7):
+            tm_monotonic_ns = tm.monotonic_ns
+        else:
+        
+            def tm_monotonic_ns():
+                return int(time.time() * 1000000000)
+
+        def func1():
+            started = tm_monotonic_ns()
+            tm.sleep(0.8)
+            stopped = tm_monotonic_ns()
+            return stopped - started
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    @unittest.expectedFailure
+    def test_0455(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        from time import monotonic_ns, sleep
+        def func1() -> int:
+            started = monotonic_ns()
+            sleep(0.8)
+            stopped = monotonic_ns()
+            return stopped-started
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        from time import sleep
+        if sys.version_info >= (3, 7):
+            from time import monotonic_ns
+        else:
+            from time import time as _time_time
+            def monotonic_ns():
+                return int(_time_time() * 1000000000)
+
+        def func1():
+            started = monotonic_ns()
+            sleep(0.8)
+            stopped = monotonic_ns()
+            return stopped - started
         """)))
         self.coverage()
         self.rm_testdir()
