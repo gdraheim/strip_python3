@@ -1456,7 +1456,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 time_module = calls.imported["time"]
                 defname = time_module + "_monotonic_ns"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
-                   orelse=F"def {defname}(): return int(time.time() * 1000000000)")
+                   orelse=F"def {defname}(): return int((time.time() - 946684800) * 1000000000)")
                 monotonicfunc = DetectFunctionCalls({"time.monotonic_ns": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
             if "pathlib" in calls.imported and want.import_pathlib2:

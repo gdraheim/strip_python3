@@ -2987,7 +2987,7 @@ class StripTest(unittest.TestCase):
         else:
         
             def time_monotonic_ns():
-                return int(time.time() * 1000000000)
+                return int((time.time() - 946684800) * 1000000000)
 
         def func1():
             started = time_monotonic_ns()
@@ -3057,7 +3057,7 @@ class StripTest(unittest.TestCase):
         else:
         
             def tm_monotonic_ns():
-                return int(time.time() * 1000000000)
+                return int((time.time() - 946684800) * 1000000000)
 
         def func1():
             started = tm_monotonic_ns()
@@ -3093,7 +3093,7 @@ class StripTest(unittest.TestCase):
         else:
             from time import time as _time_time
             def monotonic_ns():
-                return int(_time_time() * 1000000000)
+                return int((_time_time() - 946684800) * 1000000000)
 
         def func1():
             started = monotonic_ns()
