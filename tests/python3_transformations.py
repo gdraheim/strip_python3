@@ -7,7 +7,7 @@
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "1.0.1117"
+__version__ = "1.0.1121"
 
 from typing import List, Union, Optional, Iterator, Iterable, NamedTuple
 import unittest
