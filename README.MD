@@ -1,7 +1,7 @@
 [![Type Check](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/typecheck.yml)
 [![Lint Check](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/lintcheck.yml)
 [![Unit Tests](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml/badge.svg?event=push&branch=main)](https://github.com/gdraheim/strip_python3/actions/workflows/unittests.yml)
-[![Code Coverage](https://img.shields.io/badge/95%20test-92%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
+[![Code Coverage](https://img.shields.io/badge/98%20test-92%25%20coverage-brightgreen)](https://github.com/gdraheim/strip_python3/blob/main/strip_python3.tests.py)
 [![PyPI version](https://badge.fury.io/py/strip_python3.svg)](https://pypi.org/project/strip-python3/)
 
 
