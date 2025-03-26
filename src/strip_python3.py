@@ -830,7 +830,7 @@ class RequireImportFrom:
                     body.append(stmt)
                     done = True
         if not done:
-            logg.fatal("did not append importfrom %s", newimport)
+            logg.error("did not append importfrom %s", newimport)
         else:
             module.body = body
         return module
@@ -898,7 +898,7 @@ class RequireImport:
                     body.append(stmt)
                     done = True
         if not done:
-            logg.fatal("did not add imports %s %s", simple, dotted)
+            logg.error("did not add imports %s %s", simple, dotted)
         else:
             module.body = body
         return module
@@ -1846,7 +1846,6 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 zoneinfodrop = DetectFunctionCalls(noimport=["zoneinfo"])
                 tree = zoneinfodef.visit(zoneinfodrop.visit(tree))
                 importrequires.append(zoneinfodef.requires)
-                logg.fatal("zoneinfodef.requires %s", zoneinfodef.requires)
         if want.import_toml:
             if "tomllib" in calls.imported:
                 logg.log(HINT, "detected tomllib")
