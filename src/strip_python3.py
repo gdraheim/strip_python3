@@ -400,11 +400,10 @@ def text4(content: str) -> str:
         assert x is not None
         indent = x.group(1)
         for line in content[1:].split("\n"):
-            if line.startswith(indent):
-                if not line.strip():
-                    line = ""
-                else:
-                    line = line[len(indent):]
+            if not line.strip():
+                line = ""
+            elif line.startswith(indent):
+                line = line[len(indent):]
             text += line + "\n"
         if text.endswith("\n\n"):
             return text[:-1]
