@@ -1669,8 +1669,8 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if relative:
                 requires.add("__future__.absolute_import")
         tree = requires.visit(tree)
-        if OK:
-            if "datetime.datetime.fromisoformat" in calls.found and want.datetime_fromisoformat:
+        if want.datetime_fromisoformat:
+            if "datetime.datetime.fromisoformat" in calls.found:
                 datetime_module = calls.imported["datetime.datetime"]
                 fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
                 isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=text4(F"""
@@ -1690,7 +1690,8 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 """))
                 isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
-            if "subprocess.run" in calls.found and want.subprocess_run:
+        if want.subprocess_run:
+            if "subprocess.run" in calls.found:
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
                 # there is a timeout value available since Python 3.3
@@ -1737,28 +1738,31 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 subprocessrundef = subprocessrundef33 if minversion >= (3,3) else subprocessrundef27
                 subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
-            if "time.monotonic" in calls.found and want.time_monotonic:
+        if want.time_monotonic:
+            if "time.monotonic" in calls.found:
                 time_module = calls.imported["time"]
                 defname = time_module + "_monotonic"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic"], atleast=(3,3), # ..
                    orelse=F"def {defname}(): return time.time()")
                 monotonicfunc = DetectFunctionCalls({"time.monotonic": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
-            if "time.monotonic_ns" in calls.found and want.time_monotonic:
+            if "time.monotonic_ns" in calls.found:
                 time_module = calls.imported["time"]
                 defname = time_module + "_monotonic_ns"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
                    orelse=F"def {defname}(): return int((time.time() - 946684800) * 1000000000)")
                 monotonicfunc = DetectFunctionCalls({"time.monotonic_ns": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
-            if "pathlib" in calls.imported and want.import_pathlib2:
+        if want.import_pathlib2:
+            if "pathlib" in calls.imported:
                 logg.log(HINT, "detected pathlib")
                 pathlibname = calls.imported["pathlib"]
                 pathlibdef = DefineIfPython2([F"import pathlib2 as {pathlibname}"], before=(3,3), # ..
                    orelse=text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}"""))
                 pathlibdrop = DetectFunctionCalls(noimport=["pathlib"])
                 tree = pathlibdef.visit(pathlibdrop.visit(tree))
-            if "zoneinfo" in calls.imported and want.import_backports_zoneinfo:
+        if want.import_backports_zoneinfo:
+            if "zoneinfo" in calls.imported:
                 logg.log(HINT, "detected zoneinfo")
                 zoneinfoname = calls.imported["zoneinfo"]
                 as_zoneinfo = F"as {zoneinfoname}" if zoneinfoname != "zoneinfo" else ""
@@ -1766,7 +1770,8 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import zoneinfo") if zoneinfoname == "zoneinfo" else text4(F"""import zoneinfo as {zoneinfoname}"""))
                 zoneinfodrop = DetectFunctionCalls(noimport=["zoneinfo"])
                 tree = zoneinfodef.visit(zoneinfodrop.visit(tree))
-            if "tomllib" in calls.imported and want.import_toml:
+        if want.import_toml:
+            if "tomllib" in calls.imported:
                 logg.log(HINT, "detected tomllib")
                 tomllibname = calls.imported["tomllib"]
                 tomllibdef = DefineIfPython2([F"import toml as {tomllibname}"], before=(3,11), # ..
