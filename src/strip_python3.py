@@ -1730,7 +1730,6 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
         importrequires = RequireImport()
-        futurerequires = RequireImportFrom()
         calls = DetectFunctionCalls()
         calls.visit(tree)
         if want.show_dump:
@@ -1740,17 +1739,6 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if "callable" in calls.found:
                 defs1 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
                 tree = defs1.visit(tree)
-            if "print" in calls.found and want.define_print_function:
-                futurerequires.add("__future__.print_function")
-        if want.define_float_division:
-            if calls.divs:
-                futurerequires.add("__future__.division")
-        if want.define_absolute_import:
-            imps = DetectImports()
-            imps.visit(tree)
-            relative = [imp for imp in imps.importfrom if imp.startswith(".")]
-            if relative:
-                futurerequires.add("__future__.absolute_import")
         if want.datetime_fromisoformat:
             if "datetime.datetime.fromisoformat" in calls.found:
                 datetime_module = calls.imported["datetime.datetime"]
@@ -1885,6 +1873,20 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             tree = walrus.visit(tree)
             whwalrus = WhileWalrusTransformer()
             tree = whwalrus.visit(tree)
+        futurerequires = RequireImportFrom()
+        if want.define_print_function or want.define_float_division:
+            calls2 = DetectFunctionCalls()
+            calls2.visit(tree)
+            if "print" in calls.found and want.define_print_function:
+                futurerequires.add("__future__.print_function")
+            if calls.divs and want.define_float_division:
+                futurerequires.add("__future__.division")
+        if want.define_absolute_import:
+            imps = DetectImports()
+            imps.visit(tree)
+            relative = [imp for imp in imps.importfrom if imp.startswith(".")]
+            if relative:
+                futurerequires.add("__future__.absolute_import")
         tree = importrequires.visit(tree)
         tree = futurerequires.visit(tree)
         # the __future__ imports must be first, so we add them last (if any)
