@@ -741,34 +741,42 @@ class WhileWalrusTransformer(BlockTransformer):
             logg.log(DEBUG_TYPING, "whwalrus-if?: %s", ast.dump(node))
             return [node]
 
-
-class DetectImportFrom(ast.NodeTransformer):
+class DetectImports(ast.NodeTransformer):
     def __init__(self) -> None:
         ast.NodeTransformer.__init__(self)
-        self.found: Dict[str, Dict[str, str]] = {}
+        self.importfrom: Dict[str, Dict[str, str]] = {}
+        self.imported: Dict[str, str] = {}
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.ImportFrom = node
         if imports.module:
             modulename = ("." * imports.level) + imports.module
-            if modulename not in self.found:
-                self.found[modulename] = {}
+            if modulename not in self.importfrom:
+                self.importfrom[modulename] = {}
             for symbol in imports.names:
-                if symbol.name not in self.found[modulename]:
-                    self.found[modulename][symbol.name] = symbol.asname or symbol.name
+                if symbol.name not in self.importfrom[modulename]:
+                    self.importfrom[modulename][symbol.name] = symbol.asname or symbol.name
+                    origname = modulename + "." + symbol.name
+                    self.imported[origname] = symbol.asname or symbol.name
+        return self.generic_visit(node)
+    def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.Import = node
+        for symbol in imports.names:
+            origname = symbol.name
+            self.imported[origname] = symbol.asname or symbol.name
         return self.generic_visit(node)
 
 class RequireImportFrom:
     def __init__(self, require: List[str]) -> None:
         self.require = require
     def visit(self, node: ast.AST) -> ast.AST:
-        imports = DetectImportFrom()
+        imports = DetectImports()
         imports.visit(node)
         newimport: List[str] = []
         for require in self.require:
             if "." in require:
                 library, function = require.split(require, 1)
-                if library in imports.found:
-                    if function in imports.found[library]:
+                if library in imports.importfrom:
+                    if function in imports.importfrom[library]:
                         logg.debug("%s already imported", require)
                     else:
                         newimport.append(require)
@@ -776,37 +784,38 @@ class RequireImportFrom:
                     newimport.append(require)
         if not newimport:
             return node
-        if isinstance(node, ast.Module):
-            module: ast.Module = node
-            body: List[ast.stmt] = []
-            done = False
-            if not imports.found:
-                for stmt in module.body:
-                    if isinstance(stmt, (ast.Comment, ast.Constant)):
-                        body.append(stmt)
-                    elif done:
-                        body.append(stmt)
-                    else:
-                        for new in newimport:
-                            mod, func = new.split(".", 1)
-                            body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
-                        body.append(stmt)
-                        done = True
-            else:
-                for stmt in module.body:
-                    if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
-                        body.append(stmt)
-                    elif done:
-                        body.append(stmt)
-                    else:
-                        for new in newimport:
-                            mod, func = new.split(".", 1)
-                            body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
-                        body.append(stmt)
-                        done = True
-            module.body = body
-            return module
-        return node
+        if not isinstance(node, ast.Module):
+            logg.warning("no module for new imports %s", newimport)
+            return node
+        module = cast(ast.Module, node)  # type: ignore[redundant-cast]
+        body: List[ast.stmt] = []
+        done = False
+        if not imports.importfrom:
+            for stmt in module.body:
+                if isinstance(stmt, (ast.Comment, ast.Constant)):
+                    body.append(stmt)
+                elif done:
+                    body.append(stmt)
+                else:
+                    for new in newimport:
+                        mod, func = new.split(".", 1)
+                        body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
+                    body.append(stmt)
+                    done = True
+        else:
+            for stmt in module.body:
+                if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
+                    body.append(stmt)
+                elif done:
+                    body.append(stmt)
+                else:
+                    for new in newimport:
+                        mod, func = new.split(".", 1)
+                        body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
+                    body.append(stmt)
+                    done = True
+        module.body = body
+        return module
 
 class ReplaceIsinstanceBaseType(ast.NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
@@ -1746,9 +1755,9 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 tomllibdrop = DetectFunctionCalls(noimport=["tomllib"])
                 tree = tomllibdef.visit(tomllibdrop.visit(tree))
         if want.define_absolute_import:
-            imps = DetectImportFrom()
+            imps = DetectImports()
             imps.visit(tree)
-            relative = [imp for imp in imps.found if imp.startswith(".")]
+            relative = [imp for imp in imps.importfrom if imp.startswith(".")]
             if relative:
                 defimps = RequireImportFrom(["__future__.absolute_import"])
                 tree = defimps.visit(tree)
