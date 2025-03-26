@@ -769,6 +769,8 @@ class RequireImportFrom:
         self.require = require if require is not None else []
     def add(self, *require: str) -> None:
         self.require += list(require)
+    def append(self, requires: List[str]) -> None:
+        self.require += requires
     def visit(self, node: ast.AST) -> ast.AST:
         if not self.require:
             return node
@@ -800,7 +802,21 @@ class RequireImportFrom:
                 mods[mod] = []
             mods[mod].append(func)
 
-        if not imports.imported:
+        if imports.imported:
+            body = []
+            for stmt in module.body:
+                if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
+                    # find first Import/ImportFrom
+                    body.append(stmt)
+                elif done:
+                    body.append(stmt)
+                else:
+                    for mod, funcs in mods.items():
+                        body.append(ast.ImportFrom(mod, [ast.alias(name=func) for func in sorted(funcs)], 0))
+                    body.append(stmt)
+                    done = True
+        if not done:
+            body = []
             # have no Import/ImportFrom in file
             for stmt in module.body:
                 if isinstance(stmt, (ast.Comment, ast.Constant)):
@@ -813,7 +829,47 @@ class RequireImportFrom:
                         body.append(ast.ImportFrom(mod, [ast.alias(name=func) for func in sorted(funcs)], 0))
                     body.append(stmt)
                     done = True
+        if not done:
+            logg.fatal("did not append importfrom %s", newimport)
         else:
+            module.body = body
+        return module
+
+class RequireImport:
+    def __init__(self, require: Optional[List[str]] = None) -> None:
+        self.require = require if require is not None else []
+    def add(self, *require: str) -> None:
+        self.require += list(require)
+    def append(self, requires: List[str]) -> None:
+        self.require += requires
+    def visit(self, node: ast.AST) -> ast.AST:
+        if not self.require:
+            return node
+        imports = DetectImports()
+        imports.visit(node)
+        newimport: List[str] = []
+        for require in self.require:
+            if require not in imports.imported:
+                newimport.append(require)
+        if not newimport:
+            return node
+        if not isinstance(node, ast.Module):
+            logg.warning("no module for new imports %s", newimport)
+            return node
+        module = cast(ast.Module, node)  # type: ignore[redundant-cast]
+        body: List[ast.stmt] = []
+        done = False
+        simple: List[str] = []
+        dotted: List[str] = []
+        for new in newimport:
+            if "." in new:
+                if new not in dotted:
+                    dotted.append(new)
+            else:
+                if new not in simple:
+                    simple.append(new)
+        if imports.imported:
+            body = []
             for stmt in module.body:
                 if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
                     # find first Import/ImportFrom
@@ -821,12 +877,32 @@ class RequireImportFrom:
                 elif done:
                     body.append(stmt)
                 else:
-                    for mod, funcs in mods.items():
-                        body.append(ast.ImportFrom(mod, [ast.alias(name=func) for func in sorted(funcs)], 0))
+                    body.append(ast.Import([ast.alias(name=mod) for mod in sorted(simple)]))
+                    for mod in sorted(dotted):
+                        body.append(ast.Import([ast.alias(name=mod)]))
                     body.append(stmt)
                     done = True
-        module.body = body
+        if not done:
+            # have no Import/ImportFrom or hidden in if-blocks
+            body = []
+            for stmt in module.body:
+                if isinstance(stmt, (ast.Comment, ast.Constant)):
+                    # find first being not a Comment/String
+                    body.append(stmt)
+                elif done:
+                    body.append(stmt)
+                else:
+                    body.append(ast.Import([ast.alias(name=mod) for mod in sorted(simple)]))
+                    for mod in sorted(dotted):
+                        body.append(ast.Import([ast.alias(name=mod)]))
+                    body.append(stmt)
+                    done = True
+        if not done:
+            logg.fatal("did not add imports %s %s", simple, dotted)
+        else:
+            module.body = body
         return module
+
 
 class ReplaceIsinstanceBaseType(ast.NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
@@ -938,9 +1014,11 @@ class DetectFunctionCalls(ast.NodeTransformer):
 
 class DefineIfPython2:
     body: List[ast.stmt]
+    requires: List[str]
     def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, orelse: Union[str, List[ast.stmt]] = NIX) -> None:
         self.atleast = atleast
         self.before = before
+        self.requires = [] # output
         self.body = []
         if isinstance(orelse, str):
             if not orelse:
@@ -1002,6 +1080,7 @@ class DefineIfPython2:
                     body.append(python2)
                     body.append(stmt)
                     after_append = True
+                    self.requires += [ "sys" ]
             module2 = ast.Module(body, module1.type_ignores)
             return module2
         else:
@@ -1009,9 +1088,11 @@ class DefineIfPython2:
 
 class DefineIfPython3:
     body: List[ast.stmt]
+    requires: List[str]
     def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, orelse: Union[str, List[ast.stmt]] = NIX) -> None:
         self.atleast = atleast
         self.before = before
+        self.requires = [] # output
         self.body = []
         if isinstance(orelse, str):
             if not orelse:
@@ -1073,6 +1154,7 @@ class DefineIfPython3:
                     body.append(python3)
                     body.append(stmt)
                     after_append = True
+                    self.requires += [ "sys" ]
             module2 = ast.Module(body, module1.type_ignores)
             return module2
         else:
@@ -1647,6 +1729,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         if want.replace_fstring:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
+        importrequires = RequireImport()
         futurerequires = RequireImportFrom()
         calls = DetectFunctionCalls()
         calls.visit(tree)
@@ -1689,6 +1772,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 """))
                 isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
+                importrequires.append(isoformatdef.requires)
         if want.subprocess_run:
             if "subprocess.run" in calls.found:
                 subprocess_module = calls.imported["subprocess"]
@@ -1737,6 +1821,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 subprocessrundef = subprocessrundef33 if minversion >= (3,3) else subprocessrundef27
                 subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
+                importrequires.append(subprocessrundef.requires)
         if want.time_monotonic:
             if "time.monotonic" in calls.found:
                 time_module = calls.imported["time"]
@@ -1745,6 +1830,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=F"def {defname}(): return time.time()")
                 monotonicfunc = DetectFunctionCalls({"time.monotonic": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
+                importrequires.append(monotonicdef.requires)
             if "time.monotonic_ns" in calls.found:
                 time_module = calls.imported["time"]
                 defname = time_module + "_monotonic_ns"
@@ -1752,6 +1838,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=F"def {defname}(): return int((time.time() - 946684800) * 1000000000)")
                 monotonicfunc = DetectFunctionCalls({"time.monotonic_ns": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
+                importrequires.append(monotonicdef.requires)
         if want.import_pathlib2:
             if "pathlib" in calls.imported:
                 logg.log(HINT, "detected pathlib")
@@ -1760,6 +1847,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}"""))
                 pathlibdrop = DetectFunctionCalls(noimport=["pathlib"])
                 tree = pathlibdef.visit(pathlibdrop.visit(tree))
+                importrequires.append(pathlibdef.requires)
         if want.import_backports_zoneinfo:
             if "zoneinfo" in calls.imported:
                 logg.log(HINT, "detected zoneinfo")
@@ -1769,6 +1857,8 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import zoneinfo") if zoneinfoname == "zoneinfo" else text4(F"""import zoneinfo as {zoneinfoname}"""))
                 zoneinfodrop = DetectFunctionCalls(noimport=["zoneinfo"])
                 tree = zoneinfodef.visit(zoneinfodrop.visit(tree))
+                importrequires.append(zoneinfodef.requires)
+                logg.fatal("zoneinfodef.requires %s", zoneinfodef.requires)
         if want.import_toml:
             if "tomllib" in calls.imported:
                 logg.log(HINT, "detected tomllib")
@@ -1777,6 +1867,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import tomllib") if tomllibname == "tomllib" else text4(F"""import tomllib as {tomllibname}"""))
                 tomllibdrop = DetectFunctionCalls(noimport=["tomllib"])
                 tree = tomllibdef.visit(tomllibdrop.visit(tree))
+                importrequires.append(tomllibdef.requires)
         if want.define_range:
             calls = DetectFunctionCalls()
             calls.visit(tree)
@@ -1794,6 +1885,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             tree = walrus.visit(tree)
             whwalrus = WhileWalrusTransformer()
             tree = whwalrus.visit(tree)
+        tree = importrequires.visit(tree)
         tree = futurerequires.visit(tree)
         # the __future__ imports must be first, so we add them last (if any)
         if want.show_dump:

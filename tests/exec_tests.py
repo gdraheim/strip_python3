@@ -356,7 +356,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         from datetime import datetime
         def func1(x: x) -> datetime:
             return datetime.fromisoformat(x)
@@ -378,7 +377,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         from datetime import datetime as Time
         def func1(x: x) -> datetime:
             return Time.fromisoformat(x)
@@ -404,7 +402,6 @@ class StripPythonExecTest(unittest.TestCase):
         echo "okay"
         """)
         text_file(F"{tmp}/test3.py", F"""
-        import sys
         import subprocess
         def strb(x): return x.decode('utf-8') if isinstance(x, bytes) else str(x)
         def func1() -> str:
@@ -431,7 +428,6 @@ class StripPythonExecTest(unittest.TestCase):
         echo "okay"
         """)
         text_file(F"{tmp}/test3.py", F"""
-        import sys
         import subprocess as sp
         def strb(x): return x.decode('utf-8') if isinstance(x, bytes) else str(x)
         def func1() -> str:
@@ -461,7 +457,6 @@ class StripPythonExecTest(unittest.TestCase):
         echo "okay"
         """)
         text_file(F"{tmp}/test3.py", F"""
-        import sys
         import subprocess as sp
         def strb(x): return x.decode('utf-8') if isinstance(x, bytes) else str(x)
         def func1() -> str:
@@ -485,7 +480,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         import pathlib
         def func1(x: str) -> pathlib.PurePath:
             return pathlib.PurePath(x)
@@ -507,7 +501,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         import pathlib as pt
         def func1(x: str) -> pt.PurePath:
             return pt.PurePath(x)
@@ -529,7 +522,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         import tomllib
         def func1(x: str) -> Dict[str, Any]:
             return tomllib.loads(x)
@@ -551,7 +543,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         import tomllib as tm
         def func1(x: str) -> Dict[str, Any]:
             return tm.loads(x)
@@ -573,7 +564,6 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import sys
         import zoneinfo
         def func1() -> List[str]:
             return zoneinfo.available_timezones()
@@ -595,7 +585,7 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import time, sys
+        import time
         def func1() -> int:
             started = time.monotonic()
             time.sleep(0.8)
@@ -619,7 +609,7 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
-        import time, sys
+        import time
         def func1() -> int:
             started = time.monotonic_ns()
             time.sleep(0.8)

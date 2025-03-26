@@ -2598,6 +2598,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         import datetime.datetime
         if sys.version_info >= (3, 7):
 
@@ -2644,6 +2645,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         import datetime.datetime as Time
         if sys.version_info >= (3, 7):
 
@@ -2693,6 +2695,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         a, b = "(outs, errs) =", "outs, errs =" # python3.9 vs python3.11 ast.unparser
         self.assertEqual(lines4(py.replace(a, b)), lines4(text4("""
+        import sys
         import subprocess
         if sys.version_info >= (3, 5):
             subprocess_run = subprocess.run
@@ -2740,6 +2743,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         a, b = "(outs, errs) =", "outs, errs =" # python3.9 vs python3.11 ast.unparser
         self.assertEqual(lines4(py.replace(a, b)), lines4(text4("""
+        import sys
         import subprocess
         if sys.version_info >= (3, 5):
             subprocess_run = subprocess.run
@@ -2789,6 +2793,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info < (3, 3):
             import pathlib2 as pathlib
         else:
@@ -2814,6 +2819,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info < (3, 3):
             import pathlib2 as fs
         else:
@@ -2839,6 +2845,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info < (3, 11):
             import toml as tomllib
         else:
@@ -2864,6 +2871,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info < (3, 11):
             import toml as toml
         else:
@@ -2889,6 +2897,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info < (3, 9):
             from backports import zoneinfo
         else:
@@ -2914,6 +2923,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info < (3, 9):
             from backports import zoneinfo as tz
         else:
@@ -2943,6 +2953,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         logg.debug("py:\n%s", py)
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         import time
         if sys.version_info >= (3, 3):
             time_monotonic = time.monotonic
@@ -2978,6 +2989,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         logg.debug("py:\n%s", py)
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         import time
         if sys.version_info >= (3, 7):
             time_monotonic_ns = time.monotonic_ns
@@ -3013,6 +3025,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         logg.debug("py:\n%s", py)
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         import time as tm
         if sys.version_info >= (3, 3):
             tm_monotonic = tm.monotonic
@@ -3048,6 +3061,7 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         logg.debug("py:\n%s", py)
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         import time as tm
         if sys.version_info >= (3, 7):
             tm_monotonic_ns = tm.monotonic_ns
