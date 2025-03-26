@@ -91,11 +91,11 @@ def decodes_(text: Union[bytes, str]) -> Optional[str]:
             encoded = "utf-8"
         try:
             return text.decode(encoded)
-        except:  # pylint: disable=bare-except
+        except UnicodeDecodeError:
             return text.decode("latin-1")
     return text
 
-def _lines(lines: Union[str, Iterable[str]]) -> Iterable[str]:
+def each_lines4(lines: Union[str, Iterable[str]]) -> Iterable[str]:
     if isinstance(lines, basestring):
         lines = lines.split("\n")
         if len(lines) and lines[-1] == "":
@@ -104,17 +104,18 @@ def _lines(lines: Union[str, Iterable[str]]) -> Iterable[str]:
     return lines
 def lines4(text: Union[str, Iterable[str]]) -> List[str]:
     lines = []
-    for line in _lines(text):
+    for line in each_lines4(text):
         lines.append(line.rstrip())
     return lines
-def _grep(pattern: str, lines: Union[str, Iterable[str]]) -> Iterator[str]:
-    for line in _lines(lines):
-        if re.search(pattern, line.rstrip()):
-            yield line.rstrip()
-def grep(pattern: str, lines: Union[str, Iterable[str]]) -> List[str]:
-    return list(_grep(pattern, lines))
-def greps(lines: Union[str, List[str]], pattern: str) -> List[str]:
-    return list(_grep(pattern, lines))
+def each_grep(patterns: Iterable[str], textlines: Union[str, Iterable[str]]) -> Iterator[str]:
+    for line in each_lines4(textlines):
+        for pattern in patterns:
+            if re.search(pattern, line.rstrip()):
+                yield line.rstrip()
+def grep(pattern: str, textlines: Union[str, Iterable[str]]) -> List[str]:
+    return list(each_grep([pattern], textlines))
+def greps(textlines: Union[str, Iterable[str]], *pattern: str) -> List[str]:
+    return list(each_grep(pattern, textlines))
 
 def text4(content: str) -> str:
     if content.startswith("\n"):

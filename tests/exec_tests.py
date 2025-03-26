@@ -53,7 +53,7 @@ def decodes(text: Union[str, bytes, None]) -> str:
             encoded = "utf-8"
         try:
             return text.decode(encoded)
-        except:
+        except UnicodeDecodeError:
             return text.decode("latin-1")
     return text
 def q_str(part: Union[str, int, None]) -> str:
