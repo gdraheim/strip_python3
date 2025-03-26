@@ -1647,7 +1647,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         if want.replace_fstring:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
-        requires = RequireImportFrom()
+        futurerequires = RequireImportFrom()
         calls = DetectFunctionCalls()
         calls.visit(tree)
         if want.show_dump:
@@ -1658,17 +1658,16 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 defs1 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
                 tree = defs1.visit(tree)
             if "print" in calls.found and want.define_print_function:
-                requires.add("__future__.print_function")
+                futurerequires.add("__future__.print_function")
         if want.define_float_division:
             if calls.divs:
-                requires.add("__future__.division")
+                futurerequires.add("__future__.division")
         if want.define_absolute_import:
             imps = DetectImports()
             imps.visit(tree)
             relative = [imp for imp in imps.importfrom if imp.startswith(".")]
             if relative:
-                requires.add("__future__.absolute_import")
-        tree = requires.visit(tree)
+                futurerequires.add("__future__.absolute_import")
         if want.datetime_fromisoformat:
             if "datetime.datetime.fromisoformat" in calls.found:
                 datetime_module = calls.imported["datetime.datetime"]
@@ -1795,6 +1794,8 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             tree = walrus.visit(tree)
             whwalrus = WhileWalrusTransformer()
             tree = whwalrus.visit(tree)
+        tree = futurerequires.visit(tree)
+        # the __future__ imports must be first, so we add them last (if any)
         if want.show_dump:
             logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
         if want.show_dump > 1:
