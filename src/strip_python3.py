@@ -769,6 +769,11 @@ class DetectImports(ast.NodeTransformer):
 class RequireImportFrom:
     def __init__(self, require: Optional[List[str]] = None) -> None:
         self.require = require if require is not None else []
+        self.removes: List[str] = []
+    def removefrom(self, module: str, *symbols: str) -> None:
+        self.removes += [F"{module}.{symbol}" for symbol in symbols]
+    def importfrom(self, module: str, *symbols: str) -> None:
+        self.require += [F"{module}.{symbol}" for symbol in symbols]
     def add(self, *require: str) -> None:
         self.require += list(require)
     def append(self, requires: List[str]) -> None:
@@ -779,6 +784,7 @@ class RequireImportFrom:
         imports = DetectImports()
         imports.visit(node)
         newimport: List[str] = []
+        anyremove: List[str] = []
         for require in self.require:
             if "." in require:
                 library, function = require.split(require, 1)
@@ -789,7 +795,13 @@ class RequireImportFrom:
                         newimport.append(require)
                 else:
                     newimport.append(require)
-        if not newimport:
+        for require in self.removes:
+            if "." in require:
+                library, function = require.split(require, 1)
+                if library in imports.importfrom:
+                    if function in imports.importfrom[library]:
+                        anyremove.append(require)
+        if not newimport and not anyremove:
             return node
         if not isinstance(node, ast.Module):
             logg.warning("no module for new imports %s", newimport)
@@ -803,19 +815,35 @@ class RequireImportFrom:
             if mod not in mods:
                 mods[mod] = []
             mods[mod].append(func)
-
-        if imports.imported:
+        rems: Dict[str, List[str]] = {}
+        for rem in anyremove:
+            mod, func = rem.split(".", 1)
+            if mod not in rems:
+                rems[mod] = []
+            rems[mod].append(func)
+        if imports.importfrom:
             body = []
             for stmt in module.body:
+                drop = False
+                if isinstance(stmt, ast.ImportFrom):
+                    importing = cast(ast.ImportFrom, stmt)  # type: ignore[redundant-cast]
+                    if importing.module in rems:
+                        symbols = [alias for alias in importing.names if alias.name not in rems[importing.module]]
+                        if symbols:
+                            importing.names = symbols
+                        else:
+                            drop = True
                 if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
                     # find first Import/ImportFrom
                     body.append(stmt)
                 elif done:
-                    body.append(stmt)
+                    if not drop:
+                        body.append(stmt)
                 else:
                     for mod, funcs in mods.items():
                         body.append(ast.ImportFrom(mod, [ast.alias(name=func) for func in sorted(funcs)], 0))
-                    body.append(stmt)
+                    if not drop:
+                        body.append(stmt)
                     done = True
         if not done:
             body = []
@@ -1251,6 +1279,12 @@ class FStringToFormat(ast.NodeTransformer):
         return make
 
 class StripHints(ast.NodeTransformer):
+    typing: Set[str]
+    removed: Set[str]
+    def __init__(self) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.typing = set()
+        self.removed = set()
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         if not want.remove_typehints:
             return node
@@ -1297,40 +1331,55 @@ class StripHints(ast.NodeTransformer):
         if OK:
             for arg in func.args.posonlyargs:
                 logg.debug("-pos arg: %s", ast.dump(arg))
-                arg1 = ast.arg(arg.arg) if want.remove_typehints else arg
+                new1 = types36_remove_typehints(arg.annotation)
+                arg1 = ast.arg(arg.arg, new1.annotation)
                 if want.remove_positional:
                     functionargs.append(arg1)
                 else:
                     posonlyargs.append(arg1)
                 if arg.annotation:
                     annos += 1
+                self.typing.update(new1.typing)
+                self.removed.update(new1.removed)
         if OK:
             for arg in func.args.args:
                 logg.debug("-fun arg: %s", ast.dump(arg))
-                arg1 = ast.arg(arg.arg) if want.remove_typehints else arg
+                new1 = types36_remove_typehints(arg.annotation)
+                arg1 = ast.arg(arg.arg, new1.annotation)
                 functionargs.append(arg1)
                 if arg.annotation:
                     annos += 1
+                self.typing.update(new1.typing)
+                self.removed.update(new1.removed)
         if OK:
             for arg in func.args.kwonlyargs:
                 logg.debug("-kwo arg: %s", ast.dump(arg))
-                arg1 = ast.arg(arg.arg) if want.remove_typehints else arg
+                new1 = types36_remove_typehints(arg.annotation)
+                arg1 = ast.arg(arg.arg, new1.annotation)
                 if want.remove_keywordonly:
                     functionargs.append(arg1)
                 else:
                     kwonlyargs.append(arg1)
                 if arg.annotation:
                     annos += 1
+                self.typing.update(new1.typing)
+                self.removed.update(new1.removed)
         if vargarg is not None:
             if vargarg.annotation:
                 annos += 1
             if want.remove_typehints:
-                vargarg = ast.arg(vargarg.arg)
+                new1 = types36_remove_typehints(vargarg.annotation)
+                vargarg = ast.arg(vargarg.arg, new1.annotation)
+                self.typing.update(new1.typing)
+                self.removed.update(new1.removed)
         if kwarg is not None:
             if kwarg.annotation:
                 annos += 1
             if want.remove_typehints:
-                kwarg = ast.arg(kwarg.arg)
+                new1 = types36_remove_typehints(kwarg.annotation)
+                kwarg = ast.arg(kwarg.arg, new1.annotation)
+                self.typing.update(new1.typing)
+                self.removed.update(new1.removed)
         old = 0
         if func.args.kw_defaults and want.remove_keywordonly:
             old += 1
@@ -1348,7 +1397,10 @@ class StripHints(ast.NodeTransformer):
                     kwdefaults.append(kwexp)
         args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
             kwdefaults, kwarg, defaults)
-        rets2 = func.returns if not want.remove_typehints else None
+        new2 = types36_remove_typehints(func.returns)
+        self.typing.update(new2.typing)
+        self.removed.update(new2.removed)
+        rets2 = new2.annotation
         func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list, rets2)
         func2 = copy_location(func2, func)
         return self.generic_visit(func2)
@@ -1605,6 +1657,25 @@ def types36(ann: ast.expr, classname: Optional[str] = None) -> Types36:
         annotation = types.visit(ann)
         return Types36(annotation, types.typing, types.removed, {})
 
+class OptionalTypes36(NamedTuple):
+    annotation: Optional[ast.expr]
+    typing: Set[str]
+    removed: Set[str]
+    preclass: Dict[str, ast.stmt]
+
+def types36_remove_typehints(ann: Optional[ast.expr], classname: Optional[str] = None) -> OptionalTypes36:
+    if ann and not want.remove_typehints:
+        new1 = types36(ann, classname)
+        return OptionalTypes36(new1.annotation, new1.typing, new1.removed, new1.preclass)
+    return OptionalTypes36(None, set(), set(), {})
+
+def types36_remove_var_typehints(ann: Optional[ast.expr], classname: Optional[str] = None) -> OptionalTypes36:
+    if ann and not want.remove_var_typehints:
+        new1 = types36(ann, classname)
+        return OptionalTypes36(new1.annotation, new1.typing, new1.removed, new1.preclass)
+    return OptionalTypes36(None, set(), set(), {})
+
+
 def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = None) -> ast.Module:
     type_ignores1: List[TypeIgnore] = type_ignores if type_ignores is not None else []
     typing_extensions: List[str] = []
@@ -1729,11 +1800,14 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
             text = f.read()
+        typingrequires = RequireImportFrom()
         tree1 = ast.parse(text)
         types = TypeHints()
         tree = types.visit(tree1)
-        strip = StripHints()
-        tree = strip.visit(tree)
+        striphints = StripHints()
+        tree = striphints.visit(tree)
+        typingrequires.importfrom("typing", *striphints.typing)
+        typingrequires.removefrom("typing", *striphints.removed)
         if want.replace_fstring:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
@@ -1895,6 +1969,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if relative:
                 futurerequires.add("__future__.absolute_import")
         tree = importrequires.visit(tree)
+        tree = typingrequires.visit(tree)
         tree = futurerequires.visit(tree)
         # the __future__ imports must be first, so we add them last (if any)
         if want.show_dump:
