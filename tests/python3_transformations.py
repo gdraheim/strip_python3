@@ -1647,6 +1647,36 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
+    def test_0177(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import Annotated
+        from pydantic import Field
+        a: int 
+        def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> list[str]:
+            x = int(b)
+            return [self.c] + y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
+        logg.debug("err=%s\nout=%s", run.err, run.out)
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py = file_text4(F"{tmp}/tmp1_2.py")
+        logg.debug("--- py:\n%s\n", py)
+        self.assertEqual(py, text4("""
+        from typing import List, Optional
+        from pydantic import Field
+        a: int
+
+        def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
+            x = int(b)
+            return [self.c] + y
+        """))
+        self.coverage()
+        self.rm_testdir()
 
 
     def test_0201(self) -> None:

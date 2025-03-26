@@ -787,7 +787,7 @@ class RequireImportFrom:
         anyremove: List[str] = []
         for require in self.require:
             if "." in require:
-                library, function = require.split(require, 1)
+                library, function = require.split(".", 1)
                 if library in imports.importfrom:
                     if function in imports.importfrom[library]:
                         logg.debug("%s already imported", require)
@@ -797,7 +797,7 @@ class RequireImportFrom:
                     newimport.append(require)
         for require in self.removes:
             if "." in require:
-                library, function = require.split(require, 1)
+                library, function = require.split(".", 1)
                 if library in imports.importfrom:
                     if function in imports.importfrom[library]:
                         anyremove.append(require)
