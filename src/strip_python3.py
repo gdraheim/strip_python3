@@ -274,16 +274,17 @@ def main() -> int:
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
     cmdline.add_option("--pyi-version", metavar="3.6", default=defs["pyi-version"], help="set python version for py-includes")
     cmdline.add_option("--python-version", metavar="2.7", default=defs["python-version"], help="set python features by version")
-    cmdline.add_option("-6", "--py36", action="count", default=0, help="set python feat to --python-version=3.6")
     cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
+    cmdline.add_option("-6", "--py36", action="count", default=0, help="alias --no-pyi --python-version=3.6")
     cmdline.add_option("-n", "--no-pyi", "--no-make-pyi", action="count", default=0, help="do not generate file.pyi includes")
     cmdline.add_option("-y", "--pyi", "--make-pyi", action="count", default=0, help="generate file.pyi includes as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
+    no_make_pyi = opt.no_pyi
     pyi_version = (3,6)
     if opt.pyi_version:
         if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
@@ -293,6 +294,7 @@ def main() -> int:
     back_version = (2,7)
     if opt.py36:
         back_version = (3,6)
+        no_make_pyi = True
     elif opt.python_version:
         if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
             back_version = int(opt.python_version[0]), int(opt.python_version[2:])
@@ -389,7 +391,7 @@ def main() -> int:
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
     make_pyi = opt.pyi or opt.append2 or opt.remove3 or opt.inplace
-    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not opt.no_pyi, minversion=back_version)
+    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not no_make_pyi, minversion=back_version)
 
 # ........................................................................................................
 
@@ -1295,35 +1297,40 @@ class StripHints(ast.NodeTransformer):
         if OK:
             for arg in func.args.posonlyargs:
                 logg.debug("-pos arg: %s", ast.dump(arg))
+                arg1 = ast.arg(arg.arg) if want.remove_typehints else arg
                 if want.remove_positional:
-                    functionargs.append(ast.arg(arg.arg))
+                    functionargs.append(arg1)
                 else:
-                    posonlyargs.append(ast.arg(arg.arg))
+                    posonlyargs.append(arg1)
                 if arg.annotation:
                     annos += 1
         if OK:
             for arg in func.args.args:
                 logg.debug("-fun arg: %s", ast.dump(arg))
-                functionargs.append(ast.arg(arg.arg))
+                arg1 = ast.arg(arg.arg) if want.remove_typehints else arg
+                functionargs.append(arg1)
                 if arg.annotation:
                     annos += 1
         if OK:
             for arg in func.args.kwonlyargs:
                 logg.debug("-kwo arg: %s", ast.dump(arg))
+                arg1 = ast.arg(arg.arg) if want.remove_typehints else arg
                 if want.remove_keywordonly:
-                    functionargs.append(ast.arg(arg.arg))
+                    functionargs.append(arg1)
                 else:
-                    kwonlyargs.append(ast.arg(arg.arg))
+                    kwonlyargs.append(arg1)
                 if arg.annotation:
                     annos += 1
         if vargarg is not None:
             if vargarg.annotation:
                 annos += 1
-            vargarg = ast.arg(vargarg.arg)
+            if want.remove_typehints:
+                vargarg = ast.arg(vargarg.arg)
         if kwarg is not None:
             if kwarg.annotation:
                 annos += 1
-            kwarg = ast.arg(kwarg.arg)
+            if want.remove_typehints:
+                kwarg = ast.arg(kwarg.arg)
         old = 0
         if func.args.kw_defaults and want.remove_keywordonly:
             old += 1
@@ -1341,7 +1348,8 @@ class StripHints(ast.NodeTransformer):
                     kwdefaults.append(kwexp)
         args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
             kwdefaults, kwarg, defaults)
-        func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list)
+        rets2 = func.returns if not want.remove_typehints else None
+        func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list, rets2)
         func2 = copy_location(func2, func)
         return self.generic_visit(func2)
 
