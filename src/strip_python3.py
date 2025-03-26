@@ -129,6 +129,270 @@ class Want:
 
 want = Want()
 
+def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
+    settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
+        "python-version": NIX, "pyi-version": NIX, "remove-typehints": 0, "remove-var-typehints": 0, # ..
+        "remove-positionalonly": 0, "remove-pyi-positionalonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, # ..
+        "remove-keywordonly": 0, "no-remove-keywordonly": 0, # ..
+        "define-print-function": 0, "no-define-print-function": 0, # ..
+        "define-absolute-import": 0, "no-define-absolute-import": 0, # ..
+        "define-float-division": 0, "no-define-float-division": 0, # ..
+        "define-callable": 0, "no-define-callable": 0, # ..
+        "define-basestring": 0, "no-define-basestring": 0, # ..
+        "define-range": 0, "no-define-range": 0, # ..
+        "replace-fstring": 0, "no-replace-fstring": 0, # ..
+        "replace-walrus-operator": 0, "no-replace-walrus-operator": 0, # ..
+        "replace-annotated-typing": 0, "no-replace-annotated-typing": 0, # ..
+        "replace-builtin-typing": 0, "no-replace-builtin-typing": 0, # ..
+        "replace-union-typing": 0, "no-replace-union-typing": 0, # ..
+        "replace-self-typing": 0, "no-replace-self-typing": 0, # ..
+        "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, # ..
+        "subprocess-run": 0, "no-subprocess-run": 0,  # ..
+        "time-monotonic": 0, "no-time-monotonic": 0,  # ..
+        "import-pathlib2": 0, "no-import-pathlib2": 0,  # ..
+        "import-backports-zoneinfo": 0, "no-import-backports-zoneinfo": 0, # ..
+        "import-toml": 0, "no-import-toml": 0,  # ..
+    }
+
+    for configfile in files:
+        if fs.isfile(configfile):
+            if configfile.endswith(".toml") and tomllib:
+                logg.log(DEBUG_TOML, "found toml configfile %s", configfile)
+                with open(configfile, "rb") as f:
+                    conf = tomllib.load(f)
+                    section1: Dict[str, Union[str, int, bool]] = {}
+                    if "tool" in conf and "strip-python3" in conf["tool"]:
+                        section1 = conf["tool"]["strip-python3"]
+                    else:
+                        logg.log(DEBUG_TOML, "have sections %s", list(section1.keys()))
+                    if section1:
+                        logg.log(DEBUG_TOML, "have section1 data:\n%s", section1)
+                        for setting in section1:
+                            if setting in settings:
+                                oldvalue = settings[setting]
+                                setvalue = section1[setting]
+                                if isinstance(oldvalue, str):
+                                    if isinstance(setvalue, str):
+                                        settings[setting] = setvalue
+                                    else:
+                                        logg.error("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))
+                                elif isinstance(oldvalue, int):
+                                    if isinstance(setvalue, (int, float, bool)):
+                                        settings[setting] = int(setvalue)
+                                    else:
+                                        logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
+                                else:  # pragma: nocover
+                                    logg.error("%s[%s]: unknown setting type found %s", configfile, setting, type(setvalue))
+                            else:
+                                logg.error("%s[%s]: unknown setting found", configfile, setting)
+                                logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
+            elif configfile.endswith(".cfg"):
+                logg.log(DEBUG_TOML, "found ini configfile %s", configfile)
+                confs = configparser.ConfigParser()
+                confs.read(configfile)
+                if "strip-python3" in confs:
+                    section2 = confs["strip-python3"]
+                    logg.log(DEBUG_TOML, "have section2 data:\n%s", section2)
+                    for option in section2:
+                        if OK:
+                            if option in settings:
+                                oldvalue = settings[option]
+                                setvalue = section2[option]
+                                if isinstance(oldvalue, str):
+                                    settings[option] = setvalue
+                                elif isinstance(oldvalue, int):
+                                    if setvalue in ["true", "True"]:
+                                        settings[option] = 1
+                                    elif setvalue in ["false", "False"]:
+                                        settings[option] = 0
+                                    elif setvalue in ["0", "1", "2", "3"]:
+                                        settings[option] = int(setvalue)
+                                    else:
+                                        logg.error("%s[%s]: expecting int but found %s", configfile, option, setvalue)
+                                else:  # pragma: nocover
+                                    logg.error("%s[%s]: unknown setting type found %s", configfile, option, setvalue)
+                            else:
+                                logg.error("%s[%s]: unknown setting found", configfile, option)
+                                logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
+            else:  # pragma: nocover
+                logg.log(DEBUG_TOML, "unknown configfile found %s", configfile)
+        else:
+            logg.log(DEBUG_TOML, "no configfile found %s", configfile)
+    return settings
+
+def main() -> int:
+    # global want
+    defs = read_defaults("pyproject.toml", "setup.cfg")
+    from optparse import OptionParser # pylint: disable=deprecated-module, import-outside-toplevel
+    cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip(), epilog=": -o - : default is to print the type-stripped and back-transformed py code")
+    cmdline.formatter.max_help_position = 37
+    cmdline.add_option("-v", "--verbose", action="count", default=defs["verbose"], help="increase logging level")
+    cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
+    cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
+    cmdline.add_option("--no-define-callable", "--noc", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
+    cmdline.add_option("--no-define-print-function", "--nop", action="count", default=defs["no-define-print-function"], help="3.0 print() function")
+    cmdline.add_option("--no-define-float-division", "--nod", action="count", default=defs["no-define-float-division"], help="3.0 float division")
+    cmdline.add_option("--no-define-absolute-import", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
+    cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
+    cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
+    cmdline.add_option("--no-time-monotonic", action="count", default=defs["no-time-monotonic"], help="3.3 time.monotonic")
+    cmdline.add_option("--no-import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib to python2 pathlib2")
+    cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=defs["no-import-backports-zoneinfo"], help="3.9 zoneinfo from backports")
+    cmdline.add_option("--no-import-toml", action="count", default=defs["no-import-toml"], help="3.11 tomllib to external toml")
+    cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
+    cmdline.add_option("--no-replace-walrus-operator", action="count", default=defs["no-replace-walrus-operator"], help="3.8 walrus-operator")
+    cmdline.add_option("--no-replace-annotated-typing", action="count", default=defs["no-replace-annotated-typing"], help="3.9 Annotated[int, x] (in pyi)")
+    cmdline.add_option("--no-replace-builtin-typing", action="count", default=defs["no-replace-builtin-typing"], help="3.9 list[int] (in pyi)")
+    cmdline.add_option("--no-replace-union-typing", action="count", default=defs["no-replace-union-typing"], help="3.10 int|str (in pyi)")
+    cmdline.add_option("--no-replace-self-typing", action="count", default=defs["no-replace-self-typing"], help="3.11 Self (in pyi)")
+    cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
+    cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
+    cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
+    cmdline.add_option("--define-range", action="count", default=defs["define-range"], help="3.0 define range() to xrange() iterator")
+    cmdline.add_option("--define-basestring", action="count", default=defs["define-basestring"], help="3.0 isinstance(str) is basestring python2")
+    cmdline.add_option("--define-callable", action="count", default=defs["define-callable"], help="3.2 callable(x) as in python2")
+    cmdline.add_option("--define-print-function", action="count", default=defs["define-print-function"], help="3.0 print() or from __future__")
+    cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
+    cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
+    cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
+    cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or use boilerplate")
+    cmdline.add_option("--time-monotonic", action="count", default=defs["time-monotonic"], help="3.3 time.monotonic or use time.time")
+    cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib2 as pathlib")
+    cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo from backports")
+    cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import toml as tomllib")
+    cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
+    cmdline.add_option("--replace-walrus-operator", action="count", default=defs["replace-walrus-operator"], help="3.8 walrus 'if x := ():' to 'if x:'")
+    cmdline.add_option("--replace-annotated-typing", action="count", default=defs["replace-annotated-typing"], help="3.9 Annotated[int, x] converted to int")
+    cmdline.add_option("--replace-builtin-typing", action="count", default=defs["replace-builtin-typing"], help="3.9 list[int] converted to List[int]")
+    cmdline.add_option("--replace-union-typing", action="count", default=defs["replace-union-typing"], help="3.10 int|str converted to Union[int,str]")
+    cmdline.add_option("--replace-self-typing", action="count", default=defs["replace-self-typing"], help="3.11 Self converted to SelfClass TypeVar")
+    cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast()")
+    cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
+    cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
+    cmdline.add_option("--remove-pyi-positionalonly", action="count", default=defs["remove-pyi-positionalonly"], help="3.8 positionalonly parameters in *.pyi")
+    cmdline.add_option("--remove-var-typehints", action="count", default=defs["remove-var-typehints"], help="only 3.6 variable annotations (typehints)")
+    cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
+    cmdline.add_option("--pyi-version", metavar="3.6", default=defs["pyi-version"], help="set python version for py-includes")
+    cmdline.add_option("--python-version", metavar="2.7", default=defs["python-version"], help="set python features by version")
+    cmdline.add_option("-6", "--py36", action="count", default=0, help="set python feat to --python-version=3.6")
+    cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
+    cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
+    cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
+    cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
+    cmdline.add_option("-n", "--no-pyi", "--no-make-pyi", action="count", default=0, help="do not generate file.pyi includes")
+    cmdline.add_option("-y", "--pyi", "--make-pyi", action="count", default=0, help="generate file.pyi includes as well")
+    cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
+    opt, cmdline_args = cmdline.parse_args()
+    logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
+    pyi_version = (3,6)
+    if opt.pyi_version:
+        if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
+            pyi_version = int(opt.pyi_version[0]), int(opt.pyi_version[2:])
+        else:
+            logg.error("unknown --pyi-version %s", opt.pyi_version)
+    back_version = (2,7)
+    if opt.py36:
+        back_version = (3,6)
+    elif opt.python_version:
+        if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
+            back_version = int(opt.python_version[0]), int(opt.python_version[2:])
+        else:
+            logg.error("unknown --python-version %s", opt.python_version)
+    logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
+    if pyi_version < (3,8) or opt.remove_pyi_positionalonly:
+        if not opt.no_remove_pyi_positionalonly:
+            want.remove_pyi_positional = max(1, opt.remove_pyi_positionalonly)
+    if back_version < (3,8) or opt.remove_positionalonly:
+        if not opt.no_remove_positionalonly:
+            want.remove_positional = max(1, opt.remove_positionalonly)
+    if back_version < (3,0) or opt.remove_keywordonly:
+        if not opt.no_remove_keywordonly:
+            want.remove_keywordonly = max(1, opt.remove_keywordonly)
+    if back_version < (3,6) or opt.remove_typehints or opt.remove_var_typehints:
+        want.remove_var_typehints = max(1,opt.remove_typehints,opt.remove_var_typehints)
+    if back_version < (3,5) or opt.remove_typehints:
+        want.remove_typehints = max(1,opt.remove_typehints)
+    if back_version < (3,9) or opt.replace_builtin_typing:
+        if not opt.no_replace_builtin_typing:
+            want.replace_builtin_typing = max(1,opt.replace_builtin_typing)
+    if back_version < (3,9) or opt.replace_annotated_typing:
+        if not opt.no_replace_annotated_typing:
+            want.replace_annotated_typing = max(1,opt.replace_annotated_typing)
+    if back_version < (3,10) or opt.replace_union_typing:
+        if not opt.no_replace_union_typing:
+            want.replace_union_typing = max(1,opt.replace_union_typing)
+    if back_version < (3,11) or opt.replace_self_typing:
+        if not opt.no_replace_self_typing:
+            want.replace_self_typing = max(1,opt.replace_self_typing)
+    if back_version < (3,6) or opt.replace_fstring:
+        if not opt.no_replace_fstring:
+            want.replace_fstring = max(1, opt.replace_fstring)
+            if want.replace_fstring > 1:
+                want.fstring_numbered = 1
+    if back_version < (3,8) or opt.replace_walrus_operator:
+        if not opt.no_replace_walrus_operator:
+            want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
+    if back_version < (3,0) or opt.define_range:
+        if not opt.no_define_range:
+            want.define_range = max(1,opt.define_range)
+    if back_version < (3,0) or opt.define_basestring:
+        if not opt.no_define_basestring:
+            want.define_basestring = max(1, opt.define_basestring)
+    if back_version < (3,2) or opt.define_callable:
+        if not opt.no_define_callable:
+            want.define_callable = max(1, opt.define_callable)
+    if back_version < (3,0) or opt.define_print_function:
+        if not opt.no_define_print_function:
+            want.define_print_function = max(1, opt.define_print_function)
+    if back_version < (3,0) or opt.define_float_division:
+        if not opt.no_define_float_division:
+            want.define_float_division = max(1,opt.define_float_division)
+    if back_version < (3,0) or opt.define_absolute_import:
+        if not opt.no_define_absolute_import:
+            want.define_absolute_import = max(1, opt.define_absolute_import)
+    if back_version < (3,7) or opt.datetime_fromisoformat:
+        if not opt.no_datetime_fromisoformat:
+            want.datetime_fromisoformat = max(1,opt.datetime_fromisoformat)
+    if back_version < (3,5) or opt.subprocess_run:
+        if not opt.no_subprocess_run:
+            want.subprocess_run = max(1,opt.subprocess_run)
+    if back_version < (3,3) or opt.time_monotonic:
+        if not opt.no_time_monotonic:
+            want.time_monotonic = max(1, opt.time_monotonic)
+    if back_version < (3,3) or opt.import_pathlib2:
+        if not opt.no_import_pathlib2:
+            want.import_pathlib2 = max(1, opt.import_pathlib2)
+    if back_version < (3,9) or opt.import_backports_zoneinfo:
+        if not opt.no_import_backports_zoneinfo:
+            want.import_backports_zoneinfo = max(1, opt.import_backports_zoneinfo)
+    if back_version < (3,11) or opt.import_toml:
+        if not opt.no_import_toml:
+            want.import_toml = max(1, opt.import_toml)
+    if opt.show:
+        logg.log(NOTE, "%s = %s", "python-version-int", back_version)
+        logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
+        logg.log(NOTE, "%s = %s", "define-basestring", want.define_basestring)
+        logg.log(NOTE, "%s = %s", "define-range", want.define_range)
+        logg.log(NOTE, "%s = %s", "define-callable", want.define_callable)
+        logg.log(NOTE, "%s = %s", "define-print-function", want.define_print_function)
+        logg.log(NOTE, "%s = %s", "define-float-division", want.define_float_division)
+        logg.log(NOTE, "%s = %s", "define-absolute-import", want.define_absolute_import)
+        logg.log(NOTE, "%s = %s", "replace-fstring", want.replace_fstring)
+        logg.log(NOTE, "%s = %s", "remove-keywordsonly", want.remove_keywordonly)
+        logg.log(NOTE, "%s = %s", "remove-positionalonly", want.remove_positional)
+        logg.log(NOTE, "%s = %s", "remove-pyi-positionalonly", want.remove_pyi_positional)
+        logg.log(NOTE, "%s = %s", "remove-var-typehints", want.remove_var_typehints)
+        logg.log(NOTE, "%s = %s", "remove-typehints", want.remove_typehints)
+    if opt.dump:
+        want.show_dump = int(opt.dump)
+    eachfile = EACH_REMOVE3 if opt.remove3 else 0
+    eachfile |= EACH_APPEND2 if opt.append2 else 0
+    eachfile |= EACH_INPLACE if opt.inplace else 0
+    make_pyi = opt.pyi or opt.append2 or opt.remove3 or opt.inplace
+    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not opt.no_pyi, minversion=back_version)
+
+# ........................................................................................................
+
 def text4(content: str) -> str:
     if content.startswith("\n"):
         text = ""
@@ -1556,266 +1820,6 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
 def beautify_dump(x: str) -> str:
     return x.replace("body=[", "\n body=[").replace("FunctionDef(", "\n FunctionDef(").replace(", ctx=Load()",",.")
 
-def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
-    settings: Dict[str, Union[str, int]] = {"verbose": 0, # ..
-        "python-version": NIX, "pyi-version": NIX, "remove-typehints": 0, "remove-var-typehints": 0, # ..
-        "remove-positionalonly": 0, "remove-pyi-positionalonly": 0, "no-remove-positionalonly": 0, "no-remove-pyi-positionalonly": 0, # ..
-        "remove-keywordonly": 0, "no-remove-keywordonly": 0, # ..
-        "define-print-function": 0, "no-define-print-function": 0, # ..
-        "define-absolute-import": 0, "no-define-absolute-import": 0, # ..
-        "define-float-division": 0, "no-define-float-division": 0, # ..
-        "define-callable": 0, "no-define-callable": 0, # ..
-        "define-basestring": 0, "no-define-basestring": 0, # ..
-        "define-range": 0, "no-define-range": 0, # ..
-        "replace-fstring": 0, "no-replace-fstring": 0, # ..
-        "replace-walrus-operator": 0, "no-replace-walrus-operator": 0, # ..
-        "replace-annotated-typing": 0, "no-replace-annotated-typing": 0, # ..
-        "replace-builtin-typing": 0, "no-replace-builtin-typing": 0, # ..
-        "replace-union-typing": 0, "no-replace-union-typing": 0, # ..
-        "replace-self-typing": 0, "no-replace-self-typing": 0, # ..
-        "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, # ..
-        "subprocess-run": 0, "no-subprocess-run": 0,  # ..
-        "time-monotonic": 0, "no-time-monotonic": 0,  # ..
-        "import-pathlib2": 0, "no-import-pathlib2": 0,  # ..
-        "import-backports-zoneinfo": 0, "no-import-backports-zoneinfo": 0, # ..
-        "import-toml": 0, "no-import-toml": 0,  # ..
-    }
-
-    for configfile in files:
-        if fs.isfile(configfile):
-            if configfile.endswith(".toml") and tomllib:
-                logg.log(DEBUG_TOML, "found toml configfile %s", configfile)
-                with open(configfile, "rb") as f:
-                    conf = tomllib.load(f)
-                    section1: Dict[str, Union[str, int, bool]] = {}
-                    if "tool" in conf and "strip-python3" in conf["tool"]:
-                        section1 = conf["tool"]["strip-python3"]
-                    else:
-                        logg.log(DEBUG_TOML, "have sections %s", list(section1.keys()))
-                    if section1:
-                        logg.log(DEBUG_TOML, "have section1 data:\n%s", section1)
-                        for setting in section1:
-                            if setting in settings:
-                                oldvalue = settings[setting]
-                                setvalue = section1[setting]
-                                if isinstance(oldvalue, str):
-                                    if isinstance(setvalue, str):
-                                        settings[setting] = setvalue
-                                    else:
-                                        logg.error("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))
-                                elif isinstance(oldvalue, int):
-                                    if isinstance(setvalue, (int, float, bool)):
-                                        settings[setting] = int(setvalue)
-                                    else:
-                                        logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
-                                else:  # pragma: nocover
-                                    logg.error("%s[%s]: unknown setting type found %s", configfile, setting, type(setvalue))
-                            else:
-                                logg.error("%s[%s]: unknown setting found", configfile, setting)
-                                logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
-            elif configfile.endswith(".cfg"):
-                logg.log(DEBUG_TOML, "found ini configfile %s", configfile)
-                confs = configparser.ConfigParser()
-                confs.read(configfile)
-                if "strip-python3" in confs:
-                    section2 = confs["strip-python3"]
-                    logg.log(DEBUG_TOML, "have section2 data:\n%s", section2)
-                    for option in section2:
-                        if OK:
-                            if option in settings:
-                                oldvalue = settings[option]
-                                setvalue = section2[option]
-                                if isinstance(oldvalue, str):
-                                    settings[option] = setvalue
-                                elif isinstance(oldvalue, int):
-                                    if setvalue in ["true", "True"]:
-                                        settings[option] = 1
-                                    elif setvalue in ["false", "False"]:
-                                        settings[option] = 0
-                                    elif setvalue in ["0", "1", "2", "3"]:
-                                        settings[option] = int(setvalue)
-                                    else:
-                                        logg.error("%s[%s]: expecting int but found %s", configfile, option, setvalue)
-                                else:  # pragma: nocover
-                                    logg.error("%s[%s]: unknown setting type found %s", configfile, option, setvalue)
-                            else:
-                                logg.error("%s[%s]: unknown setting found", configfile, option)
-                                logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
-            else:  # pragma: nocover
-                logg.log(DEBUG_TOML, "unknown configfile found %s", configfile)
-        else:
-            logg.log(DEBUG_TOML, "no configfile found %s", configfile)
-    return settings
-
-def main() -> int:
-    defs = read_defaults("pyproject.toml", "setup.cfg")
-    from optparse import OptionParser # pylint: disable=deprecated-module, import-outside-toplevel
-    cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip(), epilog=": -o - : default is to print the type-stripped and back-transformed py code")
-    cmdline.formatter.max_help_position = 37
-    cmdline.add_option("-v", "--verbose", action="count", default=defs["verbose"], help="increase logging level")
-    cmdline.add_option("--no-define-range", action="count", default=defs["no-define-range"], help="3.0 define range()")
-    cmdline.add_option("--no-define-basestring", action="count", default=defs["no-define-basestring"], help="3.0 isinstance(str)")
-    cmdline.add_option("--no-define-callable", "--noc", action="count", default=defs["no-define-callable"], help="3.2 callable(x)")
-    cmdline.add_option("--no-define-print-function", "--nop", action="count", default=defs["no-define-print-function"], help="3.0 print() function")
-    cmdline.add_option("--no-define-float-division", "--nod", action="count", default=defs["no-define-float-division"], help="3.0 float division")
-    cmdline.add_option("--no-define-absolute-import", action="count", default=defs["no-define-absolute-import"], help="3.0 absolute import")
-    cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
-    cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
-    cmdline.add_option("--no-time-monotonic", action="count", default=defs["no-time-monotonic"], help="3.3 time.monotonic")
-    cmdline.add_option("--no-import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib to python2 pathlib2")
-    cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=defs["no-import-backports-zoneinfo"], help="3.9 zoneinfo from backports")
-    cmdline.add_option("--no-import-toml", action="count", default=defs["no-import-toml"], help="3.11 tomllib to external toml")
-    cmdline.add_option("--no-replace-fstring", action="count", default=defs["no-replace-fstring"], help="3.6 f-strings")
-    cmdline.add_option("--no-replace-walrus-operator", action="count", default=defs["no-replace-walrus-operator"], help="3.8 walrus-operator")
-    cmdline.add_option("--no-replace-annotated-typing", action="count", default=defs["no-replace-annotated-typing"], help="3.9 Annotated[int, x] (in pyi)")
-    cmdline.add_option("--no-replace-builtin-typing", action="count", default=defs["no-replace-builtin-typing"], help="3.9 list[int] (in pyi)")
-    cmdline.add_option("--no-replace-union-typing", action="count", default=defs["no-replace-union-typing"], help="3.10 int|str (in pyi)")
-    cmdline.add_option("--no-replace-self-typing", action="count", default=defs["no-replace-self-typing"], help="3.11 Self (in pyi)")
-    cmdline.add_option("--no-remove-keywordonly", action="count", default=defs["no-remove-keywordonly"], help="3.0 keywordonly parameters")
-    cmdline.add_option("--no-remove-positionalonly", action="count", default=defs["no-remove-positionalonly"], help="3.8 positionalonly parameters")
-    cmdline.add_option("--no-remove-pyi-positionalonly", action="count", default=defs["no-remove-pyi-positionalonly"], help="3.8 positionalonly in *.pyi")
-    cmdline.add_option("--define-range", action="count", default=defs["define-range"], help="3.0 define range() to xrange() iterator")
-    cmdline.add_option("--define-basestring", action="count", default=defs["define-basestring"], help="3.0 isinstance(str) is basestring python2")
-    cmdline.add_option("--define-callable", action="count", default=defs["define-callable"], help="3.2 callable(x) as in python2")
-    cmdline.add_option("--define-print-function", action="count", default=defs["define-print-function"], help="3.0 print() or from __future__")
-    cmdline.add_option("--define-float-division", action="count", default=defs["define-float-division"], help="3.0 float division or from __future__")
-    cmdline.add_option("--define-absolute-import", action="count", default=defs["define-absolute-import"], help="3.0 absolute import or from __future__")
-    cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
-    cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or use boilerplate")
-    cmdline.add_option("--time-monotonic", action="count", default=defs["time-monotonic"], help="3.3 time.monotonic or use time.time")
-    cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib2 as pathlib")
-    cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo from backports")
-    cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import toml as tomllib")
-    cmdline.add_option("--replace-fstring", action="count", default=defs["replace-fstring"], help="3.6 f-strings to string.format")
-    cmdline.add_option("--replace-walrus-operator", action="count", default=defs["replace-walrus-operator"], help="3.8 walrus 'if x := ():' to 'if x:'")
-    cmdline.add_option("--replace-annotated-typing", action="count", default=defs["replace-annotated-typing"], help="3.9 Annotated[int, x] converted to int")
-    cmdline.add_option("--replace-builtin-typing", action="count", default=defs["replace-builtin-typing"], help="3.9 list[int] converted to List[int]")
-    cmdline.add_option("--replace-union-typing", action="count", default=defs["replace-union-typing"], help="3.10 int|str converted to Union[int,str]")
-    cmdline.add_option("--replace-self-typing", action="count", default=defs["replace-self-typing"], help="3.11 Self converted to SelfClass TypeVar")
-    cmdline.add_option("--remove-typehints", action="count", default=defs["remove-typehints"], help="3.5 function annotations and cast()")
-    cmdline.add_option("--remove-keywordonly", action="count", default=defs["remove-keywordonly"], help="3.0 keywordonly parameters")
-    cmdline.add_option("--remove-positionalonly", action="count", default=defs["remove-positionalonly"], help="3.8 positionalonly parameters")
-    cmdline.add_option("--remove-pyi-positionalonly", action="count", default=defs["remove-pyi-positionalonly"], help="3.8 positionalonly parameters in *.pyi")
-    cmdline.add_option("--remove-var-typehints", action="count", default=defs["remove-var-typehints"], help="only 3.6 variable annotations (typehints)")
-    cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
-    cmdline.add_option("--pyi-version", metavar="3.6", default=defs["pyi-version"], help="set python version for py-includes")
-    cmdline.add_option("--python-version", metavar="2.7", default=defs["python-version"], help="set python features by version")
-    cmdline.add_option("-6", "--py36", action="count", default=0, help="set python feat to --python-version=3.6")
-    cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
-    cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
-    cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
-    cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
-    cmdline.add_option("-n", "--no-pyi", "--no-make-pyi", action="count", default=0, help="do not generate file.pyi includes")
-    cmdline.add_option("-y", "--pyi", "--make-pyi", action="count", default=0, help="generate file.pyi includes as well")
-    cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
-    opt, cmdline_args = cmdline.parse_args()
-    logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
-    pyi_version = (3,6)
-    if opt.pyi_version:
-        if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
-            pyi_version = int(opt.pyi_version[0]), int(opt.pyi_version[2:])
-        else:
-            logg.error("unknown --pyi-version %s", opt.pyi_version)
-    back_version = (2,7)
-    if opt.py36:
-        back_version = (3,6)
-    elif opt.python_version:
-        if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
-            back_version = int(opt.python_version[0]), int(opt.python_version[2:])
-        else:
-            logg.error("unknown --python-version %s", opt.python_version)
-    logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
-    if pyi_version < (3,8) or opt.remove_pyi_positionalonly:
-        if not opt.no_remove_pyi_positionalonly:
-            want.remove_pyi_positional = max(1, opt.remove_pyi_positionalonly)
-    if back_version < (3,8) or opt.remove_positionalonly:
-        if not opt.no_remove_positionalonly:
-            want.remove_positional = max(1, opt.remove_positionalonly)
-    if back_version < (3,0) or opt.remove_keywordonly:
-        if not opt.no_remove_keywordonly:
-            want.remove_keywordonly = max(1, opt.remove_keywordonly)
-    if back_version < (3,6) or opt.remove_typehints or opt.remove_var_typehints:
-        want.remove_var_typehints = max(1,opt.remove_typehints,opt.remove_var_typehints)
-    if back_version < (3,5) or opt.remove_typehints:
-        want.remove_typehints = max(1,opt.remove_typehints)
-    if back_version < (3,9) or opt.replace_builtin_typing:
-        if not opt.no_replace_builtin_typing:
-            want.replace_builtin_typing = max(1,opt.replace_builtin_typing)
-    if back_version < (3,9) or opt.replace_annotated_typing:
-        if not opt.no_replace_annotated_typing:
-            want.replace_annotated_typing = max(1,opt.replace_annotated_typing)
-    if back_version < (3,10) or opt.replace_union_typing:
-        if not opt.no_replace_union_typing:
-            want.replace_union_typing = max(1,opt.replace_union_typing)
-    if back_version < (3,11) or opt.replace_self_typing:
-        if not opt.no_replace_self_typing:
-            want.replace_self_typing = max(1,opt.replace_self_typing)
-    if back_version < (3,6) or opt.replace_fstring:
-        if not opt.no_replace_fstring:
-            want.replace_fstring = max(1, opt.replace_fstring)
-            if want.replace_fstring > 1:
-                want.fstring_numbered = 1
-    if back_version < (3,8) or opt.replace_walrus_operator:
-        if not opt.no_replace_walrus_operator:
-            want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
-    if back_version < (3,0) or opt.define_range:
-        if not opt.no_define_range:
-            want.define_range = max(1,opt.define_range)
-    if back_version < (3,0) or opt.define_basestring:
-        if not opt.no_define_basestring:
-            want.define_basestring = max(1, opt.define_basestring)
-    if back_version < (3,2) or opt.define_callable:
-        if not opt.no_define_callable:
-            want.define_callable = max(1, opt.define_callable)
-    if back_version < (3,0) or opt.define_print_function:
-        if not opt.no_define_print_function:
-            want.define_print_function = max(1, opt.define_print_function)
-    if back_version < (3,0) or opt.define_float_division:
-        if not opt.no_define_float_division:
-            want.define_float_division = max(1,opt.define_float_division)
-    if back_version < (3,0) or opt.define_absolute_import:
-        if not opt.no_define_absolute_import:
-            want.define_absolute_import = max(1, opt.define_absolute_import)
-    if back_version < (3,7) or opt.datetime_fromisoformat:
-        if not opt.no_datetime_fromisoformat:
-            want.datetime_fromisoformat = max(1,opt.datetime_fromisoformat)
-    if back_version < (3,5) or opt.subprocess_run:
-        if not opt.no_subprocess_run:
-            want.subprocess_run = max(1,opt.subprocess_run)
-    if back_version < (3,3) or opt.time_monotonic:
-        if not opt.no_time_monotonic:
-            want.time_monotonic = max(1, opt.time_monotonic)
-    if back_version < (3,3) or opt.import_pathlib2:
-        if not opt.no_import_pathlib2:
-            want.import_pathlib2 = max(1, opt.import_pathlib2)
-    if back_version < (3,9) or opt.import_backports_zoneinfo:
-        if not opt.no_import_backports_zoneinfo:
-            want.import_backports_zoneinfo = max(1, opt.import_backports_zoneinfo)
-    if back_version < (3,11) or opt.import_toml:
-        if not opt.no_import_toml:
-            want.import_toml = max(1, opt.import_toml)
-    if opt.show:
-        logg.log(NOTE, "%s = %s", "python-version-int", back_version)
-        logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
-        logg.log(NOTE, "%s = %s", "define-basestring", want.define_basestring)
-        logg.log(NOTE, "%s = %s", "define-range", want.define_range)
-        logg.log(NOTE, "%s = %s", "define-callable", want.define_callable)
-        logg.log(NOTE, "%s = %s", "define-print-function", want.define_print_function)
-        logg.log(NOTE, "%s = %s", "define-float-division", want.define_float_division)
-        logg.log(NOTE, "%s = %s", "define-absolute-import", want.define_absolute_import)
-        logg.log(NOTE, "%s = %s", "replace-fstring", want.replace_fstring)
-        logg.log(NOTE, "%s = %s", "remove-keywordsonly", want.remove_keywordonly)
-        logg.log(NOTE, "%s = %s", "remove-positionalonly", want.remove_positional)
-        logg.log(NOTE, "%s = %s", "remove-pyi-positionalonly", want.remove_pyi_positional)
-        logg.log(NOTE, "%s = %s", "remove-var-typehints", want.remove_var_typehints)
-        logg.log(NOTE, "%s = %s", "remove-typehints", want.remove_typehints)
-    if opt.dump:
-        want.show_dump = int(opt.dump)
-    eachfile = EACH_REMOVE3 if opt.remove3 else 0
-    eachfile |= EACH_APPEND2 if opt.append2 else 0
-    eachfile |= EACH_INPLACE if opt.inplace else 0
-    make_pyi = opt.pyi or opt.append2 or opt.remove3 or opt.inplace
-    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not opt.no_pyi, minversion=back_version)
 
 if __name__ == "__main__":
     sys.exit(main())
