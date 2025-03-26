@@ -2551,8 +2551,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
-        from __future__ import division
-        from __future__ import print_function
+        from __future__ import division, print_function
         import sys
         
         def func1(x):
@@ -2576,9 +2575,7 @@ class StripTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         py = file_text4(F"{tmp}/test.py")
         self.assertEqual(py, text4("""
-        from __future__ import absolute_import
-        from __future__ import division
-        from __future__ import print_function
+        from __future__ import absolute_import, division, print_function
         from .exceptions import MyException
         
         def func1(x):

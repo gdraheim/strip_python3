@@ -766,9 +766,13 @@ class DetectImports(ast.NodeTransformer):
         return self.generic_visit(node)
 
 class RequireImportFrom:
-    def __init__(self, require: List[str]) -> None:
-        self.require = require
+    def __init__(self, require: Optional[List[str]] = None) -> None:
+        self.require = require if require is not None else []
+    def add(self, *require: str) -> None:
+        self.require += list(require)
     def visit(self, node: ast.AST) -> ast.AST:
+        if not self.require:
+            return node
         imports = DetectImports()
         imports.visit(node)
         newimport: List[str] = []
@@ -790,28 +794,36 @@ class RequireImportFrom:
         module = cast(ast.Module, node)  # type: ignore[redundant-cast]
         body: List[ast.stmt] = []
         done = False
-        if not imports.importfrom:
+        mods: Dict[str, List[str]] = {}
+        for new in newimport:
+            mod, func = new.split(".", 1)
+            if mod not in mods:
+                mods[mod] = []
+            mods[mod].append(func)
+
+        if not imports.imported:
+            # have no Import/ImportFrom in file
             for stmt in module.body:
                 if isinstance(stmt, (ast.Comment, ast.Constant)):
+                    # find first being not a Comment/String
                     body.append(stmt)
                 elif done:
                     body.append(stmt)
                 else:
-                    for new in newimport:
-                        mod, func = new.split(".", 1)
-                        body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
+                    for mod, funcs in mods.items():
+                        body.append(ast.ImportFrom(mod, [ast.alias(name=func) for func in sorted(funcs)], 0))
                     body.append(stmt)
                     done = True
         else:
             for stmt in module.body:
                 if not isinstance(stmt, ast.ImportFrom) and not isinstance(stmt, ast.Import):
+                    # find first Import/ImportFrom
                     body.append(stmt)
                 elif done:
                     body.append(stmt)
                 else:
-                    for new in newimport:
-                        mod, func = new.split(".", 1)
-                        body.append(ast.ImportFrom(mod, [ast.alias(name=func)], 0))
+                    for mod, funcs in mods.items():
+                        body.append(ast.ImportFrom(mod, [ast.alias(name=func) for func in sorted(funcs)], 0))
                     body.append(stmt)
                     done = True
         module.body = body
@@ -1636,21 +1648,29 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         if want.replace_fstring:
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
-        if OK: # was only running if some replacements were requested
-            calls = DetectFunctionCalls()
-            calls.visit(tree)
-            if want.show_dump:
-                logg.log(HINT, "detected module imports:\n%s", "\n".join(calls.imported.keys()))
-                logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
-            if "callable" in calls.found and want.define_callable:
+        requires = RequireImportFrom()
+        calls = DetectFunctionCalls()
+        calls.visit(tree)
+        if want.show_dump:
+            logg.log(HINT, "detected module imports:\n%s", "\n".join(calls.imported.keys()))
+            logg.log(HINT, "detected function calls:\n%s", "\n".join(calls.found.keys()))
+        if want.define_callable:
+            if "callable" in calls.found:
                 defs1 = DefineIfPython3(["def callable(x): return hasattr(x, '__call__')"], before=(3,2))
                 tree = defs1.visit(tree)
             if "print" in calls.found and want.define_print_function:
-                defprint = RequireImportFrom(["__future__.print_function"])
-                tree = defprint.visit(tree)
-            if calls.divs and want.define_float_division:
-                defdivs = RequireImportFrom(["__future__.division"])
-                tree = defdivs.visit(tree)
+                requires.add("__future__.print_function")
+        if want.define_float_division:
+            if calls.divs:
+                requires.add("__future__.division")
+        if want.define_absolute_import:
+            imps = DetectImports()
+            imps.visit(tree)
+            relative = [imp for imp in imps.importfrom if imp.startswith(".")]
+            if relative:
+                requires.add("__future__.absolute_import")
+        tree = requires.visit(tree)
+        if OK:
             if "datetime.datetime.fromisoformat" in calls.found and want.datetime_fromisoformat:
                 datetime_module = calls.imported["datetime.datetime"]
                 fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
@@ -1754,13 +1774,6 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                    orelse=text4("import tomllib") if tomllibname == "tomllib" else text4(F"""import tomllib as {tomllibname}"""))
                 tomllibdrop = DetectFunctionCalls(noimport=["tomllib"])
                 tree = tomllibdef.visit(tomllibdrop.visit(tree))
-        if want.define_absolute_import:
-            imps = DetectImports()
-            imps.visit(tree)
-            relative = [imp for imp in imps.importfrom if imp.startswith(".")]
-            if relative:
-                defimps = RequireImportFrom(["__future__.absolute_import"])
-                tree = defimps.visit(tree)
         if want.define_range:
             calls = DetectFunctionCalls()
             calls.visit(tree)
