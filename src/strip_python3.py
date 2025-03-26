@@ -1279,6 +1279,7 @@ class FStringToFormat(ast.NodeTransformer):
         return make
 
 class StripHints(ast.NodeTransformer):
+    """ check all ClassDef, Function and AnnAssign in the source tree """
     typing: Set[str]
     removed: Set[str]
     def __init__(self) -> None:
@@ -1405,10 +1406,15 @@ class StripHints(ast.NodeTransformer):
         func2 = copy_location(func2, func)
         return self.generic_visit(func2)
 
-class TypeHints:
+class StripTypeHints:
+    """ modify only the outer interface - global def, global class with methods """
     pyi: List[ast.stmt]
+    typing: Set[str]
+    removed: Set[str]
     def __init__(self) -> None:
         self.pyi = []
+        self.typing = set()
+        self.removed = set()
     def visit(self, node: ast.AST) -> ast.AST:
         if isinstance(node, ast.Module):
             body: List[ast.stmt] = []
@@ -1448,40 +1454,54 @@ class TypeHints:
                             if OK:
                                 for arg in funcdef1.args.posonlyargs:
                                     logg.debug("pos arg: %s", ast.dump(arg))
-                                    posonlyargs1.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
+                                    new1 = types36_remove_typehints(arg.annotation)
+                                    posonlyargs1.append(ast.arg(arg.arg, new1.annotation))
+                                    self.typing.update(new1.typing)
+                                    self.removed.update(new1.removed)
                             if OK:
                                 for arg in funcdef1.args.args:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    functionargs1.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
+                                    new1 = types36_remove_typehints(arg.annotation)
+                                    functionargs1.append(ast.arg(arg.arg, new1.annotation))
+                                    self.typing.update(new1.typing)
+                                    self.removed.update(new1.removed)
                             if OK:
                                 for arg in funcdef1.args.kwonlyargs:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    kwonlyargs1.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
+                                    new1 = types36_remove_typehints(arg.annotation)
+                                    kwonlyargs1.append(ast.arg(arg.arg, new1.annotation))
+                                    self.typing.update(new1.typing)
+                                    self.removed.update(new1.removed)
                             if vararg1 is not None:
                                 if vararg1.annotation:
                                     annos += 1
-                                vararg1 = ast.arg(vararg1.arg)
+                                new1 = types36_remove_typehints(vararg1.annotation)
+                                vararg1 = ast.arg(vararg1.arg, new1.annotation)
+                                self.typing.update(new1.typing)
+                                self.removed.update(new1.removed)
                             if kwarg1 is not None:
                                 if kwarg1.annotation:
                                     annos += 1
-                                kwarg1 = ast.arg(kwarg1.arg)
+                                new1 = types36_remove_typehints(kwarg1.annotation)
+                                kwarg1 = ast.arg(kwarg1.arg, new1.annotation)
+                                self.typing.update(new1.typing)
+                                self.removed.update(new1.removed)
                             if not annos and not funcdef1.returns:
                                 body.append(funcdef1)
                             else:
                                 logg.debug("args: %s", ast.dump(funcdef1.args))
-                                if not want.remove_typehints:
-                                    rets2 = funcdef1.returns
-                                    args2 = funcdef1.args
-                                else:
-                                    rets2 = None
-                                    args2 = ast.arguments(posonlyargs1, functionargs1, vararg1, kwonlyargs1, # ..
-                                           funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
+                                newret = types36_remove_typehints(funcdef1.returns)
+                                self.typing.update(newret.typing)
+                                self.removed.update(newret.removed)
+                                rets2 = newret.annotation
+                                args2 = ast.arguments(posonlyargs1, functionargs1, vararg1, kwonlyargs1, # ..
+                                    funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
                                 funcdef2 = ast.FunctionDef(funcdef1.name, args2, funcdef1.body, funcdef1.decorator_list, rets2)
                                 funcdef2 = copy_location(funcdef2, funcdef1)
                                 body.append(funcdef2)
@@ -1496,6 +1516,8 @@ class TypeHints:
                                 self.pyi.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
                     logg.debug("class: %s", ast.dump(child))
+                    classname = child.name
+                    preclass: Dict[str, ast.stmt] = {}
                     stmt: List[ast.stmt] = []
                     decl: List[ast.stmt] = []
                     for part in child.body:
@@ -1525,40 +1547,60 @@ class TypeHints:
                             if OK:
                                 for arg in func.args.posonlyargs:
                                     logg.debug("pos arg: %s", ast.dump(arg))
-                                    posonlyargs.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
+                                    new1 = types36_remove_typehints(arg.annotation, classname)
+                                    posonlyargs.append(ast.arg(arg.arg, new1.annotation))
+                                    self.typing.update(new1.typing)
+                                    self.removed.update(new1.removed)
+                                    preclass.update(new1.preclass)
                             if OK:
                                 for arg in func.args.args:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    functionargs.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
+                                    new1 = types36_remove_typehints(arg.annotation, classname)
+                                    functionargs.append(ast.arg(arg.arg, new1.annotation))
+                                    self.typing.update(new1.typing)
+                                    self.removed.update(new1.removed)
+                                    preclass.update(new1.preclass)
                             if OK:
                                 for arg in func.args.kwonlyargs:
                                     logg.debug("fun arg: %s", ast.dump(arg))
-                                    kwonlyargs.append(ast.arg(arg.arg))
                                     if arg.annotation:
                                         annos += 1
+                                    new1 = types36_remove_typehints(arg.annotation, classname)
+                                    kwonlyargs.append(ast.arg(arg.arg, new1.annotation))
+                                    self.typing.update(new1.typing)
+                                    self.removed.update(new1.removed)
+                                    preclass.update(new1.preclass)
                             if vargarg is not None:
                                 if vargarg.annotation:
                                     annos += 1
-                                vargarg = ast.arg(vargarg.arg)
+                                new1 = types36_remove_typehints(vargarg.annotation, classname)
+                                vargarg = ast.arg(vargarg.arg, new1.annotation)
+                                self.typing.update(new1.typing)
+                                self.removed.update(new1.removed)
+                                preclass.update(new1.preclass)
                             if kwarg is not None:
                                 if kwarg.annotation:
                                     annos += 1
-                                kwarg = ast.arg(kwarg.arg)
+                                new1 = types36_remove_typehints(kwarg.annotation, classname)
+                                kwarg = ast.arg(kwarg.arg, new1.annotation)
+                                self.typing.update(new1.typing)
+                                self.removed.update(new1.removed)
+                                preclass.update(new1.preclass)
                             if not annos and not func.returns:
                                 stmt.append(func)
                             else:
                                 logg.debug("args: %s", ast.dump(func.args))
-                                if not want.remove_typehints:
-                                    rets2 = func.returns
-                                    args2 = func.args
-                                else:
-                                    rets2 = None
-                                    args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
-                                           func.args.kw_defaults, kwarg, func.args.defaults)
+                                newret = types36_remove_typehints(func.returns, classname)
+                                self.typing.update(newret.typing)
+                                self.removed.update(newret.removed)
+                                preclass.update(new1.preclass)
+                                rets2 = newret.annotation
+                                args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
+                                       func.args.kw_defaults, kwarg, func.args.defaults)
                                 func2 = ast.FunctionDef(func.name, args2, func.body, func.decorator_list, rets2)
                                 func2 = copy_location(func2, func)
                                 stmt.append(func2)
@@ -1575,6 +1617,10 @@ class TypeHints:
                             stmt.append(part)
                     if not stmt:
                         stmt.append(ast.Pass())
+                    for preclassname in sorted(preclass):
+                        preclassdef = preclass[preclassname]
+                        logg.log(DEBUG_TYPING, "preclass: %s", ast.dump(preclassdef))
+                        body.append(preclassdef)
                     class2 = ast.ClassDef(child.name, child.bases, child.keywords, stmt, child.decorator_list)
                     body.append(class2)
                     if decl:
@@ -1802,10 +1848,12 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             text = f.read()
         typingrequires = RequireImportFrom()
         tree1 = ast.parse(text)
-        types = TypeHints()
-        tree = types.visit(tree1)
+        striptypes = StripTypeHints()
+        tree = striptypes.visit(tree1)
         striphints = StripHints()
         tree = striphints.visit(tree)
+        typingrequires.importfrom("typing", *striptypes.typing)
+        typingrequires.removefrom("typing", *striptypes.removed)
         typingrequires.importfrom("typing", *striphints.typing)
         typingrequires.removefrom("typing", *striphints.removed)
         if want.replace_fstring:
@@ -2008,7 +2056,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 type_ignores: List[TypeIgnore] = []
                 if isinstance(tree1, ast.Module):
                     type_ignores = tree1.type_ignores
-                typehints = pyi_module(types.pyi, type_ignores=type_ignores)
+                typehints = pyi_module(striptypes.pyi, type_ignores=type_ignores)
                 done = ast.unparse(typehints)
                 if out in ["", ".", "-"]:
                     print("## typehints:")
