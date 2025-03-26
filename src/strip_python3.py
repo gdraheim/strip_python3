@@ -1597,7 +1597,7 @@ class StripTypeHints:
                                 newret = types36_remove_typehints(func.returns, classname)
                                 self.typing.update(newret.typing)
                                 self.removed.update(newret.removed)
-                                preclass.update(new1.preclass)
+                                preclass.update(newret.preclass)
                                 rets2 = newret.annotation
                                 args2 = ast.arguments(posonlyargs, functionargs, vargarg, kwonlyargs, # ..
                                        func.args.kw_defaults, kwarg, func.args.defaults)
