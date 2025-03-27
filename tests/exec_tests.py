@@ -279,10 +279,43 @@ class StripPythonExecTest(unittest.TestCase):
         x1 = X(F"{python} {testdir}/test4.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "22")
-        x1 = X(F"{python} -m mypy {testdir}/test4.py")
+        if MYPY:
+            x2 = X(F"{MYPY} --strict {testdir}/test4.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertTrue(greps(x2.out, "Incompatible types in assignment"))
+            self.assertEqual(x2.returncode, 1)
+            self.rm_testdir()
+    def test_1102(self) -> None:
+        """ check that we can run python"""
+        vv = self.begin()
+        python = PYTHON
+        python3 = PYTHON3
+        testdir = self.testdir()
+        text_file(F"{testdir}/test3.py", """
+        class A:
+           a: int
+           b: str
+           def __init(self, a: int, b:str) -> None:
+              self.a = a
+              self.b = b
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{testdir}/test.py"))
+        self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
+        text_file(F"{testdir}/test4.py", """
+        import test
+        x = test.A()
+        x.a = 22
+        print(x.a)
+        """)
+        x1 = X(F"{python} {testdir}/test4.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
-        self.assertTrue(greps(x1.err, "no module named mypy", "No module named mypy"))
-        self.rm_testdir()
+        self.assertEqual(x1.out, "22")
+        if MYPY:
+            x2 = X(F"{MYPY} --strict {testdir}/test4.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertTrue(greps(x2.out, "no issues found"))
+            self.assertEqual(x2.returncode, 0)
     def test_1331(self) -> None:
         """ check that we can print() in python"""
         vv = self.begin()
