@@ -23,10 +23,13 @@ all: help
 help:
 	$(PYTHON) $F --help
 
-checks: test test27 test36 test39 test311
-check39: ; $(MAKE) test PYTHON=python3.9
+checks: test test27 test36 test39 test310 test311 test312 test11
+check39: ; test ! -f /usr/bin/python3.9 || $(MAKE) test PYTHON=python3.9
+check10: ; test ! -f /usr/bin/python3.10 || $(MAKE) test PYTHON=python3.10
+check11: ; test ! -f /usr/bin/python3.11 || $(MAKE) test PYTHON=python3.11
+check12: ; test ! -f /usr/bin/python3.12 || $(MAKE) test PYTHON=python3.12
 check3: ; $(MAKE) test
-check: check3 check39
+check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
 test: ; $(PYTHON) $(TESTS) $V $@
@@ -37,12 +40,16 @@ EXECS= tests/exec_tests.py
 test_1%: ; $(PYTHON) $(EXECS) $V $@
 st_1%: ; $(PYTHON) $(EXECS) $V te$@ --coverage
 
-test27: ; $(MAKE) test_/27
-test36: ; $(MAKE) test_/36
-test39: ; $(MAKE) test_/39
-test311: ; $(MAKE) test_/311
+test27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
+test36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
+test39: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
+test310: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
+test311: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
+test312: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
+test11: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
 
 test%/27:
+	: echo ========== python2 = $@ =====================================
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
@@ -54,6 +61,7 @@ test%/27:
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/36:
+	: echo ========== python3 = $@ =====================================
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
@@ -65,6 +73,7 @@ test%/36:
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/39:
+	: echo ========== python3.9 = $@ =====================================
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
@@ -75,7 +84,8 @@ test%/39:
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
-test%/311:
+test%/310:
+	: echo ========== python3.10 = $@ =====================================
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
@@ -83,10 +93,35 @@ test%/311:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.10 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.10 --python3=/usr/bin/python3.10 $(COVERAGE1) $V
+	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
+	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
+test%/311:
+	: echo ========== python3.11 = $@ =====================================
+	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
+	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
+	$(DOCKER) cp $(EXECS) $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
+	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
+	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
+	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
+test%/312:
+	: echo ========== python3.12 = $@ =====================================
+	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
+	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
+	$(DOCKER) cp $(EXECS) $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
+	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.12 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.12 --python3=/usr/bin/python3.12 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/11:
+	: echo =========== mypy-3.11 + python3.11 = $@ =====================================
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
@@ -94,7 +129,7 @@ test%/11:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 --mypy=mypy-3.11 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 --mypy=mypy-3.11 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 
@@ -173,6 +208,8 @@ python39: $(CONTAINER)/test39
 python310: $(CONTAINER)/test310
 python311: $(CONTAINER)/test311
 python312: $(CONTAINER)/test312
+python311: $(CONTAINER)/test11
+
 
 $(CONTAINER)/testt27: ; $(DOCKER_IMAGE) FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc python2" TEST "python2 --version"
 $(CONTAINER)/testt36: ; $(DOCKER_IMAGE) FROM ubuntu:18.04 INTO $@ INSTALL "python3 psmisc" TEST "python3 --version"
@@ -186,7 +223,7 @@ $(CONTAINER)/test311: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "
 $(CONTAINER)/test11: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 python311-mypy" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:$(PYTHON39) TEST "$(PYTHON39) --version" TEST "python3 --version" TEST "mypy-3.11 --version"
 
 mypython: $(CONTAINER)/test11
-python: stop python27 python36 python39 python311
+python: stop python27 python36 python39 python311 python11
 stop:
 	$(DOCKER) ps -q -f status=exited | xargs --no-run-if-empty $(DOCKER) rm
 	$(DOCKER) ps -q -f name=test | xargs --no-run-if-empty $(DOCKER) rm -f
