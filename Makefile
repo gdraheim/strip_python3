@@ -86,7 +86,17 @@ test%/311:
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
-
+test%/11:
+	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
+	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) mkdir -p /src
+	$(DOCKER) cp $(EXECS) $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
+	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 --mypy=mypy-3.11 $(COVERAGE1) $V
+	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
+	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 
 coverage:
 	$(PYTHON) $(TESTS) $V --coverage
@@ -172,10 +182,10 @@ $(CONTAINER)/test312: ; $(DOCKER_IMAGE) FROM ubuntu:24.04 INTO $@ INSTALL "pytho
 $(CONTAINER)/test27:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 procps psmisc python2" TEST "$(PYTHON39) --version" TEST "python2 --version"
 $(CONTAINER)/test36:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "python39 python3" TEST "$(PYTHON39) --version" TEST "python3 --version"
 $(CONTAINER)/test39:  ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python39" SYMLINK /usr/bin/python3.9:python3 TEST "$(PYTHON39) --version" TEST "python3 --version" 
-$(CONTAINER)/test311: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 $(EXTRA)" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:$(PYTHON39) TEST "$(PYTHON39) --version" TEST "python3 --version"
-$(CONTAINER)/test3111: ; $(MAKE) $(CONTAINER)/test311 EXTRA=python311-mypy
+$(CONTAINER)/test311: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:$(PYTHON39) TEST "$(PYTHON39) --version" TEST "python3 --version"
+$(CONTAINER)/test11: ; $(DOCKER_IMAGE) FROM opensuse/leap:15.6 INTO $@ SEARCH "setuptools mypy toml" INSTALL "procps psmisc python311 python311-mypy" SYMLINK /usr/bin/python3.11:python3 SYMLINK /usr/bin/python3.11:$(PYTHON39) TEST "$(PYTHON39) --version" TEST "python3 --version" TEST "mypy-3.11 --version"
 
-mypython: $(CONTAINER)/test3111
+mypython: $(CONTAINER)/test11
 python: stop python27 python36 python39 python311
 stop:
 	$(DOCKER) ps -q -f status=exited | xargs --no-run-if-empty $(DOCKER) rm

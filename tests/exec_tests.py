@@ -39,6 +39,7 @@ COVERAGE = False
 IMAGE= "ubuntu:22.04"
 PYTHON="python3"
 PYTHON3="python3.9"
+MYPY=""
 STRIP="src/strip_python3.py"
 VV="-vv"
 
@@ -292,12 +293,17 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{testdir}/test.py"))
+        self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
         script = lines4(open(F"{testdir}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, " print_function"))
         x1 = X(F"{python} {testdir}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "hello world")
+        if MYPY:
+            x2 = X(F"{MYPY} --strict {testdir}/test.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
     def test_1341(self) -> None:
@@ -311,11 +317,16 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{testdir}/test.py"))
+        self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
         script = lines4(open(F"{testdir}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, " division"))
         x1 = X(F"{python} {testdir}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        if MYPY:
+            x2 = X(F"{MYPY} --strict {testdir}/test.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
     def test_1351(self) -> None:
@@ -341,6 +352,7 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{testdir}/test.py"))
+        self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
         script = lines4(open(F"{testdir}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, " absolute_import"))
@@ -348,6 +360,12 @@ class StripPythonExecTest(unittest.TestCase):
         x1 = X(F"{python} -m main", env={b"PYTHONPATH": testdir})
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "=> test") # TODO
+        if MYPY:
+            text_file(F"{testdir}/test4.py", """
+            import test""")
+            x2 = X(F"{MYPY} --strict {testdir}/test4.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertTrue(greps(x2.err, "is not a valid Python package name"))
         self.rm_testdir()
         self.end()
     def test_1401(self) -> None:
@@ -357,18 +375,28 @@ class StripPythonExecTest(unittest.TestCase):
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
         from datetime import datetime
-        def func1(x: x) -> datetime:
+        def func1(x: str) -> datetime:
             return datetime.fromisoformat(x)
         print(func1("2024-12-01").strftime("%Y%m%dx"))
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
+        types = lines4(open(F"{tmp}/test.pyi").read())
+        logg.info("types = %s", types)
+
         self.assertTrue(greps(script, "def datetime_fromisoformat"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "20241201x")
+        if MYPY:
+            text_file(F"{tmp}/test4.py", """
+            import test""")
+            x2 = X(F"{MYPY} --strict {tmp}/test4.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
     def test_1402(self) -> None:
@@ -641,6 +669,7 @@ if __name__ == "__main__":
                   help="use another python3 engine [%default]")
     _o.add_option("-p", "--python", metavar="EXE", default=PYTHON,
                   help="use another python engine [%default]")
+    _o.add_option("--mypy", metavar="EXE", default=MYPY, help="mypy tool is available")
     _o.add_option("-a", "--coverage", action="count", default=0,
                   help="gather coverage.py data (use -aa for new set) [%default]")
     _o.add_option("-l", "--logfile", metavar="FILE", default="",
@@ -667,6 +696,7 @@ if __name__ == "__main__":
     DOCKER = opt.docker
     PYTHON = opt.python
     PYTHON3 = opt.python3
+    MYPY = opt.mypy
     VV = "-v" + ("v" * opt.verbose)
     #
     if opt.chdir:
