@@ -631,6 +631,8 @@ class StripPythonExecTest(unittest.TestCase):
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
+        pyi = lines4(open(F"{tmp}/test.pyi").read())
+        logg.info("pyi = %s", pyi)
         self.assertTrue(greps(script, "pathlib2 as pt"))
         self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
