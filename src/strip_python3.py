@@ -28,6 +28,7 @@ else:
             tomllib = None # type: ignore[assignment]
 DEBUG_TOML = logging.DEBUG
 DEBUG_TYPING = logging.DEBUG
+DEBUG_COPY = logging.INFO
 NIX = ""
 OK = True
 
@@ -1317,7 +1318,7 @@ class DetectHints(ast.NodeTransformer):
         if assign.annotation:
             self.hints.append(assign.annotation)
             self.classes.update(types_in_annotation(assign.annotation))
-        return None
+        return node
     def visit_FunctionDef(self, node: ast.FunctionDef) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         func: ast.FunctionDef = node
         logg.debug("?func: %s", ast.dump(func))
@@ -1919,9 +1920,9 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
     py2_imports.visit(py2)
     pyi_hints = DetectHints()
     pyi_hints.visit(pyi)
-    logg.fatal("found pyi used classes = %s", pyi_hints.classes)
-    logg.fatal("py1 imported %s", py1_imports.imported.values())
-    logg.fatal("py2 imported %s", py2_imports.imported.values())
+    logg.log(DEBUG_COPY, "found pyi used classes = %s", pyi_hints.classes)
+    logg.log(DEBUG_COPY, "py1 imported %s", py1_imports.imported.values())
+    logg.log(DEBUG_COPY, "py2 imported %s", py2_imports.imported.values())
     requiredimports = RequireImportFrom()
     for name in pyi_hints.classes:
         if name in py1_imports.imported.values():
