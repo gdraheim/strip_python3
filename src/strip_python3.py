@@ -1286,8 +1286,16 @@ class DetectAnnotation(ast.NodeVisitor):
     def __init__(self) -> None:
         ast.NodeVisitor.__init__(self)
         self.names = dict()
+    def visit_Attribute(self, node: ast.Attribute) -> ast.Attribute: # pylint: disable=invalid-name
+        if isinstance(node.value, ast.Name):
+            name = node.value.id
+            if node.attr:
+                name += "." + node.attr
+            self.names[name] = NIX
+        return node
     def visit_Name(self, node: ast.Name) -> ast.Name: # pylint: disable=invalid-name
-        self.names[node.id] = NIX
+        name = node.id
+        self.names[name] = NIX
         return node
 
 def types_in_annotation(annotation: ast.expr) -> Dict[str, str]:
@@ -1923,19 +1931,42 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
     logg.log(DEBUG_COPY, "found pyi used classes = %s", pyi_hints.classes)
     logg.log(DEBUG_COPY, "py1 imported %s", py1_imports.imported.values())
     logg.log(DEBUG_COPY, "py2 imported %s", py2_imports.imported.values())
-    requiredimports = RequireImportFrom()
+    requiredimport = RequireImport()
+    requiredimportfrom = RequireImportFrom()
     for name in pyi_hints.classes:
-        if name in py1_imports.imported.values():
-            imps = [key for key, value in py1_imports.imported.items() if value == name]
-            logg.info("found %s in py1: %s", name, imps)
-            for imp in imps:
-                requiredimports.add(imp)
-        if name in py2_imports.imported.values():
-            imps = [key for key, value in py2_imports.imported.items() if value == name]
-            logg.info("found %s in py2: %s", name, imps)
-            for imp in imps:
-                requiredimports.add(imp)
-    return cast(ast.Module, requiredimports.visit(pyi))
+        done = False
+        if not done:
+            if name in py1_imports.imported.values():
+                imps = [key for key, value in py1_imports.imported.items() if value == name]
+                logg.info("found %s in py1: %s", name, imps)
+                for imp in imps:
+                    requiredimportfrom.add(imp)
+                    done = True
+        if not done:
+            if name in py2_imports.imported.values():
+                imps = [key for key, value in py2_imports.imported.items() if value == name]
+                logg.info("found %s in py2: %s", name, imps)
+                for imp in imps:
+                    requiredimportfrom.add(imp)
+                    done = True
+        if not done and "." in name:
+            libname, _symbol = name.rsplit(".", 1)
+            if libname in py1_imports.imported.values():
+                imps = [key for key, value in py1_imports.imported.items() if value == libname]
+                logg.info("libname %s in py1: %s", libname, imps)
+                for imp in imps:
+                    requiredimport.add(imp)
+                    done = True
+        if not done and "." in name:
+            libname, _symbol = name.rsplit(".", 1)
+            if libname in py2_imports.imported.values():
+                imps = [key for key, value in py2_imports.imported.items() if value == libname]
+                logg.info("libname %s in py2: %s", libname, imps)
+                for imp in imps:
+                    requiredimport.add(imp)
+                    done = True
+
+    return cast(ast.Module, requiredimportfrom.visit(requiredimport.visit(pyi)))
 
 # ............................................................................... MAIN
 

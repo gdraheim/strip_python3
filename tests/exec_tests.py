@@ -612,8 +612,6 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"pathlib" is not defined'):
-                self.skipTest("TODO: pyi needs import pathlib")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
