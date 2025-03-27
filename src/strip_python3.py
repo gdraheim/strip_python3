@@ -743,10 +743,12 @@ class WhileWalrusTransformer(BlockTransformer):
             return [node]
 
 class DetectImports(ast.NodeTransformer):
+    importfrom: Dict[str, Dict[str, str]]
+    imported: Dict[str, str]
     def __init__(self) -> None:
         ast.NodeTransformer.__init__(self)
-        self.importfrom: Dict[str, Dict[str, str]] = {}
-        self.imported: Dict[str, str] = {}
+        self.importfrom = {}
+        self.imported = {}
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.ImportFrom = node
         if imports.module:
@@ -1278,6 +1280,76 @@ class FStringToFormat(ast.NodeTransformer):
         make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
         return make
 
+class DetectAnnotation(ast.NodeVisitor):
+    names: Dict[str, str]
+    def __init__(self) -> None:
+        ast.NodeVisitor.__init__(self)
+        self.names = dict()
+    def visit_Name(self, node: ast.Name) -> ast.Name: # pylint: disable=invalid-name
+        self.names[node.id] = NIX
+        return node
+
+def types_in_annotation(annotation: ast.expr) -> Dict[str, str]:
+    detect = DetectAnnotation()
+    detect.visit(annotation)
+    return detect.names
+
+class DetectHints(ast.NodeTransformer):
+    """ only check all ClassDef, Function and AnnAssign in the source tree """
+    typing: Dict[str, str]
+    classes: Dict[str, str]
+    hints: List[ast.expr]
+    def __init__(self) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.typing = dict()
+        self.classes = dict()
+        self.hints = list()
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.ImportFrom = cast(ast.ImportFrom, node) # type: ignore[redundant-cast]
+        logg.debug("?imports: %s", ast.dump(imports))
+        if imports.module == "typing":
+            for symbol in imports.names:
+                self.typing[symbol.asname or symbol.name] = F"typing.{symbol.name}"
+        return node # unchanged no recurse
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        assign: ast.AnnAssign = cast(ast.AnnAssign, node)  # type: ignore[redundant-cast]
+        logg.debug("?assign: %s", ast.dump(assign))
+        if assign.annotation:
+            self.hints.append(assign.annotation)
+            self.classes.update(types_in_annotation(assign.annotation))
+        return None
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        func: ast.FunctionDef = node
+        logg.debug("?func: %s", ast.dump(func))
+        vargarg = func.args.vararg
+        kwarg = func.args.kwarg
+        return_annotation = func.returns
+        for arg in func.args.posonlyargs:
+            if arg.annotation:
+                self.hints.append(arg.annotation)
+                self.classes.update(types_in_annotation(arg.annotation))
+        for arg in func.args.args:
+            if arg.annotation:
+                self.hints.append(arg.annotation)
+                self.classes.update(types_in_annotation(arg.annotation))
+        for arg in func.args.kwonlyargs:
+            if arg.annotation:
+                self.hints.append(arg.annotation)
+                self.classes.update(types_in_annotation(arg.annotation))
+        if vargarg is not None:
+            if vargarg.annotation:
+                self.hints.append(vargarg.annotation)
+                self.classes.update(types_in_annotation(vargarg.annotation))
+        if kwarg is not None:
+            if kwarg.annotation:
+                self.hints.append(kwarg.annotation)
+                self.classes.update(types_in_annotation(kwarg.annotation))
+        if OK:
+            if return_annotation:
+                self.hints.append(return_annotation)
+                self.classes.update(types_in_annotation(return_annotation))
+        return self.generic_visit(node)
+
 class StripHints(ast.NodeTransformer):
     """ check all ClassDef, Function and AnnAssign in the source tree """
     typing: Set[str]
@@ -1723,6 +1795,7 @@ def types36_remove_var_typehints(ann: Optional[ast.expr], classname: Optional[st
 
 
 def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = None) -> ast.Module:
+    """ generates the *.pyi part - based on the output of StripTypeHints """
     type_ignores1: List[TypeIgnore] = type_ignores if type_ignores is not None else []
     typing_extensions: List[str] = []
     typing_require: Set[str] = set()
@@ -1831,10 +1904,37 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
     oldimports = [typ for typ in typing_extensions if typ not in typing_removed]
     newimports = [typ for typ in typing_require if typ not in oldimports]
     if newimports or oldimports:
+        # these are effecivly only the generated from-typing imports coming from downgrading the builtin types
         imports = ast.ImportFrom(module="typing", names=[ast.alias(name) for name in sorted(newimports + oldimports)], level=0)
         body = [imports] + body
     typehints = ast.Module(body, type_ignores=type_ignores1)
     return typehints
+
+def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
+    pyi_imports = DetectImports()
+    pyi_imports.visit(pyi)
+    py1_imports = DetectImports()
+    py1_imports.visit(py1)
+    py2_imports = DetectImports()
+    py2_imports.visit(py2)
+    pyi_hints = DetectHints()
+    pyi_hints.visit(pyi)
+    logg.fatal("found pyi used classes = %s", pyi_hints.classes)
+    logg.fatal("py1 imported %s", py1_imports.imported.values())
+    logg.fatal("py2 imported %s", py2_imports.imported.values())
+    requiredimports = RequireImportFrom()
+    for name in pyi_hints.classes:
+        if name in py1_imports.imported.values():
+            imps = [key for key, value in py1_imports.imported.items() if value == name]
+            logg.info("found %s in py1: %s", name, imps)
+            for imp in imps:
+                requiredimports.add(imp)
+        if name in py2_imports.imported.values():
+            imps = [key for key, value in py2_imports.imported.items() if value == name]
+            logg.info("found %s in py2: %s", name, imps)
+            for imp in imps:
+                requiredimports.add(imp)
+    return cast(ast.Module, requiredimports.visit(pyi))
 
 # ............................................................................... MAIN
 
@@ -2057,6 +2157,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 if isinstance(tree1, ast.Module):
                     type_ignores = tree1.type_ignores
                 typehints = pyi_module(striptypes.pyi, type_ignores=type_ignores)
+                typehints = pyi_copy_imports(typehints, tree1, tree)
                 done = ast.unparse(typehints)
                 if out in ["", ".", "-"]:
                     print("## typehints:")

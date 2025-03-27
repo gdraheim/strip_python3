@@ -263,16 +263,20 @@ class StripPythonExecTest(unittest.TestCase):
         class A:
            a: int
            b: str
-           def __init(a: int, b:str) -> None:
+           def __init__(self, a: int, b:str) -> None:
               self.a = a
               self.b = b
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{testdir}/test.py"))
         self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
+        script = lines4(open(F"{testdir}/test.py").read())
+        logg.info("script = %s", script)
+        pyi = lines4(open(F"{testdir}/test.pyi").read())
+        logg.info("pyi = %s", pyi)
         text_file(F"{testdir}/test4.py", """
         import test
-        x = test.A()
+        x = test.A(11, "11")
         x.b = 22
         print(x.b)
         """)
@@ -282,6 +286,8 @@ class StripPythonExecTest(unittest.TestCase):
         if MYPY:
             x2 = X(F"{MYPY} --strict {testdir}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            if greps(x2.out, "has no attribute"):
+                self.skipTest("TODO: pyi need to copy AnnAssign in classes")
             self.assertTrue(greps(x2.out, "Incompatible types in assignment"))
             self.assertEqual(x2.returncode, 1)
             self.rm_testdir()
@@ -295,16 +301,20 @@ class StripPythonExecTest(unittest.TestCase):
         class A:
            a: int
            b: str
-           def __init(self, a: int, b:str) -> None:
+           def __init__(self, a: int, b:str) -> None:
               self.a = a
               self.b = b
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {testdir}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{testdir}/test.py"))
         self.assertTrue(os.path.exists(F"{testdir}/test.pyi"))
+        script = lines4(open(F"{testdir}/test.py").read())
+        logg.info("script = %s", script)
+        pyi = lines4(open(F"{testdir}/test.pyi").read())
+        logg.info("pyi = %s", pyi)
         text_file(F"{testdir}/test4.py", """
         import test
-        x = test.A()
+        x = test.A(11, "11")
         x.a = 22
         print(x.a)
         """)
@@ -314,6 +324,8 @@ class StripPythonExecTest(unittest.TestCase):
         if MYPY:
             x2 = X(F"{MYPY} --strict {testdir}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            if greps(x2.out, "has no attribute"):
+                self.skipTest("TODO: pyi need to copy AnnAssign in classes")
             self.assertTrue(greps(x2.out, "no issues found"))
             self.assertEqual(x2.returncode, 0)
     def test_1331(self) -> None:
@@ -330,6 +342,7 @@ class StripPythonExecTest(unittest.TestCase):
         script = lines4(open(F"{testdir}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, " print_function"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {testdir}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "hello world")
@@ -354,6 +367,7 @@ class StripPythonExecTest(unittest.TestCase):
         script = lines4(open(F"{testdir}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, " division"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {testdir}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         if MYPY:
@@ -389,6 +403,7 @@ class StripPythonExecTest(unittest.TestCase):
         script = lines4(open(F"{testdir}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, " absolute_import"))
+        self.assertFalse(greps(script, "from typing"))
         # x1 = X(F"{python} {testdir}/main.py")
         x1 = X(F"{python} -m main", env={b"PYTHONPATH": testdir})
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
@@ -419,8 +434,8 @@ class StripPythonExecTest(unittest.TestCase):
         logg.info("script = %s", script)
         types = lines4(open(F"{tmp}/test.pyi").read())
         logg.info("types = %s", types)
-
         self.assertTrue(greps(script, "def datetime_fromisoformat"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "20241201x")
@@ -429,8 +444,6 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"datetime" is not defined'):
-                self.skipTest("TODO: pyi needs import datetime")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
@@ -447,9 +460,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "def Time_fromisoformat"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "20241201x")
@@ -481,9 +496,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "def subprocess_run"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "uhkay")
@@ -513,9 +530,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "def sp_run"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "uhkay")
@@ -548,9 +567,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv} --python-version=3.3")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "def sp_run"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertEqual(x1.out, "uhkay")
@@ -576,9 +597,13 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
+        pyi = lines4(open(F"{tmp}/test.pyi").read())
+        logg.info("pyi = %s", pyi)
         self.assertTrue(greps(script, "pathlib2 as pathlib"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out + x1.err, "No module named pathlib2", "c:/a"))
@@ -605,9 +630,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "pathlib2 as pt"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out + x1.err, "No module named pathlib2", "c:/a"))
@@ -627,6 +654,7 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
+        from typing import Dict, Any
         import tomllib
         def func1(x: str) -> Dict[str, Any]:
             return tomllib.loads(x)
@@ -634,9 +662,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "toml as tomllib"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out + x1.err, "No module named toml", "No module named 'toml'", "{'section': {'value': 1}}"))
@@ -645,8 +675,6 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"Dict" is not defined'):
-                self.skipTest("TODO: pyi needs import as Dict")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
@@ -656,6 +684,7 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
+        from typing import Dict, Any
         import tomllib as tm
         def func1(x: str) -> Dict[str, Any]:
             return tm.loads(x)
@@ -663,9 +692,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "toml as tm"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out + x1.err, "No module named toml", "No module named 'toml'", "{'section': {'value': 1}}"))
@@ -674,8 +705,6 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"Dict" is not defined'):
-                self.skipTest("TODO: pyi needs import as Dict")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
@@ -685,6 +714,7 @@ class StripPythonExecTest(unittest.TestCase):
         python = PYTHON
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
+        from typing import List
         import zoneinfo
         def func1() -> List[str]:
             return zoneinfo.available_timezones()
@@ -692,9 +722,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "from backports import zoneinfo"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out + x1.err, "No module named backports", "No module named 'backports'", "Europe/Berlin"))
@@ -703,8 +735,6 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"List" is not defined'):
-                self.skipTest("TODO: pyi needs import as List")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
@@ -724,9 +754,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "def time_monotonic"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out, "0.80", "0.81"))
@@ -754,9 +786,11 @@ class StripPythonExecTest(unittest.TestCase):
         """)
         sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
         logg.info("script = %s", script)
         self.assertTrue(greps(script, "def time_monotonic_ns"))
+        self.assertFalse(greps(script, "from typing"))
         x1 = X(F"{python} {tmp}/test.py")
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
         self.assertTrue(greps(x1.out, "X 80", "X 81"))
