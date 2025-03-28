@@ -1353,7 +1353,7 @@ class StripTest(unittest.TestCase):
                return y
         def foo() -> None:
            a: int 
-           class B:
+           class Z:
               b: int
               c: str
               def __add__(self, y: dict[str, int]) -> dict[str, int]:
@@ -1381,7 +1381,7 @@ class StripTest(unittest.TestCase):
         def foo() -> None:
             a: int
 
-            class B:
+            class Z:
                 b: int
                 c: str
             
@@ -1404,7 +1404,7 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: List[str], /, a: int = 0, *, b: int = 0) -> List[str]:
                return [self.c] + y
         def foo() -> None:
-            class B:
+            class Z:
                 b: int
                 c: str
                 def __add__(self, y: List[str], /, a: int = 0, *, b: int = 0) -> List[str]:
@@ -1425,7 +1425,7 @@ class StripTest(unittest.TestCase):
 
         def foo():
 
-            class B:
+            class Z:
         
                 def __add__(self, y, a=0, b=0):
                     return [self.c] + y
@@ -1458,7 +1458,7 @@ class StripTest(unittest.TestCase):
                return [self.c] + y
         def foo() -> None:
             a: int 
-            class B:
+            class Z:
                 b: int
                 c: str
                 def __add__(self, y: list[str], /, a: int = 0, *, b: int = 0) -> list[str]:
@@ -1479,7 +1479,7 @@ class StripTest(unittest.TestCase):
         
         def foo():
 
-            class B:
+            class Z:
     
                 def __add__(self, y, a=0, b=0):
                     return [self.c] + y
@@ -1514,7 +1514,7 @@ class StripTest(unittest.TestCase):
             return [self.c] + y
         def foo() -> None:
           a: int 
-          class B:
+          class Z:
             b: int
             c: str
             def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int = 0) -> list[str]:
@@ -1537,7 +1537,7 @@ class StripTest(unittest.TestCase):
         
         def foo():
 
-            class B:
+            class Z:
        
                 def __add__(self, y, a=0, b=0):
                     return [self.c] + y
@@ -1573,7 +1573,7 @@ class StripTest(unittest.TestCase):
                return [self.c] + y
         def foo() -> None:
            a: int 
-           class B:
+           class Z:
               b: int
               c: str
               def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | str = 0) -> list[str]:
@@ -1598,7 +1598,7 @@ class StripTest(unittest.TestCase):
         
         def foo():
 
-            class B:
+            class Z:
         
                 def __add__(self, y, a=0, b=0):
                     x = int(b)
@@ -1635,7 +1635,7 @@ class StripTest(unittest.TestCase):
                return [self.c] + y
         def foo() -> None:
            a: int 
-           class B:
+           class Z:
               b: int
               c: str
               def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> list[str]:
@@ -1660,7 +1660,7 @@ class StripTest(unittest.TestCase):
 
         def foo():
 
-            class B:
+            class Z:
         
                 def __add__(self, y, a=0, b=0):
                     x = int(b)
@@ -1696,7 +1696,7 @@ class StripTest(unittest.TestCase):
                return self
         def foo() -> None:
            a: int 
-           class B:
+           class Z:
               b: int
               c: str
               def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> Self:
@@ -1721,7 +1721,7 @@ class StripTest(unittest.TestCase):
         
         def foo():
 
-            class B:
+            class Z:
         
                 def __add__(self, y, a=0, b=0):
                     x = int(b)
@@ -1758,7 +1758,7 @@ class StripTest(unittest.TestCase):
                return a
         def foo() -> None:
            a: int 
-           class B:
+           class Z:
               b: int
               c: str
               def __add__(self, y: list[str], /, a: Self, *, b: int | None = 0) -> Self:
@@ -1783,7 +1783,7 @@ class StripTest(unittest.TestCase):
         
         def foo():
         
-            class B:
+            class Z:
         
                 def __add__(self, y, a, b=0):
                     x = int(b)
@@ -1917,7 +1917,7 @@ class StripTest(unittest.TestCase):
                 x = int(b)
                 return [self.c] + y
         def foo() -> None:
-            class X:
+            class Z:
                 a: int 
 
                 def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> list[str]:
@@ -1944,7 +1944,7 @@ class StripTest(unittest.TestCase):
 
         def foo() -> None:
 
-            class X:
+            class Z:
                 a: int
 
                 def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
