@@ -16,6 +16,7 @@ AST4_PY = src/strip_ast_comments.py
 TESTS_PY = tests/python3_transformations.py
 TESTS = $(TESTS_PY) --python=$(PYTHON)
 CONTAINER = strip-py
+TODO=
 V=-v
 
 all: help
@@ -23,23 +24,28 @@ all: help
 help:
 	$(PYTHON) $F --help
 
+todo2: ; $(MAKE) check2 TODO=--todo
+todo1: ; $(MAKE) check1 TODO=--todo
+todos: ; $(MAKE) checks TODO=--todo
 checks: test test27 test36 test39 test310 test311 test312 test11
 check39: ; test ! -f /usr/bin/python3.9 || $(MAKE) test PYTHON=python3.9
 check10: ; test ! -f /usr/bin/python3.10 || $(MAKE) test PYTHON=python3.10
 check11: ; test ! -f /usr/bin/python3.11 || $(MAKE) test PYTHON=python3.11
 check12: ; test ! -f /usr/bin/python3.12 || $(MAKE) test PYTHON=python3.12
 check3: ; $(MAKE) test
+check2: ; $(MAKE) test11 || $(MAKE) test27 || $(MAKE) test36
 check1: ; $(MAKE) check39 || $(MAKE) check10 || $(MAKE) check11 || $(MAKE) check12
 check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
-test: ; $(PYTHON) $(TESTS) $V $@
-test_0%: ; $(PYTHON) $(TESTS) $V $@ --failfast
-st_0%: ; $(PYTHON) $(TESTS) $V te$@ --coverage
+todo: ; $(MAKE) test TODO=--todo
+test: ; $(PYTHON) $(TESTS) $V $@ $(TODO)
+test_0%: ; $(PYTHON) $(TESTS) $V $@ $(TODO) --failfast
+st_0%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) --coverage
 
 EXECS= tests/exec_tests.py
-test_1%: ; $(PYTHON) $(EXECS) $V $@
-st_1%: ; $(PYTHON) $(EXECS) $V te$@ --coverage
+test_1%: ; $(PYTHON) $(EXECS) $V $@ $(TODO)
+st_1%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) --coverage
 
 test27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
 test36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_/$(subst test,,$@)
@@ -58,7 +64,7 @@ test%/27:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python2 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python2 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/36:
@@ -70,7 +76,7 @@ test%/36:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/39:
@@ -82,7 +88,7 @@ test%/39:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) $(PYTHON39) /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/310:
@@ -94,7 +100,7 @@ test%/310:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.10 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.10 --python3=/usr/bin/python3.10 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.10 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.10 --python3=/usr/bin/python3.10 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/311:
@@ -106,7 +112,7 @@ test%/311:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/312:
@@ -118,7 +124,7 @@ test%/312:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.12 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.12 --python3=/usr/bin/python3.12 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.12 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.12 --python3=/usr/bin/python3.12 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/11:
@@ -130,7 +136,7 @@ test%/11:
 	$(DOCKER) cp src/strip_ast_comments.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) cp src/strip_python3.py $(CONTAINER)-python$(notdir $@):/src/
 	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) chmod +x /src/strip_python3.py
-	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 --mypy=mypy-3.11 $(COVERAGE1) $V
+	$(DOCKER) exec $(CONTAINER)-python$(notdir $@) python3.11 /$(notdir $(EXECS)) -vv $(dir $@) --python=/usr/bin/python3.11 --python3=/usr/bin/python3.11 --mypy=mypy-3.11 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 

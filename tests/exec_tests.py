@@ -32,7 +32,7 @@ _sed = "sed"
 DOCKER = "docker"
 KEEP = False
 SOMETIME = 222
-TODO = False
+TODO = 0
 DOCKER_SOCKET = "/var/run/docker.sock"
 IMAGES = "localhost:5000/strip3/testing"
 COVERAGE = False
@@ -403,7 +403,7 @@ class StripPythonExecTest(unittest.TestCase):
         # x1 = X(F"{python} {testdir}/main.py")
         x1 = X(F"{python} -m main", env={b"PYTHONPATH": testdir})
         logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
-        self.assertEqual(x1.out, "=> test") # TODO
+        self.assertEqual(x1.out, "=> test")
         if MYPY:
             text_file(F"{testdir}/test4.py", """
             import test""")
@@ -637,7 +637,7 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"pt" is not defined'):
+            if greps(x2.out, '"pt" is not defined') and not TODO:
                 self.skipTest("TODO: pyi needs import as pt")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
@@ -815,6 +815,8 @@ if __name__ == "__main__":
                   help="gather coverage.py data (use -aa for new set) [%default]")
     _o.add_option("-l", "--logfile", metavar="FILE", default="",
                   help="additionally save the output log to a file [%default]")
+    _o.add_option("--todo", action="count", default=TODO,
+                  help="show when an alternative outcome is desired [%default]")
     _o.add_option("--keep", action="count", default=KEEP,
                   help="keep tempdir and other data after testcase [%default]")
     _o.add_option("--failfast", action="store_true", default=False,
@@ -823,8 +825,6 @@ if __name__ == "__main__":
                   help="capture results as a junit xml file [%default]")
     _o.add_option("--sometime", metavar="SECONDS", default=SOMETIME,
                   help="SOMETIME=%default (use 666)")
-    _o.add_option("--todo", action="store_true", default=TODO,
-                  help="enable TODO outtakes [%default])")
     _o.add_option("-f", "--force", action="store_true", default=False,
                   help="enable the skipped IMAGE and PYTHON versions [%default])")
     _o.add_option("-C", "--chdir", metavar="PATH", default="",
