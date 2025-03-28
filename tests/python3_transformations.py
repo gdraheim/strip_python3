@@ -3573,7 +3573,6 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    @unittest.expectedFailure
     def test_0455(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
@@ -3593,18 +3592,19 @@ class StripTest(unittest.TestCase):
         py = file_text4(F"{tmp}/test.py")
         logg.debug("py:\n%s", py)
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys, time
         from time import sleep
         if sys.version_info >= (3, 7):
-            from time import monotonic_ns
+            time_monotonic_ns = time.monotonic_ns
         else:
-            from time import time as _time_time
-            def monotonic_ns():
-                return int((_time_time() - 946684800) * 1000000000)
+
+            def time_monotonic_ns():
+                return int((time.time() - 946684800) * 1000000000)
 
         def func1():
-            started = monotonic_ns()
+            started = time_monotonic_ns()
             sleep(0.8)
-            stopped = monotonic_ns()
+            stopped = time_monotonic_ns()
             return stopped - started
         """)))
         self.coverage()

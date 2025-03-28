@@ -124,6 +124,7 @@ class Want:
     datetime_fromisoformat = to_int(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
     subprocess_run = to_int(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
     time_monotonic = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
+    time_monotonic_ns = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC_NS", os.environ.get("PYTHON3_TIME_MONOTONIC", NIX)))
     import_pathlib2 = to_int(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
     import_backports_zoneinfo = to_int(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
     import_toml = to_int(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
@@ -150,6 +151,7 @@ def read_defaults(*files: str) -> Dict[str, Union[str, int]]:
         "datetime-fromisoformat": 0, "no-datetime-fromisoformat": 0, # ..
         "subprocess-run": 0, "no-subprocess-run": 0,  # ..
         "time-monotonic": 0, "no-time-monotonic": 0,  # ..
+        "time-monotonic-ns": 0, "no-time-monotonic-ns": 0,  # ..
         "import-pathlib2": 0, "no-import-pathlib2": 0,  # ..
         "import-backports-zoneinfo": 0, "no-import-backports-zoneinfo": 0, # ..
         "import-toml": 0, "no-import-toml": 0,  # ..
@@ -237,6 +239,7 @@ def main() -> int:
     cmdline.add_option("--no-datetime-fromisoformat", action="count", default=defs["no-datetime-fromisoformat"], help="3.7 datetime.fromisoformat")
     cmdline.add_option("--no-subprocess-run", action="count", default=defs["no-subprocess-run"], help="3.5 subprocess.run")
     cmdline.add_option("--no-time-monotonic", action="count", default=defs["no-time-monotonic"], help="3.3 time.monotonic")
+    cmdline.add_option("--no-time-monotonic-ns", action="count", default=defs["no-time-monotonic-ns"], help="3.7 time.monotonic_ns")
     cmdline.add_option("--no-import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 pathlib to python2 pathlib2")
     cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=defs["no-import-backports-zoneinfo"], help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=defs["no-import-toml"], help="3.11 tomllib to external toml")
@@ -258,6 +261,7 @@ def main() -> int:
     cmdline.add_option("--datetime-fromisoformat", action="count", default=defs["datetime-fromisoformat"], help="3.7 datetime.fromisoformat or boilerplate")
     cmdline.add_option("--subprocess-run", action="count", default=defs["subprocess-run"], help="3.5 subprocess.run or use boilerplate")
     cmdline.add_option("--time-monotonic", action="count", default=defs["time-monotonic"], help="3.3 time.monotonic or use time.time")
+    cmdline.add_option("--time-monotonic-ns", action="count", default=defs["time-monotonic-ns"], help="3.7 time.monotonic_ns or use time.time")
     cmdline.add_option("--import-pathlib2", action="count", default=defs["no-import-pathlib2"], help="3.3 import pathlib2 as pathlib")
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=defs["import-backports-zoneinfo"], help="3.9 import zoneinfo from backports")
     cmdline.add_option("--import-toml", action="count", default=defs["import-toml"], help="3.11 import toml as tomllib")
@@ -362,6 +366,9 @@ def main() -> int:
     if back_version < (3,3) or opt.time_monotonic:
         if not opt.no_time_monotonic:
             want.time_monotonic = max(1, opt.time_monotonic)
+    if back_version < (3,7) or opt.time_monotonic_ns or opt.time_monotonic:
+        if not opt.no_time_monotonic_ns:
+            want.time_monotonic_ns = max(1, opt.time_monotonic_ns)
     if back_version < (3,3) or opt.import_pathlib2:
         if not opt.no_import_pathlib2:
             want.import_pathlib2 = max(1, opt.import_pathlib2)
@@ -798,9 +805,14 @@ class RequireImportFrom:
     def append(self, requires: List[str]) -> None:
         for req in requires:
             self.require[req] = None
+    def remove(self, removes: List[str]) -> None:
+        for req in removes:
+            self.removes[req] = None
     def visit(self, node: ast.AST) -> ast.AST:
-        if not self.require:
+        if not self.require and not self.removes:
             return node
+        logg.debug("-- import require: %s", self.require)
+        logg.debug("-- import removes: %s", self.removes)
         imports = DetectImports()
         imports.visit(node)
         newimport: List[str] = []
@@ -1008,7 +1020,8 @@ class DetectFunctionCalls(ast.NodeTransformer):
         ast.NodeTransformer.__init__(self)
         self.imported: Dict[str, str] = {}
         self.importas: Dict[str, str] = {}
-        self.found: Dict[str, int] = {}
+        self.found: Dict[str, str] = {} # funcname to callname
+        self.calls: Dict[str, str] = {} # callname to funcname
         self.divs: int = 0
         self.replace = replace if replace is not None else {}
         self.noimport = noimport if noimport is not None else []
@@ -1040,26 +1053,26 @@ class DetectFunctionCalls(ast.NodeTransformer):
         calls: ast.Call = node
         if isinstance(calls.func, ast.Name):
             call1: ast.Name = calls.func
-            logg.debug("found call1: %s", call1.id)
             callname = call1.id
-            if callname not in self.found:
-                self.found[callname] = 0
-            self.found[callname] += 1
-            if callname in self.replace:
-                return ast.Call(func=ast.Name(self.replace[callname]), args=calls.args, keywords=calls.keywords)
+            funcname = callname if callname not in self.importas else self.importas[callname]
+            logg.debug("found call1: %s -> %s", callname, funcname)
+            self.found[funcname] = callname
+            self.calls[callname] = funcname
+            if funcname in self.replace:
+                return ast.Call(func=ast.Name(self.replace[funcname]), args=calls.args, keywords=calls.keywords)
         elif isinstance(calls.func, ast.Attribute):
             call2: ast.Attribute = calls.func
             if isinstance(call2.value, ast.Name):
                 call21: ast.Name = call2.value
                 module2 = call21.id
                 if module2 in self.importas:
-                    logg.debug("found call2: %s.%s", module2, call2.attr)
-                    callname = self.importas[module2] + "." + call2.attr
-                    if callname not in self.found:
-                        self.found[callname] = 0
-                    self.found[callname] += 1
-                    if callname in self.replace:
-                        return ast.Call(func=ast.Name(self.replace[callname]), args=calls.args, keywords=calls.keywords)
+                    callname = module2 + "." + call2.attr
+                    funcname = self.importas[module2] + "." + call2.attr
+                    logg.debug("found call2: %s -> %s", callname, funcname)
+                    self.found[funcname] = callname
+                    self.calls[callname] = funcname
+                    if funcname in self.replace:
+                        return ast.Call(func=ast.Name(self.replace[funcname]), args=calls.args, keywords=calls.keywords)
                 else:
                     logg.debug("skips call2: %s.%s", module2, call2.attr)
                     logg.debug("have imports: %s", ", ".join(self.importas.keys()))
@@ -1069,13 +1082,13 @@ class DetectFunctionCalls(ast.NodeTransformer):
                     call31: ast.Name = call3.value
                     module3 = call31.id + "." + call3.attr
                     if module3 in self.importas:
-                        logg.debug("found call3: %s.%s", module3, call2.attr)
-                        callname = self.importas[module3] + "." + call2.attr
-                        if callname not in self.found:
-                            self.found[callname] = 0
-                        self.found[callname] += 1
-                        if callname in self.replace:
-                            return ast.Call(func=ast.Name(self.replace[callname]), args=calls.args, keywords=calls.keywords)
+                        callname = module3 + "." + call2.attr
+                        funcname = self.importas[module3] + "." + call2.attr
+                        logg.debug("found call3: %s -> %s", callname, funcname)
+                        self.found[funcname] = callname
+                        self.calls[callname] = funcname
+                        if funcname in self.replace:
+                            return ast.Call(func=ast.Name(self.replace[funcname]), args=calls.args, keywords=calls.keywords)
                     else:
                         logg.debug("skips call3: %s.%s", module3, call2.attr)
                         logg.debug("have imports: %s", ", ".join(self.importas.keys()))
@@ -2031,6 +2044,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             fstring = FStringToFormat()
             tree = fstring.visit(tree)
         importrequires = RequireImport()
+        importrequiresfrom = RequireImportFrom()
         calls = DetectFunctionCalls()
         calls.visit(tree)
         if want.show_dump:
@@ -2062,6 +2076,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
                 importrequires.append(isoformatdef.requires)
+                importrequiresfrom.remove(["datetime.datetime.fromisoformat"])
         if want.subprocess_run:
             if "subprocess.run" in calls.found:
                 subprocess_module = calls.imported["subprocess"]
@@ -2111,6 +2126,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
                 importrequires.append(subprocessrundef.requires)
+                importrequiresfrom.remove(["subprocess.run"])
         if want.time_monotonic:
             if "time.monotonic" in calls.found:
                 time_module = calls.imported["time"]
@@ -2120,14 +2136,21 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 monotonicfunc = DetectFunctionCalls({"time.monotonic": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
                 importrequires.append(monotonicdef.requires)
+                importrequiresfrom.remove(["time.monotonic"])
+        if want.time_monotonic_ns:
             if "time.monotonic_ns" in calls.found:
-                time_module = calls.imported["time"]
+                if "time" in calls.imported:
+                    time_module = calls.imported["time"]
+                else:
+                    time_module = "time"
+                    importrequires.append(["time"])
                 defname = time_module + "_monotonic_ns"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
                    orelse=F"def {defname}(): return int((time.time() - 946684800) * 1000000000)")
                 monotonicfunc = DetectFunctionCalls({"time.monotonic_ns": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
                 importrequires.append(monotonicdef.requires)
+                importrequiresfrom.remove(["time.monotonic_ns"])
         if want.import_pathlib2:
             if "pathlib" in calls.imported:
                 logg.log(HINT, "detected pathlib")
@@ -2187,6 +2210,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             relative = [imp for imp in imps.importfrom if imp.startswith(".")]
             if relative:
                 futurerequires.add("__future__.absolute_import")
+        tree = importrequiresfrom.visit(tree)
         tree = importrequires.visit(tree)
         tree = typingrequires.visit(tree)
         tree = futurerequires.visit(tree)
