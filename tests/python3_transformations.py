@@ -954,6 +954,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, y: int = 1) -> int:
                return self.b + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int = 2
+              c: str
+              def __add__(self, y: int = 1) -> int:
+                 return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -966,7 +973,15 @@ class StripTest(unittest.TestCase):
             b = 2
             
             def __add__(self, y=1):
-                return self.b + y"""))
+                return self.b + y
+                
+        def foo():
+
+            class Z:
+                b = 2
+            
+                def __add__(self, y=1):
+                    return self.b + y"""))
         self.assertEqual(pyi, text4("""
         a: int
         
@@ -975,7 +990,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: int=1) -> int:
-                pass"""))
+                pass
+
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0142(self) -> None:
@@ -989,6 +1007,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, *, y: int = 1) -> int:
                return self.b + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int = 2
+              c: str
+              def __add__(self, *, y: int = 1) -> int:
+                 return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1001,7 +1026,15 @@ class StripTest(unittest.TestCase):
             b = 2
             
             def __add__(self, y=1):
-                return self.b + y"""))
+                return self.b + y
+        
+        def foo():
+            
+            class Z:
+                b = 2
+            
+                def __add__(self, y=1):
+                    return self.b + y"""))
         self.assertEqual(pyi, text4("""
         a: int
         
@@ -1010,7 +1043,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, *, y: int=1) -> int:
-                pass"""))
+                pass
+        
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0143(self) -> None:
@@ -1024,6 +1060,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, *, y: int = 1) -> int:
                return self.b + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int = 2
+              c: str
+              def __add__(self, *, y: int = 1) -> int:
+                 return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv} --py36")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1039,7 +1082,17 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, *, y: int=1) -> int:
-                return self.b + y"""))
+                return self.b + y
+                
+        def foo() -> None:
+            a: int
+        
+            class Z:
+                b: int = 2
+                c: str
+            
+                def __add__(self, *, y: int=1) -> int:
+                    return self.b + y"""))
         self.coverage()
         self.rm_testdir()
     def test_0144(self) -> None:
@@ -1053,6 +1106,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, *, y: int = 1) -> int:
                return self.b + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int = 2
+              c: str
+              def __add__(self, *, y: int = 1) -> int:
+                  return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv} --python-version 3.5")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1065,7 +1125,15 @@ class StripTest(unittest.TestCase):
             b = 2
            
             def __add__(self, *, y: int=1) -> int:
-                return self.b + y"""))
+                return self.b + y
+
+        def foo() -> None:
+
+            class Z:
+                b = 2
+           
+                def __add__(self, *, y: int=1) -> int:
+                    return self.b + y"""))
         self.assertEqual(pyi, text4("""
         a: int
         
@@ -1074,7 +1142,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, *, y: int=1) -> int:
-                pass"""))
+                pass
+
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0145(self) -> None:
@@ -1088,6 +1159,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, *, y: int = 1) -> int:
                return self.b + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int = 2
+              c: str
+              def __add__(self, *, y: int = 1) -> int:
+                 return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv} --python-version 3.5 --no-pyi")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1100,7 +1178,16 @@ class StripTest(unittest.TestCase):
             b = 2
            
             def __add__(self, *, y: int=1) -> int:
-                return self.b + y"""))
+                return self.b + y
+        
+        def foo() -> None:
+
+            class Z:
+                b = 2
+           
+                def __add__(self, *, y: int=1) -> int:
+                    return self.b + y
+               """))
         self.coverage()
         self.rm_testdir()
 
