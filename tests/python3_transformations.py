@@ -1118,6 +1118,16 @@ class StripTest(unittest.TestCase):
                def twice(u: str) -> str:
                    return u + u
                return self.c + double(x) + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int
+              c: str
+              def __add__(self, y: str) -> str:
+                 x: str = "v"
+                 def twice(u: str) -> str:
+                    return u + u
+                 return self.c + double(x) + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1133,7 +1143,19 @@ class StripTest(unittest.TestCase):
         
                 def twice(u):
                     return u + u
-                return self.c + double(x) + y"""))
+                return self.c + double(x) + y
+        
+        def foo():
+
+            class Z:
+            
+                def __add__(self, y):
+                    x = 'v'
+        
+                    def twice(u):
+                        return u + u
+                    return self.c + double(x) + y
+            """))
         self.assertEqual(pyi, text4("""
         a: int
         
@@ -1142,7 +1164,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: str) -> str:
-                pass"""))
+                pass
+            
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0151(self) -> None:
@@ -1157,6 +1182,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, y: List[str]) -> List[str]:
                return [self.c] + y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int
+              c: str
+              def __add__(self, y: List[str]) -> List[str]:
+                 return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1169,6 +1201,13 @@ class StripTest(unittest.TestCase):
         
             def __add__(self, y):
                 return [self.c] + y
+
+        def foo():
+
+            class Z:
+        
+                def __add__(self, y):
+                    return [self.c] + y
         """))
         self.assertEqual(pyi, text4("""
         from typing import List
@@ -1179,7 +1218,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str]) -> List[str]:
-                pass"""))
+                pass
+        
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0152(self) -> None:
@@ -1195,6 +1237,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
                y[self.c] = self.b
                return y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int
+              c: str
+              def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
+                y[self.c] = self.b
+                return y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1208,6 +1258,14 @@ class StripTest(unittest.TestCase):
             def __add__(self, y):
                 y[self.c] = self.b
                 return y
+        
+        def foo():
+
+            class Z:
+        
+                def __add__(self, y):
+                    y[self.c] = self.b
+                    return y
         """))
         self.assertEqual(pyi, text4("""
         from typing import Dict
@@ -1218,7 +1276,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
-                pass"""))
+                pass
+        
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0153(self) -> None:
@@ -1233,6 +1294,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: dict[str, int]) -> dict[str, int]:
                y[self.c] = self.b
                return y
+        def foo() -> None:
+           a: int 
+           class Z:
+              b: int
+              c: str
+              def __add__(self, y: dict[str, int]) -> dict[str, int]:
+                 y[self.c] = self.b
+                 return y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1246,6 +1315,14 @@ class StripTest(unittest.TestCase):
             def __add__(self, y):
                 y[self.c] = self.b
                 return y
+
+        def foo():
+
+            class Z:
+        
+                def __add__(self, y):
+                    y[self.c] = self.b
+                    return y
         """))
         self.assertEqual(pyi, text4("""
         from typing import Dict
@@ -1256,7 +1333,10 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
-                pass"""))
+                pass
+        
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
     def test_0154(self) -> None:
@@ -1271,6 +1351,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: dict[str, int]) -> dict[str, int]:
                y[self.c] = self.b
                return y
+        def foo() -> None:
+           a: int 
+           class B:
+              b: int
+              c: str
+              def __add__(self, y: dict[str, int]) -> dict[str, int]:
+                 y[self.c] = self.b
+                 return y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1288,7 +1376,18 @@ class StripTest(unittest.TestCase):
             
             def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
                 y[self.c] = self.b
-                return y"""))
+                return y
+        
+        def foo() -> None:
+            a: int
+
+            class B:
+                b: int
+                c: str
+            
+                def __add__(self, y: Dict[str, int]) -> Dict[str, int]:
+                    y[self.c] = self.b
+                    return y"""))
         self.coverage()
         self.rm_testdir()
 
