@@ -34,6 +34,7 @@ STRIP = "src/strip_python3.py"
 PYTHON = "python3.11"
 COVERAGE = 0
 KEEP = 0
+TODO = 0
 OK = True
 NIX = ""
 LONGER = 2
@@ -1291,7 +1292,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0161(self) -> None:
+    def test_0171(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1303,6 +1304,12 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, y: List[str], /, a: int = 0, *, b: int = 0) -> List[str]:
                return [self.c] + y
+        def foo() -> None:
+            class B:
+                b: int
+                c: str
+                def __add__(self, y: List[str], /, a: int = 0, *, b: int = 0) -> List[str]:
+                    return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1316,6 +1323,13 @@ class StripTest(unittest.TestCase):
         
             def __add__(self, y, a=0, b=0):
                 return [self.c] + y
+
+        def foo():
+
+            class B:
+        
+                def __add__(self, y, a=0, b=0):
+                    return [self.c] + y
         """))
         self.assertEqual(pyi, text4("""
         from typing import List
@@ -1326,10 +1340,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: int=0, *, b: int=0) -> List[str]:
-                pass"""))
+                pass
+
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0162(self) -> None:
+    def test_0172(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1340,6 +1357,13 @@ class StripTest(unittest.TestCase):
            c: str
            def __add__(self, y: list[str], /, a: int = 0, *, b: int = 0) -> list[str]:
                return [self.c] + y
+        def foo() -> None:
+            a: int 
+            class B:
+                b: int
+                c: str
+                def __add__(self, y: list[str], /, a: int = 0, *, b: int = 0) -> list[str]:
+                    return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1353,6 +1377,13 @@ class StripTest(unittest.TestCase):
         
             def __add__(self, y, a=0, b=0):
                 return [self.c] + y
+        
+        def foo():
+
+            class B:
+    
+                def __add__(self, y, a=0, b=0):
+                    return [self.c] + y
         """))
         self.assertEqual(pyi, text4("""
         from typing import List
@@ -1363,10 +1394,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: int=0, *, b: int=0) -> List[str]:
-                pass"""))
+                pass
+
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0163(self) -> None:
+    def test_0173(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1375,10 +1409,17 @@ class StripTest(unittest.TestCase):
         from pydantic import Field
         a: int 
         class B:
-           b: int
-           c: str
-           def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int = 0) -> list[str]:
-               return [self.c] + y
+          b: int
+          c: str
+          def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int = 0) -> list[str]:
+            return [self.c] + y
+        def foo() -> None:
+          a: int 
+          class B:
+            b: int
+            c: str
+            def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int = 0) -> list[str]:
+              return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1394,6 +1435,13 @@ class StripTest(unittest.TestCase):
         
             def __add__(self, y, a=0, b=0):
                 return [self.c] + y
+        
+        def foo():
+
+            class B:
+       
+                def __add__(self, y, a=0, b=0):
+                    return [self.c] + y
         """))
         self.assertEqual(pyi, text4("""
         from typing import List
@@ -1404,10 +1452,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: int=0, *, b: int=0) -> List[str]:
-                pass"""))
+                pass
+
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0164(self) -> None:
+    def test_0174(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1421,6 +1472,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | str = 0) -> list[str]:
                x = int(b)
                return [self.c] + y
+        def foo() -> None:
+           a: int 
+           class B:
+              b: int
+              c: str
+              def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | str = 0) -> list[str]:
+                 x = int(b)
+                 return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1437,6 +1496,14 @@ class StripTest(unittest.TestCase):
             def __add__(self, y, a=0, b=0):
                 x = int(b)
                 return [self.c] + y
+        
+        def foo():
+
+            class B:
+        
+                def __add__(self, y, a=0, b=0):
+                    x = int(b)
+                    return [self.c] + y
         """))
         self.assertEqual(pyi, text4("""
         from typing import List, Union
@@ -1447,10 +1514,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: int=0, *, b: Union[int, str]=0) -> List[str]:
-                pass"""))
+                pass
+
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0165(self) -> None:
+    def test_0175(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1464,6 +1534,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> list[str]:
                x = int(b)
                return [self.c] + y
+        def foo() -> None:
+           a: int 
+           class B:
+              b: int
+              c: str
+              def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> list[str]:
+                 x = int(b)
+                 return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1480,6 +1558,14 @@ class StripTest(unittest.TestCase):
             def __add__(self, y, a=0, b=0):
                 x = int(b)
                 return [self.c] + y
+
+        def foo():
+
+            class B:
+        
+                def __add__(self, y, a=0, b=0):
+                    x = int(b)
+                    return [self.c] + y
         """))
         self.assertEqual(pyi, text4("""
         from typing import List, Optional
@@ -1490,10 +1576,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
-                pass"""))
+                pass
+        
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0166(self) -> None:
+    def test_0176(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1506,6 +1595,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> Self:
                x = int(b)
                return self
+        def foo() -> None:
+           a: int 
+           class B:
+              b: int
+              c: str
+              def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int | None = 0) -> Self:
+                 x = int(b)
+                 return self
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1522,6 +1619,14 @@ class StripTest(unittest.TestCase):
             def __add__(self, y, a=0, b=0):
                 x = int(b)
                 return self
+        
+        def foo():
+
+            class B:
+        
+                def __add__(self, y, a=0, b=0):
+                    x = int(b)
+                    return self
         """))
         self.assertEqual(pyi, text4("""
         from typing import List, Optional, TypeVar
@@ -1533,10 +1638,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> SelfB:
-                pass"""))
+                pass
+        
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0167(self) -> None:
+    def test_0177(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1549,6 +1657,14 @@ class StripTest(unittest.TestCase):
            def __add__(self, y: list[str], /, a: Self, *, b: int | None = 0) -> Self:
                x = int(b)
                return a
+        def foo() -> None:
+           a: int 
+           class B:
+              b: int
+              c: str
+              def __add__(self, y: list[str], /, a: Self, *, b: int | None = 0) -> Self:
+                 x = int(b)
+                 return a
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1565,6 +1681,14 @@ class StripTest(unittest.TestCase):
             def __add__(self, y, a, b=0):
                 x = int(b)
                 return a
+        
+        def foo():
+        
+            class B:
+        
+                def __add__(self, y, a, b=0):
+                    x = int(b)
+                    return a
         """))
         self.assertEqual(pyi, text4("""
         from typing import List, Optional, TypeVar
@@ -1576,10 +1700,13 @@ class StripTest(unittest.TestCase):
             c: str
             
             def __add__(self, y: List[str], a: SelfB, *, b: Optional[int]=0) -> SelfB:
-                pass"""))
+                pass
+            
+        def foo() -> None:
+            pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0175(self) -> None:
+    def test_0185(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1613,7 +1740,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0176(self) -> None:
+    def test_0186(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1647,7 +1774,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0177(self) -> None:
+    def test_0187(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1677,7 +1804,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0178(self) -> None:
+    def test_0197(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1690,6 +1817,13 @@ class StripTest(unittest.TestCase):
             def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> list[str]:
                 x = int(b)
                 return [self.c] + y
+        def foo() -> None:
+            class X:
+                a: int 
+
+                def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> list[str]:
+                    x = int(b)
+                    return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1708,10 +1842,19 @@ class StripTest(unittest.TestCase):
             def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
                 x = int(b)
                 return [self.c] + y
+
+        def foo() -> None:
+
+            class X:
+                a: int
+
+                def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
+                    x = int(b)
+                    return [self.c] + y
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0179(self) -> None:
+    def test_0198(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1724,6 +1867,13 @@ class StripTest(unittest.TestCase):
             def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> Self:
                 x = int(b)
                 return self
+        def foo() -> None:
+            class Z:
+                a: int 
+
+                def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> Self:
+                    x = int(b)
+                    return self
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
         logg.debug("err=%s\nout=%s", run.err, run.out)
@@ -1743,7 +1893,18 @@ class StripTest(unittest.TestCase):
             def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> SelfX:
                 x = int(b)
                 return self
+
+        def foo() -> None:
+
+            class Z:
+                a: int
+
+                def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> Self:
+                    x = int(b)
+                    return self
         """))
+        if TODO:
+            self.assertFalse(greps(py, "Self:"))
         self.coverage()
         self.rm_testdir()
 
@@ -3288,7 +3449,7 @@ class StripTest(unittest.TestCase):
 
 
 def runtests() -> None:
-    global PYTHON, KEEP, COVERAGE, VV # pylint: disable=global-statement
+    global PYTHON, KEEP, TODO, COVERAGE, VV # pylint: disable=global-statement
     from optparse import OptionParser  # pylint: disable=deprecated-module,import-outside-toplevel
     cmdline = OptionParser("%prog [options] test*",
                       epilog=__doc__.strip().split("\n", 1)[0])
@@ -3300,6 +3461,8 @@ def runtests() -> None:
                   help="gather coverage.py data (use -aa for new set) [%default]")
     cmdline.add_option("-l", "--logfile", metavar="FILE", default="",
                   help="additionally save the output log to a file [%default]")
+    cmdline.add_option("--todo", action="count", default=TODO,
+                  help="show todo requiring different outcome [%default]")
     cmdline.add_option("--keep", action="count", default=KEEP,
                   help="keep tempdir and other data after testcase [%default]")
     cmdline.add_option("--failfast", action="store_true", default=False,
@@ -3310,6 +3473,7 @@ def runtests() -> None:
     logging.basicConfig(level = NOTE - opt.verbose * 5)
     PYTHON = opt.python
     KEEP = opt.keep
+    TODO = opt.todo
     COVERAGE = opt.coverage
     VV = "-v" + ("v" * opt.verbose)
     #
