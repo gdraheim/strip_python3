@@ -745,11 +745,13 @@ class WhileWalrusTransformer(BlockTransformer):
 
 class DetectImports(ast.NodeTransformer):
     importfrom: Dict[str, Dict[str, str]]
-    imported: Dict[str, str]
+    imported: Dict[str, ast.stmt]
+    asimport: Dict[str, str]
     def __init__(self) -> None:
         ast.NodeTransformer.__init__(self)
         self.importfrom = {}
         self.imported = {}
+        self.asimport = {}
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.ImportFrom = node
         if imports.module:
@@ -760,27 +762,42 @@ class DetectImports(ast.NodeTransformer):
                 if symbol.name not in self.importfrom[modulename]:
                     self.importfrom[modulename][symbol.name] = symbol.asname or symbol.name
                     origname = modulename + "." + symbol.name
-                    self.imported[origname] = symbol.asname or symbol.name
+                    codename = symbol.name if not symbol.asname else symbol.asname
+                    stmt = ast.ImportFrom(imports.module, [ast.alias(symbol.name, symbol.asname)], imports.level)
+                    self.imported[origname] = stmt
+                    self.asimport[codename] = origname
         return self.generic_visit(node)
     def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.Import = node
         for symbol in imports.names:
             origname = symbol.name
-            self.imported[origname] = symbol.asname or symbol.name
+            codename = symbol.name if not symbol.asname else symbol.asname
+            stmt = ast.Import([ast.alias(symbol.name, symbol.asname)])
+            self.imported[origname] = stmt
+            self.asimport[codename] = origname
         return self.generic_visit(node)
 
 class RequireImportFrom:
+    require: Dict[str, Optional[str]]
+    removes: Dict[str, Optional[str]]
     def __init__(self, require: Optional[List[str]] = None) -> None:
-        self.require = require if require is not None else []
-        self.removes: List[str] = []
+        self.require = {}
+        if require:
+            for req in require:
+                self.require[req] = None
+        self.removes = {}
     def removefrom(self, module: str, *symbols: str) -> None:
-        self.removes += [F"{module}.{symbol}" for symbol in symbols]
+        for symbol in symbols:
+            self.removes[F"{module}.{symbol}"] = None
     def importfrom(self, module: str, *symbols: str) -> None:
-        self.require += [F"{module}.{symbol}" for symbol in symbols]
+        for symbol in symbols:
+            self.require[F"{module}.{symbol}"] = None
     def add(self, *require: str) -> None:
-        self.require += list(require)
+        for req in require:
+            self.require[req] = None
     def append(self, requires: List[str]) -> None:
-        self.require += requires
+        for req in requires:
+            self.require[req] = None
     def visit(self, node: ast.AST) -> ast.AST:
         if not self.require:
             return node
@@ -869,21 +886,33 @@ class RequireImportFrom:
         return module
 
 class RequireImport:
+    require: Dict[str, Optional[str]]
     def __init__(self, require: Optional[List[str]] = None) -> None:
-        self.require = require if require is not None else []
-    def add(self, *require: str) -> None:
-        self.require += list(require)
+        self.require = {}
+        if require:
+            for req in require:
+                self.require[req] = None
+    def add(self, *require: Union[str, Tuple[str, Optional[str]]]) -> None:
+        for req in require:
+            if isinstance(req, str):
+                self.require[req] = None
+            else:
+                self.require[req[0]] = req[1]
     def append(self, requires: List[str]) -> None:
-        self.require += requires
+        for req in requires:
+            if isinstance(req, str):
+                self.require[req] = None
+            else:
+                self.require[req[0]] = req[1]
     def visit(self, node: ast.AST) -> ast.AST:
         if not self.require:
             return node
         imports = DetectImports()
         imports.visit(node)
-        newimport: List[str] = []
-        for require in self.require:
+        newimport: Dict[str, Optional[str]] = {}
+        for require, asname in self.require.items():
             if require not in imports.imported:
-                newimport.append(require)
+                newimport[require] = asname
         if not newimport:
             return node
         if not isinstance(node, ast.Module):
@@ -892,15 +921,16 @@ class RequireImport:
         module = cast(ast.Module, node)  # type: ignore[redundant-cast]
         body: List[ast.stmt] = []
         done = False
-        simple: List[str] = []
-        dotted: List[str] = []
-        for new in newimport:
+        simple: Dict[str, Optional[str]] = {}
+        dotted: Dict[str, Optional[str]] = {}
+        for new, asname in newimport.items():
             if "." in new:
                 if new not in dotted:
-                    dotted.append(new)
+                    dotted[new] = asname
             else:
-                if new not in simple:
-                    simple.append(new)
+                simple[new] = asname
+        logg.debug("requiredimports dotted %s", dotted)
+        logg.debug("requiredimports simple %s", simple)
         if imports.imported:
             body = []
             for stmt in module.body:
@@ -910,9 +940,16 @@ class RequireImport:
                 elif done:
                     body.append(stmt)
                 else:
-                    body.append(ast.Import([ast.alias(name=mod) for mod in sorted(simple)]))
+                    if simple:
+                        body.append(ast.Import([ast.alias(mod, simple[mod]) for mod in sorted(simple)]))
                     for mod in sorted(dotted):
-                        body.append(ast.Import([ast.alias(name=mod)]))
+                        alias = dotted[mod]
+                        if alias and "." in mod:
+                            libname, sym = mod.rsplit(".", 1)
+                            renamed = alias if sym != alias else None
+                            body.append(ast.ImportFrom(libname, [ast.alias(sym, renamed)], 0))
+                        else:
+                            body.append(ast.Import([ast.alias(mod, alias)]))
                     body.append(stmt)
                     done = True
         if not done:
@@ -925,9 +962,16 @@ class RequireImport:
                 elif done:
                     body.append(stmt)
                 else:
-                    body.append(ast.Import([ast.alias(name=mod) for mod in sorted(simple)]))
+                    if simple:
+                        body.append(ast.Import([ast.alias(mod, simple[mod]) for mod in sorted(simple)]))
                     for mod in sorted(dotted):
-                        body.append(ast.Import([ast.alias(name=mod)]))
+                        alias = dotted[mod]
+                        if alias and "." in mod:
+                            libname, sym = mod.rsplit(".", 1)
+                            renamed = alias if sym != alias else None
+                            body.append(ast.ImportFrom(libname, [ast.alias(sym, renamed)], 0))
+                        else:
+                            body.append(ast.Import([ast.alias(mod, alias)]))
                     body.append(stmt)
                     done = True
         if not done:
@@ -1932,41 +1976,43 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
     logg.log(DEBUG_COPY, "py1 imported %s", py1_imports.imported.values())
     logg.log(DEBUG_COPY, "py2 imported %s", py2_imports.imported.values())
     requiredimport = RequireImport()
-    requiredimportfrom = RequireImportFrom()
+    imports: Dict[str, str] = {}
+    notfound: List[str] = []
     for name in pyi_hints.classes:
-        done = False
-        if not done:
-            if name in py1_imports.imported.values():
-                imps = [key for key, value in py1_imports.imported.items() if value == name]
-                logg.info("found %s in py1: %s", name, imps)
-                for imp in imps:
-                    requiredimportfrom.add(imp)
-                    done = True
-        if not done:
-            if name in py2_imports.imported.values():
-                imps = [key for key, value in py2_imports.imported.items() if value == name]
-                logg.info("found %s in py2: %s", name, imps)
-                for imp in imps:
-                    requiredimportfrom.add(imp)
-                    done = True
-        if not done and "." in name:
-            libname, _symbol = name.rsplit(".", 1)
-            if libname in py1_imports.imported.values():
-                imps = [key for key, value in py1_imports.imported.items() if value == libname]
-                logg.info("libname %s in py1: %s", libname, imps)
-                for imp in imps:
-                    requiredimport.add(imp)
-                    done = True
-        if not done and "." in name:
-            libname, _symbol = name.rsplit(".", 1)
-            if libname in py2_imports.imported.values():
-                imps = [key for key, value in py2_imports.imported.items() if value == libname]
-                logg.info("libname %s in py2: %s", libname, imps)
-                for imp in imps:
-                    requiredimport.add(imp)
-                    done = True
-
-    return cast(ast.Module, requiredimportfrom.visit(requiredimport.visit(pyi)))
+        if name not in imports:
+            if name in py1_imports.asimport:
+                orig = py1_imports.asimport[name]
+                logg.info("found %s in py1: %s", name, orig)
+                imports[name] = orig
+                requiredimport.add((orig, name))
+            elif "." in name:
+                libname, _name = name.rsplit(".", )
+                if libname in py1_imports.asimport:
+                    orig = py1_imports.asimport[libname]
+                    logg.info("found %s in py1: %s", libname, orig)
+                    imports[name] = orig
+                    requiredimport.add((orig, libname))
+        if name not in imports:
+            if name in py2_imports.asimport:
+                orig = py2_imports.asimport[name]
+                logg.info("found %s in py2: %s", name, orig)
+                imports[name] = orig
+                requiredimport.add((orig, name))
+            elif "." in name:
+                libname, _name = name.rsplit(".", )
+                if libname in py2_imports.asimport:
+                    orig = py2_imports.asimport[libname]
+                    logg.info("found %s in py2: %s", libname, orig)
+                    imports[name] = orig
+                    requiredimport.add((orig, libname))
+        if name not in imports:
+            if name not in ["bool", "int", "float", "complex", "str", "bytes", "bytearray", "set"]: # "memoryview", "frozenset"
+                notfound += [ name ]
+        if notfound:
+            logg.debug("name not found as import: %s", " ".join(notfound))
+            logg.debug("py1 imports: %s", py1_imports.asimport)
+            logg.debug("py2 imports: %s", py2_imports.asimport)
+    return cast(ast.Module, requiredimport.visit(pyi))
 
 # ............................................................................... MAIN
 

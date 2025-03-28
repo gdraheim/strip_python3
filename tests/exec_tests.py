@@ -286,8 +286,6 @@ class StripPythonExecTest(unittest.TestCase):
         if MYPY:
             x2 = X(F"{MYPY} --strict {testdir}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, "has no attribute"):
-                self.skipTest("TODO: pyi need to copy AnnAssign in classes")
             self.assertTrue(greps(x2.out, "Incompatible types in assignment"))
             self.assertEqual(x2.returncode, 1)
             self.rm_testdir()
@@ -324,8 +322,6 @@ class StripPythonExecTest(unittest.TestCase):
         if MYPY:
             x2 = X(F"{MYPY} --strict {testdir}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, "has no attribute"):
-                self.skipTest("TODO: pyi need to copy AnnAssign in classes")
             self.assertTrue(greps(x2.out, "no issues found"))
             self.assertEqual(x2.returncode, 0)
     def test_1331(self) -> None:
@@ -454,7 +450,7 @@ class StripPythonExecTest(unittest.TestCase):
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
         from datetime import datetime as Time
-        def func1(x: x) -> datetime:
+        def func1(x: str) -> Time:
             return Time.fromisoformat(x)
         print(func1("2024-12-01").strftime("%Y%m%dx"))
         """)
@@ -473,8 +469,6 @@ class StripPythonExecTest(unittest.TestCase):
             import test""")
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
-            if greps(x2.out, '"datetime" is not defined'):
-                self.skipTest("TODO: pyi needs import datetime as Time")
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()

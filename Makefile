@@ -29,6 +29,7 @@ check10: ; test ! -f /usr/bin/python3.10 || $(MAKE) test PYTHON=python3.10
 check11: ; test ! -f /usr/bin/python3.11 || $(MAKE) test PYTHON=python3.11
 check12: ; test ! -f /usr/bin/python3.12 || $(MAKE) test PYTHON=python3.12
 check3: ; $(MAKE) test
+check1: ; $(MAKE) check39 || $(MAKE) check10 || $(MAKE) check11 || $(MAKE) check12
 check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
