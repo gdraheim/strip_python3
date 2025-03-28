@@ -18,7 +18,7 @@ import logging
 from collections import deque
 if sys.version_info >= (3,11,0):
     import tomllib
-else:
+else:  # pragma: nocover
     try:
         import tomli as tomllib # type: ignore[no-redef,import-untyped]
     except ImportError:
@@ -40,7 +40,7 @@ logging.addLevelName(NOTE, "NOTE")
 logging.addLevelName(HINT, "HINT")
 logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
 
-if sys.version_info < (3,9,0):
+if sys.version_info < (3,9,0): # pragma: nocover
     logg.info("python3.9 has ast.unparse()")
     logg.fatal("you need alteast python3.9 to run strip-python3!")
     sys.exit(os.EX_SOFTWARE)
@@ -1839,13 +1839,6 @@ def types36_remove_typehints(ann: Optional[ast.expr], classname: Optional[str] =
         new1 = types36(ann, classname)
         return OptionalTypes36(new1.annotation, new1.typing, new1.removed, new1.preclass)
     return OptionalTypes36(None, set(), set(), {})
-
-def types36_remove_var_typehints(ann: Optional[ast.expr], classname: Optional[str] = None) -> OptionalTypes36:
-    if ann and not want.remove_var_typehints:
-        new1 = types36(ann, classname)
-        return OptionalTypes36(new1.annotation, new1.typing, new1.removed, new1.preclass)
-    return OptionalTypes36(None, set(), set(), {})
-
 
 def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = None) -> ast.Module:
     """ generates the *.pyi part - based on the output of StripTypeHints """
