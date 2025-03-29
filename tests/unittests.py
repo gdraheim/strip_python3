@@ -8,6 +8,7 @@ import logging
 import os.path
 from fnmatch import fnmatchcase as fnmatch
 
+sys.path.append("src")
 sys.path.append("../src")
 import strip_python3 as app  # pylint:disable=wrong-import-position
 logg = logging.getLogger(os.path.basename(__file__))

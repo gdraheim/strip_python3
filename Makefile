@@ -28,9 +28,6 @@ all: help
 help:
 	$(PYTHON) $F --help
 
-todo2: ; $(MAKE) check2 TODO=--todo
-todo1: ; $(MAKE) check1 TODO=--todo
-todos: ; $(MAKE) checks TODO=--todo
 checks: test test27 test36 test39 test310 test311 test312 test11
 check39: ; test ! -f /usr/bin/python3.9 || $(MAKE) test PYTHON=python3.9
 check10: ; test ! -f /usr/bin/python3.10 || $(MAKE) test PYTHON=python3.10
@@ -42,6 +39,10 @@ check3: ; $(MAKE) test11 || $(MAKE) test27 || $(MAKE) test36
 check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
+todos: ; $(MAKE) checks TODO=--todo
+todo1: ; $(MAKE) check1 TODO=--todo
+todo2: ; $(MAKE) check2 TODO=--todo
+todo3: ; $(MAKE) check3 TODO=--todo
 todo: ; $(MAKE) test TODO=--todo
 test: ; $(PYTHON) $(TESTS) $V $@ $(TODO)
 test_1%: ; $(PYTHON) $(UNITS) $V $@ $(TODO) --failfast
