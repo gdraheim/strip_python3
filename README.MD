@@ -291,7 +291,7 @@ If no `*.pyi` file is wanted then disable it with "--no-pyi" again.
 
 # Development
 
-[DEVGUID.MD]
+[DEVGUIDE.MD](DEVGUIDE.MD) for more infos.
 
 __I take patches!__
 
