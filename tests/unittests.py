@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
-# pylint: disable=invalid-name,unspecified-encoding
+# pylint: disable=invalid-name,unspecified-encoding,consider-using-with
 """ testing functions directly in strip_python3 module """
 
 __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
@@ -15,7 +15,7 @@ from fnmatch import fnmatchcase as fnmatch
 
 sys.path.append("src")
 sys.path.append("../src")
-import strip_python3 as app  # pylint:disable=wrong-import-position
+import strip_python3 as app  # type: ignore[import-untyped] # pylint:disable=wrong-import-position
 logg = logging.getLogger(os.path.basename(__file__))
 
 TODO = 0

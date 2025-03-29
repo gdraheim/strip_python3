@@ -213,7 +213,7 @@ def outs(text: str) -> str:
     return NIX
 def errs(text: str) -> str:
     if text:
-         return "\n! "+ "\n! ".join(text.splitlines())
+        return "\n! "+ "\n! ".join(text.splitlines())
     return NIX
 
 
