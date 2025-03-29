@@ -263,3 +263,5 @@ pylint:
 lint:
 	$(PYLINT) $(PYLINT_OPTIONS) $F
 	for py in tests/*.py; do $(PYLINT) $(PYLINT_OPTIONS) $$py || exit 1; done
+
+-include Makefile.tmp
