@@ -13,7 +13,9 @@ PYTHON_VERSION = 3.11
 TWINE = twine-3.11
 QTOML_PY = src/strip_qtoml_decoder.py
 AST4_PY = src/strip_ast_comments.py
-TESTS_PY = tests/python3_transformations.py
+UNITS_PY = tests/unittests.py
+EXECS_PY = tests/exectests.py
+TESTS_PY = tests/transformertests.py
 TESTS = $(TESTS_PY) --python=$(PYTHON)
 CONTAINER = strip-py
 TODO=
@@ -43,7 +45,6 @@ test: ; $(PYTHON) $(TESTS) $V $@ $(TODO)
 test_0%: ; $(PYTHON) $(TESTS) $V $@ $(TODO) --failfast
 st_0%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) --coverage
 
-EXECS= tests/exec_tests.py
 test_1%: ; $(PYTHON) $(EXECS) $V $@ $(TODO)
 st_1%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) --coverage
 
