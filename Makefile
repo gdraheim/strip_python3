@@ -51,6 +51,9 @@ st_2%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) --coverage
 test_3%: ; $(PYTHON) $(EXECS) $V $@ $(TODO)
 st_3%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) --coverage
 
+coverage: ; $(PYTHON) $(TESTS) $V --coverage
+coverage2: ; $(PYTHON) $(TESTS) $V --coverage test_2
+
 # TESTS in container
 tests27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
 tests36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
@@ -145,8 +148,6 @@ test%/11:
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 
-coverage:
-	$(PYTHON) $(TESTS) $V --coverage
 
 VERFILES = $F tests/*.py *.toml
 version:

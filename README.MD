@@ -291,19 +291,9 @@ If no `*.pyi` file is wanted then disable it with "--no-pyi" again.
 
 # Development
 
-  * make lint
-  * make check
-  * make python
-  * make checks
-  * for release:
-     * make version (and run github actions)
-     * make coverage (and update README.MD)
-     * make build (and push to pyi)
-     * git tag and git push --tags (for github)
+[DEVGUID.MD]
 
 __I take patches!__
-
-The source code has a lot of code duplications and ifelse lists. That is intentional to allow anyone to quickly add corner cases.
 
 https://github.com/gdraheim/strip_python3/issues
 
