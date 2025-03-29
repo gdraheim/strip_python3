@@ -8,7 +8,7 @@ on:
 
 jobs:
   tests:
-    name: 'unit tests'
+    name: 'running tests'
     runs-on: 'ubuntu-24.04'
     steps:
     - name: checkout software
