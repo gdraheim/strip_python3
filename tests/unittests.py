@@ -2,6 +2,11 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 # pylint: disable=invalid-name,unspecified-encoding
 """ testing functions directly in strip_python3 module """
+
+__copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
+__author__ = "Guido U. Draheim"
+__version__ = "1.1.1126"
+
 import sys
 import unittest
 import logging
