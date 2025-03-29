@@ -1,4 +1,4 @@
-name: typehints check
+name: typehints
 
 on:
   push:
