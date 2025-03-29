@@ -22,12 +22,12 @@ import logging
 import re
 import sys
 from fnmatch import fnmatchcase as fnmatch
+logg = logging.getLogger(os.path.basename(__file__))
 
 string_types = (str, bytes)
 
 NIX = ""
 OK = True
-logg = logging.getLogger("EXECS")
 _sed = "sed"
 DOCKER = "docker"
 KEEP = False
@@ -246,14 +246,14 @@ class StripPythonExecTest(unittest.TestCase):
     def end(self, maximum: int = 99) -> None:
         runtime = time.monotonic() - self._started
         self.assertLess(runtime, maximum)
-    def test_1001(self) -> None:
+    def test_3001(self) -> None:
         """ check that we can run python"""
         python = PYTHON
         python3 = PYTHON3
         testdir = self.testdir()
         sh____(F"{python} --version")
         self.rm_testdir()
-    def test_1101(self) -> None:
+    def test_3101(self) -> None:
         """ check that we can run python"""
         vv = self.begin()
         python = PYTHON
@@ -289,7 +289,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertTrue(greps(x2.out, "Incompatible types in assignment"))
             self.assertEqual(x2.returncode, 1)
             self.rm_testdir()
-    def test_1102(self) -> None:
+    def test_3102(self) -> None:
         """ check that we can run python"""
         vv = self.begin()
         python = PYTHON
@@ -324,7 +324,7 @@ class StripPythonExecTest(unittest.TestCase):
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
             self.assertTrue(greps(x2.out, "no issues found"))
             self.assertEqual(x2.returncode, 0)
-    def test_1331(self) -> None:
+    def test_3331(self) -> None:
         """ check that we can print() in python"""
         vv = self.begin()
         python = PYTHON
@@ -348,7 +348,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1341(self) -> None:
+    def test_3341(self) -> None:
         """ check that we have float-division in python"""
         vv = self.begin()
         python = PYTHON
@@ -372,7 +372,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1351(self) -> None:
+    def test_3351(self) -> None:
         """ check that we have absolute-import in python"""
         vv = self.begin()
         python = PYTHON
@@ -412,7 +412,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertTrue(greps(x2.err, "is not a valid Python package name"))
         self.rm_testdir()
         self.end()
-    def test_1401(self) -> None:
+    def test_3401(self) -> None:
         """ check that we have boilerplate for datetime.isoformat"""
         vv = self.begin()
         python = PYTHON
@@ -443,7 +443,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1402(self) -> None:
+    def test_3402(self) -> None:
         """ check that we have boilerplate for datetime.isoformat"""
         vv = self.begin()
         python = PYTHON
@@ -472,7 +472,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1411(self) -> None:
+    def test_3411(self) -> None:
         """ check we have boilerplate for subprocess.run"""
         vv = self.begin()
         python = PYTHON
@@ -506,7 +506,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1412(self) -> None:
+    def test_3412(self) -> None:
         """ check we have boilerplate for subprocess.run"""
         vv = self.begin()
         python = PYTHON
@@ -541,7 +541,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1413(self) -> None:
+    def test_3413(self) -> None:
         """ check we have boilerplate for subprocess.run"""
         vv = self.begin()
         python = PYTHON
@@ -578,7 +578,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1421(self) -> None:
+    def test_3421(self) -> None:
         """ check we have a fallback import for pathlib"""
         vv = self.begin()
         python = PYTHON
@@ -609,7 +609,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1422(self) -> None:
+    def test_3422(self) -> None:
         """ check we have a fallback import for pathlib"""
         vv = self.begin()
         python = PYTHON
@@ -642,7 +642,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1431(self) -> None:
+    def test_3431(self) -> None:
         """ check we have a fallback import for tomllib"""
         vv = self.begin()
         python = PYTHON
@@ -672,7 +672,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1432(self) -> None:
+    def test_3432(self) -> None:
         """ check we have a fallback import for tomllib"""
         vv = self.begin()
         python = PYTHON
@@ -702,7 +702,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1441(self) -> None:
+    def test_3441(self) -> None:
         """ check we have a fallback import for zoneinfo"""
         vv = self.begin()
         python = PYTHON
@@ -732,7 +732,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1451(self) -> None:
+    def test_3451(self) -> None:
         """ check we have a fallback for time.monotonic"""
         vv = self.begin()
         python = PYTHON
@@ -764,7 +764,7 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
-    def test_1452(self) -> None:
+    def test_3452(self) -> None:
         """ check we have a fallback for time.monotonic_ns"""
         vv = self.begin()
         python = PYTHON
@@ -800,36 +800,36 @@ class StripPythonExecTest(unittest.TestCase):
 
 if __name__ == "__main__":
     from optparse import OptionParser  # pylint: disable=deprecated-module
-    _o = OptionParser("%prog [options] test*",
+    cmdline = OptionParser("%prog [options] test*",
                       epilog=__doc__.strip().split("\n", 1)[0])
-    _o.add_option("-v", "--verbose", action="count", default=0,
+    cmdline.add_option("-v", "--verbose", action="count", default=0,
                   help="increase logging level [%default]")
-    _o.add_option("-D", "--docker", metavar="EXE", default=DOCKER,
+    cmdline.add_option("-D", "--docker", metavar="EXE", default=DOCKER,
                   help="use another docker container tool [%default]")
-    _o.add_option("-P", "--python3", metavar="EXE", default=PYTHON3,
+    cmdline.add_option("-P", "--python3", metavar="EXE", default=PYTHON3,
                   help="use another python3 engine [%default]")
-    _o.add_option("-p", "--python", metavar="EXE", default=PYTHON,
+    cmdline.add_option("-p", "--python", metavar="EXE", default=PYTHON,
                   help="use another python engine [%default]")
-    _o.add_option("--mypy", metavar="EXE", default=MYPY, help="mypy tool is available")
-    _o.add_option("-a", "--coverage", action="count", default=0,
+    cmdline.add_option("--mypy", metavar="EXE", default=MYPY, help="mypy tool is available")
+    cmdline.add_option("-a", "--coverage", action="count", default=0,
                   help="gather coverage.py data (use -aa for new set) [%default]")
-    _o.add_option("-l", "--logfile", metavar="FILE", default="",
+    cmdline.add_option("-l", "--logfile", metavar="FILE", default="",
                   help="additionally save the output log to a file [%default]")
-    _o.add_option("--todo", action="count", default=TODO,
+    cmdline.add_option("--todo", action="count", default=TODO,
                   help="show when an alternative outcome is desired [%default]")
-    _o.add_option("--keep", action="count", default=KEEP,
+    cmdline.add_option("--keep", action="count", default=KEEP,
                   help="keep tempdir and other data after testcase [%default]")
-    _o.add_option("--failfast", action="store_true", default=False,
+    cmdline.add_option("--failfast", action="store_true", default=False,
                   help="Stop the test run on the first error or failure. [%default]")
-    _o.add_option("--xmlresults", metavar="FILE", default=None,
+    cmdline.add_option("--xmlresults", metavar="FILE", default=None,
                   help="capture results as a junit xml file [%default]")
-    _o.add_option("--sometime", metavar="SECONDS", default=SOMETIME,
+    cmdline.add_option("--sometime", metavar="SECONDS", default=SOMETIME,
                   help="SOMETIME=%default (use 666)")
-    _o.add_option("-f", "--force", action="store_true", default=False,
+    cmdline.add_option("-f", "--force", action="store_true", default=False,
                   help="enable the skipped IMAGE and PYTHON versions [%default])")
-    _o.add_option("-C", "--chdir", metavar="PATH", default="",
+    cmdline.add_option("-C", "--chdir", metavar="PATH", default="",
                   help="change directory before running tests {%default}")
-    opt, args = _o.parse_args()
+    opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = logging.WARNING - opt.verbose * 5)
     SKIP = not opt.force
     TODO = opt.todo
@@ -854,8 +854,9 @@ if __name__ == "__main__":
     #
     # unittest.main()
     suite = unittest.TestSuite()
-    if not args: args = ["test_*"]
-    for arg in args:
+    if not cmdline_args:
+        cmdline_args = ["test_*"]
+    for arg in cmdline_args:
         for classname in sorted(globals()):
             if not classname.endswith("Test"):
                 continue

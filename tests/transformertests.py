@@ -29,7 +29,8 @@ logging.addLevelName(HINT, "HINT")
 
 DEBUG_TOML = logging.DEBUG
 
-logg = logging.getLogger(__name__.replace("/", "."))
+logg = logging.getLogger(os.path.basename(__file__))
+UNITS = "tests/unittests.py"
 STRIP = "src/strip_python3.py"
 PYTHON = "python3.11"
 COVERAGE = 0
@@ -206,6 +207,16 @@ def coverage(tool: str, cwd: Optional[str] = None) -> str:
         return PYTHON + " -m coverage " + " run " + pre + tool
     return PYTHON + " " + pre + tool
 
+def outs(text: str) -> str:
+    if text:
+        return "\n| "+ "\n| ".join(text.splitlines())
+    return NIX
+def errs(text: str) -> str:
+    if text:
+         return "\n! "+ "\n! ".join(text.splitlines())
+    return NIX
+
+
 class StripTest(unittest.TestCase):
     "all tests should start with '0'."
     def caller_testname(self) -> str:
@@ -279,22 +290,42 @@ class StripTest(unittest.TestCase):
     def end(self, maximum: int = 99) -> None:
         runtime = time.monotonic() - self._started
         self.assertLess(runtime, maximum * LONGER)
-    # all tests should start with '0'.
-    def test_0000(self) -> None:
+    # adding unittests for the coverage run
+    def test_1000(self) -> None:
         if os.path.isfile(".coverage"):
             os.unlink(".coverage")
-    def test_0011(self) -> None:
-        strip = coverage(STRIP)
-        run = sh(F"{strip} --help")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        units = coverage(UNITS)
+        run = sh(F"{units} --help")
+        logg.debug("%s %s %s", units, errs(run.err), outs(run.out))
         self.coverage()
         self.assertFalse(run.err)
         self.assertTrue(greps(run.out, "this help message"))
         self.rm_testdir()
-    def test_0021(self) -> None:
+    def test_1100(self) -> None:
+        if os.path.isfile(".coverage"):
+            os.unlink(".coverage")
+        units = coverage(UNITS)
+        run = sh(F"{units} test_11 {VV}")
+        logg.debug("%s %s %s", units, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertFalse(run.returncode)
+        self.rm_testdir()
+    # all tests should start with '2'.
+    def test_2000(self) -> None:
+        if os.path.isfile(".coverage"):
+            os.unlink(".coverage")
+    def test_2011(self) -> None:
+        strip = coverage(STRIP)
+        run = sh(F"{strip} --help")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertFalse(run.err)
+        self.assertTrue(greps(run.out, "this help message"))
+        self.rm_testdir()
+    def test_2021(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         NOTE:strip:python-version-int = (2, 7)
@@ -313,10 +344,10 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 1
         """)))
         self.rm_testdir()
-    def test_0022(self) -> None:
+    def test_2022(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show --py36")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
@@ -335,7 +366,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
-    def test_0024(self) -> None:
+    def test_2024(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -343,7 +374,7 @@ class StripTest(unittest.TestCase):
         python-version = "3.6"
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
@@ -362,7 +393,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
-    def test_0025(self) -> None:
+    def test_2025(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -370,7 +401,7 @@ class StripTest(unittest.TestCase):
         python-version = "3.5"
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
@@ -389,7 +420,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
-    def test_0026(self) -> None:
+    def test_2026(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -398,7 +429,7 @@ class StripTest(unittest.TestCase):
         remove-typehints = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
@@ -417,7 +448,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 1
         """))
         self.rm_testdir()
-    def test_0027(self) -> None:
+    def test_2027(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -426,7 +457,7 @@ class StripTest(unittest.TestCase):
         no-replace-fstring = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
@@ -446,7 +477,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0028(self) -> None:
+    def test_2028(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/pyproject.toml", """
@@ -460,7 +491,7 @@ class StripTest(unittest.TestCase):
         define-unknown = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         pyproject.toml[pyi-version]: expecting str but found <class 'int'>
@@ -482,7 +513,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """)))
         self.rm_testdir()
-    def test_0034(self) -> None:
+    def test_2034(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -490,7 +521,7 @@ class StripTest(unittest.TestCase):
         python-version = 3.6
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
@@ -509,7 +540,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
-    def test_0035(self) -> None:
+    def test_2035(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -517,7 +548,7 @@ class StripTest(unittest.TestCase):
         python-version = 3.5
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
@@ -536,7 +567,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """))
         self.rm_testdir()
-    def test_0036(self) -> None:
+    def test_2036(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -545,7 +576,7 @@ class StripTest(unittest.TestCase):
         remove-typehints = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
@@ -564,7 +595,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 1
         """))
         self.rm_testdir()
-    def test_0038(self) -> None:
+    def test_2038(self) -> None:
         tmp = self.testdir()
         strip = coverage(STRIP, tmp)
         text_file(F"{tmp}/setup.cfg", """
@@ -577,7 +608,7 @@ class StripTest(unittest.TestCase):
         define-unknown = 1
         """)
         run = sh(F"{strip} --show", cwd=tmp)
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         setup.cfg[define-basestring]: expecting int but found unknown
@@ -598,12 +629,12 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 0
         """)))
         self.rm_testdir()
-    def test_0101(self) -> None:
+    def test_2101(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -612,12 +643,12 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^")
         self.coverage()
         self.rm_testdir()
-    def test_0102(self) -> None:
+    def test_2102(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1 # foo""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -626,12 +657,12 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^")
         self.coverage()
         self.rm_testdir()
-    def test_0103(self) -> None:
+    def test_2103(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -640,14 +671,14 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^")
         self.coverage()
         self.rm_testdir()
-    def test_0104(self) -> None:
+    def test_2104(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
         a: int
         b: int = 2""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -656,7 +687,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^b: int^")
         self.coverage()
         self.rm_testdir()
-    def test_0105(self) -> None:
+    def test_2105(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
@@ -664,7 +695,7 @@ class StripTest(unittest.TestCase):
         b: int = 2
         c: str """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -673,7 +704,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^b: int^c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0106(self) -> None:
+    def test_2106(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
@@ -682,7 +713,7 @@ class StripTest(unittest.TestCase):
         b: int = 2
         c: str # bar""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -691,7 +722,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^b: int^c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0111(self) -> None:
+    def test_2111(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -701,7 +732,7 @@ class StripTest(unittest.TestCase):
            b: int = 2
            c: str""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -710,7 +741,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0112(self) -> None:
+    def test_2112(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -720,7 +751,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -729,7 +760,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0113(self) -> None:
+    def test_2113(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
@@ -738,7 +769,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} -3 {tmp}/test3.py")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -747,7 +778,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0114(self) -> None:
+    def test_2114(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/test3.py", """
@@ -756,7 +787,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} -3 {tmp}/test3.py --no-pyi")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertFalse(os.path.exists(F"{tmp}/test.pyi"))
@@ -764,7 +795,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(py, "class B:^    pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0115(self) -> None:
+    def test_2115(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -774,7 +805,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} {tmp}/tmp1.py -o {tmp}/tmp2.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
@@ -782,7 +813,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(py, "class B:^    pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0116(self) -> None:
+    def test_2116(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -792,7 +823,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} {tmp}/tmp1.py -o {tmp}/tmp2.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.pyi"))
@@ -801,7 +832,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0117(self) -> None:
+    def test_2117(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -811,7 +842,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} {tmp}/tmp1.py > {tmp}/tmp2.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
@@ -819,7 +850,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(py, "class B:^    pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0118(self) -> None:
+    def test_2118(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -829,7 +860,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} {tmp}/tmp1.py > {tmp}/tmp2.py {vv} --pyi")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
@@ -837,7 +868,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(py, "class B:^    pass^## typehints:^a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0119(self) -> None:
+    def test_2119(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -847,7 +878,7 @@ class StripTest(unittest.TestCase):
            b: int
            c: str""")
         run = sh(F"{strip} {tmp}/tmp1.py -o . > {tmp}/tmp2.py {vv} --pyi")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp2.pyi"))
@@ -855,7 +886,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(py, "## typehints:^a: int^^class B:^    b: int^    c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_0121(self) -> None:
+    def test_2121(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -868,7 +899,7 @@ class StripTest(unittest.TestCase):
                return self.c 
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -877,7 +908,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __str__(self) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0122(self) -> None:
+    def test_2122(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -890,7 +921,7 @@ class StripTest(unittest.TestCase):
                return self.c 
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -899,7 +930,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __str__(self) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0131(self) -> None:
+    def test_2131(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -912,7 +943,7 @@ class StripTest(unittest.TestCase):
                return self.c + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -921,7 +952,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: str) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0132(self) -> None:
+    def test_2132(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -934,7 +965,7 @@ class StripTest(unittest.TestCase):
                return self.c + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -943,7 +974,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^^class B:^    b: int^    c: str^^    def __add__(self, y: str) -> str:^        pass^")
         self.coverage()
         self.rm_testdir()
-    def test_0141(self) -> None:
+    def test_2141(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -963,7 +994,7 @@ class StripTest(unittest.TestCase):
                  return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -996,7 +1027,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0142(self) -> None:
+    def test_2142(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1016,7 +1047,7 @@ class StripTest(unittest.TestCase):
                  return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1049,7 +1080,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0143(self) -> None:
+    def test_2143(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1069,7 +1100,7 @@ class StripTest(unittest.TestCase):
                  return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv} --py36")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1095,7 +1126,7 @@ class StripTest(unittest.TestCase):
                     return self.b + y"""))
         self.coverage()
         self.rm_testdir()
-    def test_0144(self) -> None:
+    def test_2144(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1115,7 +1146,7 @@ class StripTest(unittest.TestCase):
                   return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv} --python-version 3.5")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1148,7 +1179,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0145(self) -> None:
+    def test_2145(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1168,7 +1199,7 @@ class StripTest(unittest.TestCase):
                  return self.b + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv} --python-version 3.5 --no-pyi")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1191,7 +1222,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0150(self) -> None:
+    def test_2150(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1217,7 +1248,7 @@ class StripTest(unittest.TestCase):
                  return self.c + double(x) + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1257,7 +1288,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0151(self) -> None:
+    def test_2151(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1278,7 +1309,7 @@ class StripTest(unittest.TestCase):
                  return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1311,7 +1342,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0152(self) -> None:
+    def test_2152(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1334,7 +1365,7 @@ class StripTest(unittest.TestCase):
                 return y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1369,7 +1400,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0153(self) -> None:
+    def test_2153(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1391,7 +1422,7 @@ class StripTest(unittest.TestCase):
                  return y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1426,7 +1457,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0154(self) -> None:
+    def test_2154(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1448,7 +1479,7 @@ class StripTest(unittest.TestCase):
                  return y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1478,7 +1509,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0171(self) -> None:
+    def test_2171(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1498,7 +1529,7 @@ class StripTest(unittest.TestCase):
                     return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1532,7 +1563,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0172(self) -> None:
+    def test_2172(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1552,7 +1583,7 @@ class StripTest(unittest.TestCase):
                     return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1586,7 +1617,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0173(self) -> None:
+    def test_2173(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1608,7 +1639,7 @@ class StripTest(unittest.TestCase):
               return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1644,7 +1675,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0174(self) -> None:
+    def test_2174(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1668,7 +1699,7 @@ class StripTest(unittest.TestCase):
                  return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1706,7 +1737,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0175(self) -> None:
+    def test_2175(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1730,7 +1761,7 @@ class StripTest(unittest.TestCase):
                  return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1768,7 +1799,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0176(self) -> None:
+    def test_2176(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1791,7 +1822,7 @@ class StripTest(unittest.TestCase):
                  return self
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1830,7 +1861,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0177(self) -> None:
+    def test_2177(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1853,7 +1884,7 @@ class StripTest(unittest.TestCase):
                  return a
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1892,7 +1923,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0185(self) -> None:
+    def test_2185(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1905,7 +1936,7 @@ class StripTest(unittest.TestCase):
             return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1926,7 +1957,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0186(self) -> None:
+    def test_2186(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1939,7 +1970,7 @@ class StripTest(unittest.TestCase):
             return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1960,7 +1991,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0187(self) -> None:
+    def test_2187(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -1973,7 +2004,7 @@ class StripTest(unittest.TestCase):
             return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -1990,7 +2021,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0197(self) -> None:
+    def test_2197(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2012,7 +2043,7 @@ class StripTest(unittest.TestCase):
                     return [self.c] + y
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2040,7 +2071,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0198(self) -> None:
+    def test_2198(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2062,7 +2093,7 @@ class StripTest(unittest.TestCase):
                     return self
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2096,7 +2127,7 @@ class StripTest(unittest.TestCase):
 
 
 
-    def test_0201(self) -> None:
+    def test_2201(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2106,7 +2137,7 @@ class StripTest(unittest.TestCase):
         y = F"{a:.2} {b}"
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2120,7 +2151,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
-    def test_0202(self) -> None:
+    def test_2202(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2130,7 +2161,7 @@ class StripTest(unittest.TestCase):
         y = F"{a:.2} {b!s}"
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2144,7 +2175,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
-    def test_0203(self) -> None:
+    def test_2203(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2154,7 +2185,7 @@ class StripTest(unittest.TestCase):
         y = F"{a:.2}"
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2168,7 +2199,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
-    def test_0204(self) -> None:
+    def test_2204(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2178,7 +2209,7 @@ class StripTest(unittest.TestCase):
         y = F"{a}"
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2192,7 +2223,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
-    def test_0214(self) -> None:
+    def test_2214(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2202,7 +2233,7 @@ class StripTest(unittest.TestCase):
         y = F"{a=}"
         """)
         run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
@@ -2216,7 +2247,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
-    def test_0215(self) -> None:
+    def test_2215(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2226,7 +2257,7 @@ class StripTest(unittest.TestCase):
         y = F"z{a=}"
         """)
         run = sh(F"{strip} -3 {tmp}/tmp3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp.pyi"))
@@ -2240,7 +2271,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "")
         self.coverage()
         self.rm_testdir()
-    def test_0216(self) -> None:
+    def test_2216(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2250,7 +2281,7 @@ class StripTest(unittest.TestCase):
         y = F"z{a=}"
         """)
         run = sh(F"{strip} -3 {tmp}/tmp3.py {vv} --py36")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
         self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
@@ -2264,7 +2295,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0281(self) -> None:
+    def test_2281(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2278,7 +2309,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2301,7 +2332,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0282(self) -> None:
+    def test_2282(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2315,7 +2346,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2338,7 +2369,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0283(self) -> None:
+    def test_2283(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2352,7 +2383,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2375,7 +2406,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0284(self) -> None:
+    def test_2284(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2389,7 +2420,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2412,7 +2443,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0285(self) -> None:
+    def test_2285(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2426,7 +2457,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2449,7 +2480,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0286(self) -> None:
+    def test_2286(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2463,7 +2494,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2486,7 +2517,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0287(self) -> None:
+    def test_2287(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2500,7 +2531,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2523,7 +2554,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0289(self) -> None:
+    def test_2289(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2552,7 +2583,7 @@ class StripTest(unittest.TestCase):
                 return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2594,7 +2625,7 @@ class StripTest(unittest.TestCase):
                 pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0291(self) -> None:
+    def test_2291(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2608,7 +2639,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2634,7 +2665,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0292(self) -> None:
+    def test_2292(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2648,7 +2679,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2674,7 +2705,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0293(self) -> None:
+    def test_2293(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2688,7 +2719,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2714,7 +2745,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0294(self) -> None:
+    def test_2294(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2728,7 +2759,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2754,7 +2785,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0295(self) -> None:
+    def test_2295(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2768,7 +2799,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2794,7 +2825,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0296(self) -> None:
+    def test_2296(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2808,7 +2839,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2834,7 +2865,7 @@ class StripTest(unittest.TestCase):
             pass"""))
         self.coverage()
         self.rm_testdir()
-    def test_0297(self) -> None:
+    def test_2297(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2848,7 +2879,7 @@ class StripTest(unittest.TestCase):
             return 0
         """)
         run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
@@ -2875,7 +2906,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0301(self) -> None:
+    def test_2301(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2886,7 +2917,7 @@ class StripTest(unittest.TestCase):
                 print(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} --nop")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -2902,7 +2933,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0311(self) -> None:
+    def test_2311(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2913,7 +2944,7 @@ class StripTest(unittest.TestCase):
                 print(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} --nop")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -2929,7 +2960,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0321(self) -> None:
+    def test_2321(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2940,7 +2971,7 @@ class StripTest(unittest.TestCase):
                 repr(x())
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -2958,7 +2989,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0331(self) -> None:
+    def test_2331(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2968,7 +2999,7 @@ class StripTest(unittest.TestCase):
             print(x())
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -2982,7 +3013,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0332(self) -> None:
+    def test_2332(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -2992,7 +3023,7 @@ class StripTest(unittest.TestCase):
             print(x())
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -3006,7 +3037,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0341(self) -> None:
+    def test_2341(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3016,7 +3047,7 @@ class StripTest(unittest.TestCase):
             repr(x / 2)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -3030,7 +3061,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0343(self) -> None:
+    def test_2343(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3040,7 +3071,7 @@ class StripTest(unittest.TestCase):
             print(x / 2)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -3054,7 +3085,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0353(self) -> None:
+    def test_2353(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3064,7 +3095,7 @@ class StripTest(unittest.TestCase):
             print(x / 2)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
@@ -3078,7 +3109,7 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
-    def test_0401(self) -> None:
+    def test_2401(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3088,7 +3119,7 @@ class StripTest(unittest.TestCase):
             return datetime.datetime.fromisoformat(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3125,7 +3156,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0402(self) -> None:
+    def test_2402(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3135,7 +3166,7 @@ class StripTest(unittest.TestCase):
             return Time.fromisoformat(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3173,7 +3204,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0411(self) -> None:
+    def test_2411(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3183,7 +3214,7 @@ class StripTest(unittest.TestCase):
             return subprocess.run("echo ok", shell=True).stdout
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv}")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         logg.debug("%s: %s", F"{tmp}/test.py", lines4(open(F"{tmp}/test.py")))
@@ -3221,7 +3252,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0412(self) -> None:
+    def test_2412(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3231,7 +3262,7 @@ class StripTest(unittest.TestCase):
             return subprocess.run("echo ok", shell=True).stdout
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} --python-version=3.3")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         logg.debug("%s: %s", F"{tmp}/test.py", lines4(open(F"{tmp}/test.py")))
@@ -3273,7 +3304,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0421(self) -> None:
+    def test_2421(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3283,7 +3314,7 @@ class StripTest(unittest.TestCase):
             return pathlib.PurePath(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3299,7 +3330,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0422(self) -> None:
+    def test_2422(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3309,7 +3340,7 @@ class StripTest(unittest.TestCase):
             return fs.PurePath(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3325,7 +3356,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0431(self) -> None:
+    def test_2431(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3335,7 +3366,7 @@ class StripTest(unittest.TestCase):
             return tomllib.loads(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3351,7 +3382,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0432(self) -> None:
+    def test_2432(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3361,7 +3392,7 @@ class StripTest(unittest.TestCase):
             return toml.loads(x)
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3377,7 +3408,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0441(self) -> None:
+    def test_2441(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3387,7 +3418,7 @@ class StripTest(unittest.TestCase):
             return zoneinfo.available_timezones()
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3403,7 +3434,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0444(self) -> None:
+    def test_2444(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3413,7 +3444,7 @@ class StripTest(unittest.TestCase):
             return tz.available_timezones()
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3429,7 +3460,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0451(self) -> None:
+    def test_2451(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3442,7 +3473,7 @@ class StripTest(unittest.TestCase):
             return stopped-started
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3465,7 +3496,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0452(self) -> None:
+    def test_2452(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3478,7 +3509,7 @@ class StripTest(unittest.TestCase):
             return stopped-started
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3501,7 +3532,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0453(self) -> None:
+    def test_2453(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3514,7 +3545,7 @@ class StripTest(unittest.TestCase):
             return stopped-started
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3537,7 +3568,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0454(self) -> None:
+    def test_2454(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3550,7 +3581,7 @@ class StripTest(unittest.TestCase):
             return stopped-started
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3573,7 +3604,7 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
-    def test_0455(self) -> None:
+    def test_2455(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -3586,7 +3617,7 @@ class StripTest(unittest.TestCase):
             return stopped-started
         """)
         run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
-        logg.debug("err=%s\nout=%s", run.err, run.out)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         py = file_text4(F"{tmp}/test.py")
@@ -3610,7 +3641,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_0999(self) -> None:
+    def test_2999(self) -> None:
         if COVERAGE:
             coverage3 = PYTHON + " -m coverage "
             run = sh(F"{coverage3} combine", check=False)
