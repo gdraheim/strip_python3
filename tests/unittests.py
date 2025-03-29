@@ -15,7 +15,7 @@ from fnmatch import fnmatchcase as fnmatch
 
 sys.path.append("src")
 sys.path.append("../src")
-import strip_python3 as app  # type: ignore[import-untyped] # pylint:disable=wrong-import-position
+import strip_python3 as app  # type: ignore[import-untyped] # pylint:disable=wrong-import-position,import-error
 logg = logging.getLogger(os.path.basename(__file__))
 
 TODO = 0
