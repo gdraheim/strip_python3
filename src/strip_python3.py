@@ -142,6 +142,9 @@ class Want:
     import_pathlib2 = to_int(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
     import_backports_zoneinfo = to_int(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
     import_toml = to_int(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
+    setup_cfg =  os.environ.get("PYTHON3_CONFIGFILE", "setup.cfg")
+    pyproject_toml = "pyproject.toml"
+    toolsection = "strip-python3"
 
 want = Want()
 
@@ -210,7 +213,7 @@ def main() -> int:
     cmdline.add_option("-n", "--no-pyi", "--no-make-pyi", action="count", default=0, help="do not generate file.pyi includes")
     cmdline.add_option("-y", "--pyi", "--make-pyi", action="count", default=0, help="generate file.pyi includes as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
-    cmdline_set_defaults_from(cmdline, "strip-python3", "pyproject.toml", "setup.cfg")
+    cmdline_set_defaults_from(cmdline, want.toolsection, want.pyproject_toml, want.setup_cfg)
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
     no_make_pyi = opt.no_pyi
@@ -228,7 +231,7 @@ def main() -> int:
         if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
             back_version = int(opt.python_version[0]), int(opt.python_version[2:])
         else:
-            logg.error("can not decodee --python-version %s", opt.python_version)
+            logg.error("can not decode --python-version %s", opt.python_version)
     logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
     if pyi_version < (3,8) or opt.remove_pyi_positionalonly:
         if not opt.no_remove_pyi_positionalonly:
@@ -396,10 +399,10 @@ def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: s
                             else:
                                 logg.error("%s[%s]: unknown setting found", configfile, option)
                                 logg.debug("%s: known options are %s", configfile, ", ".join(settings.keys()))
-            else:  # pragma: nocover
-                logg.log(DEBUG_TOML, "unknown configfile found %s", configfile)
+            else:
+                logg.warning("unknown configfile type found = %s", configfile)
         else:
-            logg.log(DEBUG_TOML, "no configfile found %s", configfile)
+            logg.log(DEBUG_TOML, "no such configfile found = %s", configfile)
     logg.log(DEBUG_TOML, "settings [%s] %s",toolsection, settings)
     cmdline.set_defaults(**settings)
     return settings

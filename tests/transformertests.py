@@ -9,7 +9,7 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "1.1.1126"
 
-from typing import List, Union, Optional, Iterator, Iterable, NamedTuple
+from typing import List, Union, Optional, Iterator, Iterable, NamedTuple, Mapping
 import unittest
 from fnmatch import fnmatchcase as fnmatch
 import inspect
@@ -184,13 +184,13 @@ class ShellException(Exception):
     def __init__(self, msg: str, result: ShellResult) -> None:
         Exception.__init__(self, msg)
         self.result = result
-def sh(cmd: str, shell: bool = True, check: bool = True, ok: Optional[bool] = None, default: str = "", cwd: Optional[str] = None) -> ShellResult:
+def sh(cmd: str, shell: bool = True, check: bool = True, ok: Optional[bool] = None, default: str = "", cwd: Optional[str] = None, env: Optional[Mapping[str, str]] = None) -> ShellResult:
     if ok is None: ok = OK  # a parameter "ok = OK" does not work in python
     if not ok:
         logg.info("skip %s", cmd)
         return ShellResult(0, default or "", "")
     cwdir = cwd if cwd is None else os.path.abspath(cwd)
-    run = subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd = cwdir)
+    run = subprocess.Popen(cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd = cwdir, env = env)
     run.wait()
     assert run.stdout is not None and run.stderr is not None
     result = ShellResult(run.returncode, decodes_(run.stdout.read()) or "", decodes_(run.stderr.read()) or "")
@@ -489,8 +489,8 @@ class StripTest(unittest.TestCase):
         python-version = "3.5"
         pyi-version = 35
         no-replace-fstring = 1
-        define-callable = 0
-        define-range = 1
+        define-callable = false
+        define-range = true
         define-basestring = 1979-05-27T07:32:00Z
         define-unknown = 1
         """)
@@ -515,6 +515,42 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-pyi-positionalonly = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
+        """)))
+        self.rm_testdir()
+    def test_2029(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/pyproject.toml", """
+        [tool.strip-python3]
+        python-version = 35
+        pyi-version = "3.5"
+        no-replace-fstring = 1
+        no-define-callable = 1
+        define-range = 1
+        define-basestring = 1979-05-27T07:32:00Z
+        define-unknown = 1
+        """)
+        run = sh(F"{strip} --show", cwd=tmp)
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
+        pyproject.toml[define-basestring]: expecting int but found <class 'datetime.datetime'>
+        pyproject.toml[define-unknown]: unknown setting found
+        ERROR:strip:can not decode --python-version 35
+        NOTE:strip:python-version-int = (2, 7)
+        NOTE:strip:pyi-version-int = (3, 5)
+        NOTE:strip:define-basestring = 1
+        NOTE:strip:define-range = 1
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 1
+        NOTE:strip:define-float-division = 1
+        NOTE:strip:define-absolute-import = 1
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 1
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 1
         """)))
         self.rm_testdir()
     def test_2034(self) -> None:
@@ -606,8 +642,8 @@ class StripTest(unittest.TestCase):
         [strip-python3]
         python-version = 3.5
         no-replace-fstring = 1
-        define-callable = 0
-        define-range = 1
+        define-callable = false
+        define-range = true
         define-basestring = unknown
         define-unknown = 1
         """)
@@ -631,6 +667,73 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-pyi-positionalonly = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
+        """)))
+        self.rm_testdir()
+    def test_2048(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/mysetup.cfg", """
+        [strip-python3]
+        python-version = 3.5
+        no-replace-fstring = 1
+        define-callable = false
+        define-range = true
+        define-basestring = unknown
+        define-unknown = 1
+        """)
+        run = sh(F"{strip} --show", cwd=tmp, env={"PYTHON3_CONFIGFILE": "mysetup.cfg"})
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
+        mysetup.cfg[define-basestring]: expecting int but found unknown
+        mysetup.cfg[define-unknown]: unknown setting found
+        NOTE:strip:python-version-int = (3, 5)
+        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 1
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 0
+        """)))
+        self.rm_testdir()
+    def test_2049(self) -> None:
+        tmp = self.testdir()
+        strip = coverage(STRIP, tmp)
+        text_file(F"{tmp}/mysetup.conf", """
+        [strip-python3]
+        python-version = 3.5
+        no-replace-fstring = 1
+        define-callable = false
+        define-range = true
+        define-basestring = unknown
+        define-unknown = 1
+        """)
+        run = sh(F"{strip} --show", cwd=tmp, env={"PYTHON3_CONFIGFILE": "mysetup.conf"})
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
+        unknown configfile type found = mysetup.conf
+        NOTE:strip:python-version-int = (2, 7)
+        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:define-basestring = 1
+        NOTE:strip:define-range = 1
+        NOTE:strip:define-callable = 1
+        NOTE:strip:define-print-function = 1
+        NOTE:strip:define-float-division = 1
+        NOTE:strip:define-absolute-import = 1
+        NOTE:strip:replace-fstring = 1
+        NOTE:strip:remove-keywordsonly = 1
+        NOTE:strip:remove-positionalonly = 1
+        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-var-typehints = 1
+        NOTE:strip:remove-typehints = 1 
         """)))
         self.rm_testdir()
     def test_2101(self) -> None:
