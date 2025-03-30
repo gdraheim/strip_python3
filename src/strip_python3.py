@@ -48,7 +48,12 @@ if sys.version_info < (3,9,0): # pragma: nocover
 # ........
 import ast as python_ast
 # import ast_comments as ast
-import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+try:
+    import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+except ImportError:
+    # required for unittest.py
+    sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+    import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
 
 if TYPE_CHECKING: # pragma: nocover
     NodeTransformer = python_ast.NodeTransformer
