@@ -380,7 +380,7 @@ class StripTest(unittest.TestCase):
         run = sh(F"{strip} --show", cwd=tmp)
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
-        self.assertEqual(run.stderr, text4("""
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
         NOTE:strip:python-version-int = (3, 6)
         NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = 0
@@ -395,7 +395,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-pyi-positionalonly = 1
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
-        """))
+        """)))
         self.rm_testdir()
     def test_2025(self) -> None:
         tmp = self.testdir()
@@ -498,9 +498,9 @@ class StripTest(unittest.TestCase):
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.coverage()
         self.assertEqual(lines4(run.stderr), lines4(text4("""
-        pyproject.toml[pyi-version]: expecting str but found <class 'int'>
         pyproject.toml[define-basestring]: expecting int but found <class 'datetime.datetime'>
         pyproject.toml[define-unknown]: unknown setting found
+        ERROR:strip:can not decode --pyi-version 35
         NOTE:strip:python-version-int = (3, 5)
         NOTE:strip:pyi-version-int = (3, 6)
         NOTE:strip:define-basestring = 0
