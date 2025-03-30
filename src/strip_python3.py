@@ -8,7 +8,7 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "1.1.1126"
 
-from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque, Iterable
+from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque, Iterable, TYPE_CHECKING
 import sys
 import re
 import os
@@ -46,9 +46,16 @@ if sys.version_info < (3,9,0): # pragma: nocover
     sys.exit(os.EX_SOFTWARE)
 
 # ........
-# import ast
+import ast as python_ast
 # import ast_comments as ast
-import strip_ast_comments as ast  # pylint: disable=wrong-import-position
+import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+
+if TYPE_CHECKING: # pragma: nocover
+    NodeTransformer = python_ast.NodeTransformer
+    NodeVisitor = python_ast.NodeVisitor
+else:
+    NodeTransformer = ast.NodeTransformer
+    NodeVisitor = python_ast.NodeVisitor
 
 from ast import TypeIgnore
 
@@ -99,6 +106,8 @@ def to_int(x: str) -> int:
         return int(x)
     if x in ["y", "yes", "true", "True", "ok", "OK"]:
         return 1
+    if x in ["x", "xtra", "more"]:
+        return 2
     return 0
 
 class Want:
@@ -750,7 +759,7 @@ class WhileWalrusTransformer(BlockTransformer):
             logg.log(DEBUG_TYPING, "whwalrus-if?: %s", ast.dump(node))
             return [node]
 
-class DetectImports(ast.NodeTransformer):
+class DetectImports(NodeTransformer):
     importfrom: Dict[str, Dict[str, str]]
     imported: Dict[str, ast.stmt]
     asimport: Dict[str, str]
@@ -993,7 +1002,7 @@ class RequireImport:
         return module
 
 
-class ReplaceIsinstanceBaseType(ast.NodeTransformer):
+class ReplaceIsinstanceBaseType(NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None) -> None:
         ast.NodeTransformer.__init__(self)
         self.replace = replace if replace is not None else { "str": "basestring"}
@@ -1015,7 +1024,7 @@ class ReplaceIsinstanceBaseType(ast.NodeTransformer):
                 self.defines.append(F"{basename} = {origname}")
         return self.generic_visit(node)
 
-class DetectFunctionCalls(ast.NodeTransformer):
+class DetectFunctionCalls(NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None, noimport: Optional[List[str]] = None) -> None:
         ast.NodeTransformer.__init__(self)
         self.imported: Dict[str, str] = {}
@@ -1250,7 +1259,7 @@ class DefineIfPython3:
         else:
             return node
 
-class FStringToFormat(ast.NodeTransformer):
+class FStringToFormat(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
     def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name # pragma: nocover
         """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
@@ -1338,7 +1347,7 @@ class FStringToFormat(ast.NodeTransformer):
         make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
         return make
 
-class DetectAnnotation(ast.NodeVisitor):
+class DetectAnnotation(NodeVisitor):
     names: Dict[str, str]
     def __init__(self) -> None:
         ast.NodeVisitor.__init__(self)
@@ -1360,7 +1369,7 @@ def types_in_annotation(annotation: ast.expr) -> Dict[str, str]:
     detect.visit(annotation)
     return detect.names
 
-class DetectHints(ast.NodeTransformer):
+class DetectHints(NodeTransformer):
     """ only check all ClassDef, Function and AnnAssign in the source tree """
     typing: Dict[str, str]
     classes: Dict[str, str]
@@ -1416,7 +1425,7 @@ class DetectHints(ast.NodeTransformer):
                 self.classes.update(types_in_annotation(return_annotation))
         return self.generic_visit(node)
 
-class StripHints(ast.NodeTransformer):
+class StripHints(NodeTransformer):
     """ check all ClassDef, Function and AnnAssign in the source tree """
     typing: Set[str]
     removed: Set[str]
@@ -1771,7 +1780,7 @@ class StripTypeHints:
             return ast.Module(body, type_ignores=node.type_ignores)
         return node
 
-class TypesTransformer(ast.NodeTransformer):
+class TypesTransformer(NodeTransformer):
     def __init__(self) -> None:
         ast.NodeTransformer.__init__(self)
         self.typing: Set[str] = set()

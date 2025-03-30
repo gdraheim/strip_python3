@@ -20,6 +20,7 @@ UNITS = $(UNITS_PY) $(UNITS_OPTIONS)
 EXECS = $(EXECS_PY) $(EXECS_OPTIONS) --python=$(PYTHON)
 TESTS = $(TESTS_PY) $(TESTS_OPTIONS) --python=$(PYTHON)
 CONTAINER = strip-py
+COVERAGE2 = --coverage --coverage
 TODO=
 V=-v
 
@@ -47,12 +48,13 @@ todo: ; $(MAKE) test TODO=--todo
 test: ; $(PYTHON) $(TESTS) $V $@ $(TODO)
 test_1%: ; $(PYTHON) $(UNITS) $V $@ $(TODO) --failfast
 test_2%: ; $(PYTHON) $(TESTS) $V $@ $(TODO) --failfast
-st_2%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) --coverage
+st_2%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) $(COVERAGE2)
+st_1%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) $(COVERAGE2)
 test_3%: ; $(PYTHON) $(EXECS) $V $@ $(TODO)
-st_3%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) --coverage
+st_3%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) $(COVERAGE2)
 
-coverage: ; $(PYTHON) $(TESTS) $V --coverage
-coverage2: ; $(PYTHON) $(TESTS) $V --coverage test_2
+coverage: ; $(PYTHON) $(TESTS) $V $(COVERAGE2)
+coverage2: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_2
 
 # TESTS in container
 tests27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
@@ -254,7 +256,8 @@ mypy:
 type:
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $F
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) tests/*.py
-
+tests/%.py.type:
+	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $(@:.type=)
 
 PYLINT = pylint
 PYLINT_OPTIONS =

@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,invalid-name,line-too-long,multiple-statements,too-many-lines
-# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-public-methods,too-many-branches,too-many-statements
+# pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-public-methods,too-many-branches,too-many-statements,too-few-public-methods
 # pylint: disable=duplicate-code,consider-using-with,no-else-return,unspecified-encoding
 
 """ tests for strip_python3 """
@@ -33,16 +33,20 @@ logg = logging.getLogger(os.path.basename(__file__))
 UNITS = "tests/unittests.py"
 STRIP = "src/strip_python3.py"
 PYTHON = "python3.11"
-COVERAGE = 0
 KEEP = 0
 TODO = 0
 OK = True
 NIX = ""
 LONGER = 2
 ENDSLEEP = 0.1
-FIXCOVERAGE = True
-RMCOVERAGE = True
 VV = "-v"
+
+class Want:
+    summary = 0
+    coverage = 0
+    fixcoverage = 1
+    rmcoverage = 1
+want = Want()
 
 basestring = str
 
@@ -203,7 +207,7 @@ def coverage(tool: str, cwd: Optional[str] = None) -> str:
     if cwd:
         subdir = cwd if cwd.endswith("/") else cwd + "/"
         pre = "../" * (subdir.count("/"))
-    if COVERAGE:
+    if want.coverage:
         return PYTHON + " -m coverage " + " run " + pre + tool
     return PYTHON + " " + pre + tool
 
@@ -259,28 +263,28 @@ class StripTest(unittest.TestCase):
             # shutil.copy(".coverage", newcoverage)
             with open(".coverage", "rb") as inp:
                 text = inp.read()
-            if FIXCOVERAGE:
+            if want.fixcoverage:
                 text2 = re.sub(rb"(\]\}\})[^{}]*(\]\}\})$", rb"\1", text)
             else:
                 text2 = text
             with open(newcoverage, "wb") as out:
                 out.write(text2)
                 written.append(newcoverage)
-            if RMCOVERAGE:
+            if want.rmcoverage:
                 os.unlink(".coverage")
         if os.path.isfile(F"{testdir}/.coverage"):
             logg.log(DEBUG_TOML, "%s: found %s", testname, F"{testdir}/.coverage")
             newcoverage = ".coverage."+testname+".testdir"
             with open(F"{testdir}/.coverage", "rb") as inp:
                 text = inp.read()
-            if FIXCOVERAGE:
+            if want.fixcoverage:
                 text2 = re.sub(rb"(\]\}\})[^{}]*(\]\}\})$", rb"\1", text)
             else:
                 text2 = text
             with open(newcoverage, "wb") as out:
                 out.write(text2)
                 written.append(newcoverage)
-            if RMCOVERAGE:
+            if want.rmcoverage:
                 os.unlink(F"{testdir}/.coverage")
         logg.log(DEBUG_TOML, "coverage written %s", written)
     def begin(self) -> str:
@@ -3641,8 +3645,9 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
 
-    def test_2999(self) -> None:
-        if COVERAGE:
+def summary() -> None:
+    if OK:
+        if want.coverage:
             coverage3 = PYTHON + " -m coverage "
             run = sh(F"{coverage3} combine", check=False)
             if run.err:
@@ -3664,9 +3669,8 @@ class StripTest(unittest.TestCase):
                 logg.error("%s", run.err)
             print("\n  "+run.out.replace("\n", "\n  "))
 
-
 def runtests() -> None:
-    global PYTHON, KEEP, TODO, COVERAGE, VV # pylint: disable=global-statement
+    global PYTHON, KEEP, TODO, VV # pylint: disable=global-statement
     from optparse import OptionParser  # pylint: disable=deprecated-module,import-outside-toplevel
     cmdline = OptionParser("%prog [options] test*",
                       epilog=__doc__.strip().split("\n", 1)[0])
@@ -3691,7 +3695,7 @@ def runtests() -> None:
     PYTHON = opt.python
     KEEP = opt.keep
     TODO = opt.todo
-    COVERAGE = opt.coverage
+    want.coverage = opt.coverage
     VV = "-v" + ("v" * opt.verbose)
     #
     logfile = None
@@ -3703,11 +3707,10 @@ def runtests() -> None:
         logging.getLogger().addHandler(logfile)
         logg.info("log diverted to %s", opt.logfile)
     #
-    if opt.coverage:
-        if opt.coverage > 1:
-            if os.path.exists(".coverage"):
-                logg.info("rm .coverage")
-                os.remove(".coverage")
+    if want.coverage > 1:
+        if os.path.exists(".coverage"):
+            logg.info("rm .coverage")
+            os.remove(".coverage")
     # unittest.main()
     suite = unittest.TestSuite()
     if not cmdline_args:
@@ -3749,6 +3752,8 @@ def runtests() -> None:
         testresult = TestRunner(logfile.stream, verbosity=opt.verbose).run(suite)
     if not testresult.wasSuccessful():
         sys.exit(1)
+    if want.summary or want.coverage > 1:
+        summary()
 
 if __name__ == "__main__":
     runtests()

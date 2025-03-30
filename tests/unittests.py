@@ -13,18 +13,27 @@ import logging
 import os.path
 from fnmatch import fnmatchcase as fnmatch
 
-sys.path.append("src")
-sys.path.append("../src")
-import strip_python3 as app  # type: ignore[import-untyped] # pylint:disable=wrong-import-position,import-error
 logg = logging.getLogger(os.path.basename(__file__))
+
+sys.path.append(os.curdir)
+from src import strip_python3 as app # pylint: disable=wrong-import-position,import-error
 
 TODO = 0
 VV = "-vv"
 
 class StripUnitTest(unittest.TestCase):
     def test_1100(self) -> None:
+        x = app.to_int("x")
         y = app.to_int("y")
         n = app.to_int("n")
+        self.assertEqual(x, 2)
+        self.assertEqual(y, 1)
+        self.assertEqual(n, 0)
+    def test_1101(self) -> None:
+        x = app.to_int("2")
+        y = app.to_int("1")
+        n = app.to_int("0")
+        self.assertEqual(x, 2)
         self.assertEqual(y, 1)
         self.assertEqual(n, 0)
 
