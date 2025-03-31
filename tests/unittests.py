@@ -7,11 +7,13 @@ __copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
 __version__ = "1.1.1127"
 
+from typing import cast
 import sys
 import unittest
 import logging
 import os.path
 from fnmatch import fnmatchcase as fnmatch
+import ast
 
 logg = logging.getLogger(os.path.basename(__file__))
 
@@ -90,6 +92,112 @@ class StripUnitTest(unittest.TestCase):
         self.assertEqual(c, "a\nb\n")
         self.assertEqual(d, "a\n        b\n")
         self.assertEqual(e, "a\n b\n")
+    def test_1201(self) -> None:
+        other = ast.Constant(1) # unknown element
+        have: ast.Module = app.pyi_module([other])
+        have0 = cast(ast.Constant, have.body[0])
+        self.assertEqual(other.value, have0.value)
+    def test_1210(self) -> None:
+        pyi = ast.parse(app.text4("""
+        def foo(a: A) -> B:
+            pass
+        """))
+        py1 = ast.parse(app.text4("""
+        from x import A
+        """))
+        py2 = ast.parse(app.text4("""
+        from y import B
+        """))
+        want = app.text4("""
+        from x import A
+        from y import B
+
+        def foo(a: A) -> B:
+            pass""")
+        pyi2 = app.pyi_copy_imports(pyi, py1, py2)
+        have = ast.unparse(pyi2) + "\n"
+        self.assertEqual(want, have)
+    def test_1211(self) -> None:
+        pyi = ast.parse(app.text4("""
+        def foo(a: A) -> B:
+            pass
+        """))
+        py1 = ast.parse(app.text4("""
+        from x.z import A
+        """))
+        py2 = ast.parse(app.text4("""
+        from y.z import B
+        """))
+        want = app.text4("""
+        from x.z import A
+        from y.z import B
+
+        def foo(a: A) -> B:
+            pass""")
+        pyi2 = app.pyi_copy_imports(pyi, py1, py2)
+        have = ast.unparse(pyi2) + "\n"
+        self.assertEqual(want, have)
+    def test_1212(self) -> None:
+        pyi = ast.parse(app.text4("""
+        def foo(a: x.A) -> y.B:
+            pass
+        """))
+        py1 = ast.parse(app.text4("""
+        import x
+        """))
+        py2 = ast.parse(app.text4("""
+        import y
+        """))
+        want = app.text4("""
+        import x, y
+
+        def foo(a: x.A) -> y.B:
+            pass""")
+        pyi2 = app.pyi_copy_imports(pyi, py1, py2)
+        have = ast.unparse(pyi2) + "\n"
+        self.assertEqual(want, have)
+    def test_1213(self) -> None:
+        pyi = ast.parse(app.text4("""
+        def foo(a: x.A) -> y.B:
+            pass
+        """))
+        py1 = ast.parse(app.text4("""
+        import app1.x as x
+        """))
+        py2 = ast.parse(app.text4("""
+        import app2.y as y
+        """))
+        want = app.text4("""
+        from app1 import x
+        from app2 import y
+
+        def foo(a: x.A) -> y.B:
+            pass""")
+        pyi2 = app.pyi_copy_imports(pyi, py1, py2)
+        have = ast.unparse(pyi2) + "\n"
+        self.assertEqual(want, have)
+    @unittest.expectedFailure
+    def test_1215(self) -> None:
+        pyi = ast.parse(app.text4("""
+        def foo(a: app1.x.A) -> app2.y.B:
+            pass
+        """))
+        py1 = ast.parse(app.text4("""
+        import app1.x
+        """))
+        py2 = ast.parse(app.text4("""
+        import app2.y
+        """))
+        want = app.text4("""
+        import app1.x
+        import app2.y
+
+        def foo(a: app1.x.A) -> app2.y.B:
+            pass""")
+        pyi2 = app.pyi_copy_imports(pyi, py1, py2)
+        have = ast.unparse(pyi2) + "\n"
+        self.assertEqual(want, have)
+
 
 if __name__ == "__main__":
     # unittest.main()

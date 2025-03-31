@@ -784,7 +784,7 @@ class DetectImports(NodeTransformer):
                     self.importfrom[modulename][symbol.name] = symbol.asname or symbol.name
                     origname = modulename + "." + symbol.name
                     codename = symbol.name if not symbol.asname else symbol.asname
-                    stmt = ast.ImportFrom(imports.module, [ast.alias(symbol.name, symbol.asname)], imports.level)
+                    stmt = ast.ImportFrom(imports.module, [ast.alias(symbol.name, symbol.asname if symbol.asname != symbol.name else None)], imports.level)
                     self.imported[origname] = stmt
                     self.asimport[codename] = origname
         return self.generic_visit(node)
@@ -793,7 +793,7 @@ class DetectImports(NodeTransformer):
         for symbol in imports.names:
             origname = symbol.name
             codename = symbol.name if not symbol.asname else symbol.asname
-            stmt = ast.Import([ast.alias(symbol.name, symbol.asname)])
+            stmt = ast.Import([ast.alias(symbol.name, symbol.asname if symbol.asname != symbol.name else None)])
             self.imported[origname] = stmt
             self.asimport[codename] = origname
         return self.generic_visit(node)
@@ -967,13 +967,12 @@ class RequireImport:
                     body.append(stmt)
                 else:
                     if simple:
-                        body.append(ast.Import([ast.alias(mod, simple[mod]) for mod in sorted(simple)]))
+                        body.append(ast.Import([ast.alias(mod, simple[mod] if simple[mod] != mod else None) for mod in sorted(simple)]))
                     for mod in sorted(dotted):
                         alias = dotted[mod]
                         if alias and "." in mod:
                             libname, sym = mod.rsplit(".", 1)
-                            renamed = alias if sym != alias else None
-                            body.append(ast.ImportFrom(libname, [ast.alias(sym, renamed)], 0))
+                            body.append(ast.ImportFrom(libname, [ast.alias(sym, alias if alias != sym else None)], 0))
                         else:
                             body.append(ast.Import([ast.alias(mod, alias)]))
                     body.append(stmt)
@@ -989,13 +988,12 @@ class RequireImport:
                     body.append(stmt)
                 else:
                     if simple:
-                        body.append(ast.Import([ast.alias(mod, simple[mod]) for mod in sorted(simple)]))
+                        body.append(ast.Import([ast.alias(mod, simple[mod] if simple[mod] != mod else None) for mod in sorted(simple)]))
                     for mod in sorted(dotted):
                         alias = dotted[mod]
                         if alias and "." in mod:
                             libname, sym = mod.rsplit(".", 1)
-                            renamed = alias if sym != alias else None
-                            body.append(ast.ImportFrom(libname, [ast.alias(sym, renamed)], 0))
+                            body.append(ast.ImportFrom(libname, [ast.alias(sym, alias if alias != sym else None)], 0))
                         else:
                             body.append(ast.Import([ast.alias(mod, alias)]))
                     body.append(stmt)
