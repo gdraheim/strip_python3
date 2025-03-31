@@ -106,14 +106,22 @@ def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
 #         (python 3.11) Protocols, reveal_type(x), get_overloads
 #         (python 3.11)  assert_never(unreachable)
 
-def to_int(x: str) -> int:
-    if x.isdigit():
-        return int(x)
-    if x in ["y", "yes", "true", "True", "ok", "OK"]:
-        return 1
-    if x in ["x", "xtra", "more"]:
-        return 2
-    return 0
+str_to_int_0 = ("n", "no", "false", "False", "na", "NA")
+str_to_int_1 = ("y", "yes", "true", "True", "ok", "OK")
+str_to_int_2 = ("x", "xtra", "more", "high", "hi", "HI")
+def to_int(x: Union[int, str, None], default: int = 0) -> int:
+    if isinstance(x, int):
+        return x
+    if isinstance(x, str):
+        if x.isdigit():
+            return int(x)
+        if x in str_to_int_0:
+            return 0
+        if x in str_to_int_1:
+            return 1
+        if x in str_to_int_2:
+            return 2
+    return default
 
 class Want:
     show_dump = 0
@@ -335,7 +343,7 @@ def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: s
         opt_string = opt.get_opt_string()
         if opt_string.startswith("--") and opt.dest is not None:
             opt_default = opt.default
-            if isinstance(opt_default, int) or isinstance(opt_default, str):
+            if isinstance(opt_default, (int, str)):
                 defnames[opt_string[2:]] = opt.dest
                 defaults[opt_string[2:]] = opt_default
     settings: Dict[str, Union[str, int]] = {}
@@ -362,7 +370,9 @@ def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: s
                                     if isinstance(setvalue, (int, float, bool)):
                                         settings[destname] = int(setvalue)
                                     else:
-                                        logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
+                                        if setvalue not in str_to_int_0+str_to_int_1+str_to_int_2:
+                                            logg.error("%s[%s]: expecting int but found %s", configfile, setting, type(setvalue))
+                                        settings[destname] = to_int(setvalue)
                                 else:
                                     if not isinstance(oldvalue, str):
                                         logg.warning("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))
@@ -384,14 +394,12 @@ def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: s
                                 oldvalue = defaults[option]
                                 setvalue = section2[option]
                                 if isinstance(oldvalue, int):
-                                    if setvalue in ["true", "True"]:
-                                        settings[destname] = 1
-                                    elif setvalue in ["false", "False"]:
-                                        settings[destname] = 0
-                                    elif setvalue in ["0", "1", "2", "3"]:
+                                    if setvalue.isdigit():
                                         settings[destname] = int(setvalue)
                                     else:
-                                        logg.error("%s[%s]: expecting int but found %s", configfile, option, setvalue)
+                                        if setvalue not in str_to_int_0+str_to_int_1+str_to_int_2:
+                                            logg.error("%s[%s]: expecting int but found %s", configfile, option, setvalue)
+                                        settings[destname] = to_int(setvalue)
                                 else:
                                     if not isinstance(oldvalue, str):
                                         logg.warning("%s[%s]: expecting str but found %s", configfile, setting, type(setvalue))

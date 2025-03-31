@@ -16,7 +16,7 @@ from fnmatch import fnmatchcase as fnmatch
 logg = logging.getLogger(os.path.basename(__file__))
 
 sys.path.append(os.curdir)
-from src import strip_python3 as app # pylint: disable=wrong-import-position,import-error
+from src import strip_python3 as app # pylint: disable=wrong-import-position,import-error,no-name-in-module
 
 TODO = 0
 VV = "-vv"
