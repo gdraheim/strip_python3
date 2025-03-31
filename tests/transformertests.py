@@ -1624,6 +1624,132 @@ class StripTest(unittest.TestCase):
                     return y"""))
         self.coverage()
         self.rm_testdir()
+    def test_2161(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import List
+        a: int 
+        def k(a: int = 0, **args: int) -> int:
+            return a
+
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: List[str], a: int = 0, **args: int) -> List[str]:
+               return [self.c] + y
+        def foo() -> None:
+            class Z:
+                b: int
+                c: str
+                def __add__(self, y: List[str], a: int = 0, **args: int) -> List[str]:
+                    return [self.c] + y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
+        self.assertEqual(py, text4("""
+        def k(a=0, **args):
+            return a
+
+        class B:
+        
+            def __add__(self, y, a=0, **args):
+                return [self.c] + y
+
+        def foo():
+
+            class Z:
+        
+                def __add__(self, y, a=0, **args):
+                    return [self.c] + y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List
+        a: int
+
+        def k(a: int=0, **args: int) -> int:
+            pass
+
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: List[str], a: int=0, **args: int) -> List[str]:
+                pass
+
+        def foo() -> None:
+            pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2162(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import List
+        a: int 
+        def k(a: int = 0, *args: int) -> int:
+            return a
+
+        class B:
+           b: int
+           c: str
+           def __add__(self, y: List[str], a: int = 0, *args: int) -> List[str]:
+               return [self.c] + y
+        def foo() -> None:
+            class Z:
+                b: int
+                c: str
+                def __add__(self, y: List[str], a: int = 0, *args: int) -> List[str]:
+                    return [self.c] + y
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
+        self.assertEqual(py, text4("""
+        def k(a=0, *args):
+            return a
+
+        class B:
+        
+            def __add__(self, y, a=0, *args):
+                return [self.c] + y
+
+        def foo():
+
+            class Z:
+        
+                def __add__(self, y, a=0, *args):
+                    return [self.c] + y
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import List
+        a: int
+
+        def k(a: int=0, *args: int) -> int:
+            pass
+
+        class B:
+            b: int
+            c: str
+            
+            def __add__(self, y: List[str], a: int=0, *args: int) -> List[str]:
+                pass
+
+        def foo() -> None:
+            pass"""))
+        self.coverage()
+        self.rm_testdir()
 
     def test_2171(self) -> None:
         vv = self.begin()
