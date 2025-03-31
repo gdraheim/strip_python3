@@ -23,9 +23,9 @@ VV = "-vv"
 
 class StripUnitTest(unittest.TestCase):
     def test_1100(self) -> None:
-        x = app.to_int("x")
-        y = app.to_int("y")
-        n = app.to_int("n")
+        x = app.to_int(2)
+        y = app.to_int(1)
+        n = app.to_int(0)
         self.assertEqual(x, 2)
         self.assertEqual(y, 1)
         self.assertEqual(n, 0)
@@ -36,6 +36,60 @@ class StripUnitTest(unittest.TestCase):
         self.assertEqual(x, 2)
         self.assertEqual(y, 1)
         self.assertEqual(n, 0)
+    def test_1102(self) -> None:
+        x = app.to_int("x")
+        y = app.to_int("y")
+        n = app.to_int("n")
+        self.assertEqual(x, 2)
+        self.assertEqual(y, 1)
+        self.assertEqual(n, 0)
+    def test_1110(self) -> None:
+        a = app.text4("")
+        b = app.text4(" ")
+        c = app.text4("""
+        """)
+        d = app.text4("""
+         """)
+        e = app.text4("""
+        
+         """)
+        self.assertEqual(a, "")
+        self.assertEqual(b, " ")
+        self.assertEqual(c, "\n")
+        self.assertEqual(d, "\n")
+        self.assertEqual(e, "\n")
+    def test_1111(self) -> None:
+        a = app.text4("a")
+        b = app.text4(" a")
+        c = app.text4("""
+        a""")
+        d = app.text4("""
+         a""")
+        e = app.text4("""
+        a
+         """)
+        self.assertEqual(a, "a")
+        self.assertEqual(b, " a")
+        self.assertEqual(c, "a\n")
+        self.assertEqual(d, "a\n")
+        self.assertEqual(e, "a\n")
+    def test_1112(self) -> None:
+        a = app.text4("a b")
+        b = app.text4(" a b")
+        c = app.text4("""
+        a
+        b""")
+        d = app.text4("""
+         a
+        b""")
+        e = app.text4("""
+        a
+         b""")
+        self.assertEqual(a, "a b")
+        self.assertEqual(b, " a b")
+        self.assertEqual(c, "a\nb\n")
+        self.assertEqual(d, "a\n        b\n")
+        self.assertEqual(e, "a\n b\n")
 
 if __name__ == "__main__":
     # unittest.main()
