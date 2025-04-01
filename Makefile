@@ -13,12 +13,12 @@ PYTHON_VERSION = 3.11
 TWINE = twine-3.11
 QTOML_PY = src/strip_qtoml_decoder.py
 AST4_PY = src/strip_ast_comments.py
-UNITS_PY = tests/unittests.py
-EXECS_PY = tests/exectests.py
-TESTS_PY = tests/transformertests.py
+UNITS_PY = tests/unittests1.py
+TESTS_PY = tests/transformertests2.py
+EXECS_PY = tests/exectests3.py
 UNITS = $(UNITS_PY) $(UNITS_OPTIONS)
-EXECS = $(EXECS_PY) $(EXECS_OPTIONS) --python=$(PYTHON)
 TESTS = $(TESTS_PY) $(TESTS_OPTIONS) --python=$(PYTHON)
+EXECS = $(EXECS_PY) $(EXECS_OPTIONS) --python=$(PYTHON)
 CONTAINER = strip-py
 COVERAGE2 = --coverage --coverage
 TODO=
