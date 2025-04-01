@@ -1167,26 +1167,23 @@ class DefineIfPython2:
                     testparsed: ast.Module = cast(ast.Module, ast.parse(testcode))
                     assert isinstance(testparsed.body[0], ast.Expr)
                     testbody: ast.Expr = testparsed.body[0]
-                    if isinstance(testbody.value, ast.Compare):
-                        testcompare: ast.expr = testbody.value
-                        if self.before:
-                            testcode = "sys.version_info < ({}, {})".format(self.before[0], self.before[1])
-                            testparsed = cast(ast.Module, ast.parse(testcode))
-                            assert isinstance(testparsed.body[0], ast.Expr)
-                            testbody = testparsed.body[0]
-                            testcompare = testbody.value
-                        if self.atleast:
-                            testcode = "sys.version_info >= ({}, {})".format(self.atleast[0], self.atleast[1])
-                            testparsed = cast(ast.Module, ast.parse(testcode))
-                            assert isinstance(testparsed.body[0], ast.Expr)
-                            testbody = testparsed.body[0]
-                            testatleast = testbody.value
-                            testcompare = ast.BoolOp(op=ast.Or(), values=[testcompare, testatleast])
-                        before = self.before if self.before else (3,0)
-                        logg.log(HINT, "python2 atleast %s before %s", self.atleast, before)
-                    else:
-                        logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
-                        testcompare = ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.Lt()], comparators=[ast.Num(3)])
+                    assert isinstance(testbody.value, ast.Compare)
+                    testcompare: ast.expr = testbody.value
+                    if self.before:
+                        testcode = "sys.version_info < ({}, {})".format(self.before[0], self.before[1])
+                        testparsed = cast(ast.Module, ast.parse(testcode))
+                        assert isinstance(testparsed.body[0], ast.Expr)
+                        testbody = testparsed.body[0]
+                        testcompare = testbody.value
+                    if self.atleast:
+                        testcode = "sys.version_info >= ({}, {})".format(self.atleast[0], self.atleast[1])
+                        testparsed = cast(ast.Module, ast.parse(testcode))
+                        assert isinstance(testparsed.body[0], ast.Expr)
+                        testbody = testparsed.body[0]
+                        testatleast = testbody.value
+                        testcompare = ast.BoolOp(op=ast.Or(), values=[testcompare, testatleast])
+                    before = self.before if self.before else (3,0)
+                    logg.log(HINT, "python2 atleast %s before %s", self.atleast, before)
                     python2 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
                     python2 = copy_location(python2, stmt)
                     body.append(python2)
@@ -1242,26 +1239,23 @@ class DefineIfPython3:
                     testparsed: ast.Module = cast(ast.Module, ast.parse(testcode))
                     assert isinstance(testparsed.body[0], ast.Expr)
                     testbody: ast.Expr = testparsed.body[0]
-                    if isinstance(testbody.value, ast.Compare):
-                        testcompare: ast.expr = testbody.value
-                        if self.atleast:
-                            testcode = "sys.version_info >= ({}, {})".format(self.atleast[0], self.atleast[1])
-                            testparsed = cast(ast.Module, ast.parse(testcode))
-                            assert isinstance(testparsed.body[0], ast.Expr)
-                            testbody = testparsed.body[0]
-                            testcompare = testbody.value
-                        if self.before:
-                            testcode = "sys.version_info < ({}, {})".format(self.before[0], self.before[1])
-                            testparsed = cast(ast.Module, ast.parse(testcode))
-                            assert isinstance(testparsed.body[0], ast.Expr)
-                            testbody = testparsed.body[0]
-                            testbefore = testbody.value
-                            testcompare = ast.BoolOp(op=ast.And(), values=[testcompare, testbefore])
-                        atleast = self.atleast if self.atleast else (3,0)
-                        logg.log(HINT, "python3 atleast %s before %s", atleast, self.before)
-                    else:
-                        logg.error("unexpected %s found for testcode: %s", type(testbody.value), testcode)  # and fallback to explicit ast-tree
-                        testcompare=ast.Compare(left=ast.Subscript(value=ast.Attribute(value=ast.Name("sys"), attr="version_info"), slice=cast(ast.expr, ast.Index(value=ast.Num(0)))), ops=[ast.GtE()], comparators=[ast.Num(3)])
+                    assert isinstance(testbody.value, ast.Compare)
+                    testcompare: ast.expr = testbody.value
+                    if self.atleast:
+                        testcode = "sys.version_info >= ({}, {})".format(self.atleast[0], self.atleast[1])
+                        testparsed = cast(ast.Module, ast.parse(testcode))
+                        assert isinstance(testparsed.body[0], ast.Expr)
+                        testbody = testparsed.body[0]
+                        testcompare = testbody.value
+                    if self.before:
+                        testcode = "sys.version_info < ({}, {})".format(self.before[0], self.before[1])
+                        testparsed = cast(ast.Module, ast.parse(testcode))
+                        assert isinstance(testparsed.body[0], ast.Expr)
+                        testbody = testparsed.body[0]
+                        testbefore = testbody.value
+                        testcompare = ast.BoolOp(op=ast.And(), values=[testcompare, testbefore])
+                    atleast = self.atleast if self.atleast else (3,0)
+                    logg.log(HINT, "python3 atleast %s before %s", atleast, self.before)
                     python3 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
                     python3 = copy_location(python3, stmt)
                     body.append(python3)
