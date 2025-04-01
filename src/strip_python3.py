@@ -1142,7 +1142,7 @@ class DefineIfPython2:
         for stmtlist in [cast(ast.Module, ast.parse(e)).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
-        if isinstance(node, ast.Module) and self.body:
+        if isinstance(node, ast.Module) and (self.body or self.orelse):
             # pylint: disable=consider-using-f-string
             module1: ast.Module = node
             body: List[ast.stmt] = []
@@ -1184,7 +1184,7 @@ class DefineIfPython2:
                         testcompare = ast.BoolOp(op=ast.Or(), values=[testcompare, testatleast])
                     before = self.before if self.before else (3,0)
                     logg.log(HINT, "python2 atleast %s before %s", self.atleast, before)
-                    python2 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
+                    python2 = ast.If(test=testcompare, body=self.body or [ast.Pass()], orelse=self.orelse)
                     python2 = copy_location(python2, stmt)
                     body.append(python2)
                     body.append(stmt)
@@ -1215,7 +1215,7 @@ class DefineIfPython3:
         for stmtlist in [cast(ast.Module, ast.parse(e)).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
-        if isinstance(node, ast.Module) and self.body:
+        if isinstance(node, ast.Module) and (self.body or self.orelse):
             # pylint: disable=consider-using-f-string
             module1: ast.Module = node
             body: List[ast.stmt] = []
@@ -1256,7 +1256,7 @@ class DefineIfPython3:
                         testcompare = ast.BoolOp(op=ast.And(), values=[testcompare, testbefore])
                     atleast = self.atleast if self.atleast else (3,0)
                     logg.log(HINT, "python3 atleast %s before %s", atleast, self.before)
-                    python3 = ast.If(test=testcompare, body=self.body, orelse=self.orelse)
+                    python3 = ast.If(test=testcompare, body=self.body or [ast.Pass()], orelse=self.orelse)
                     python3 = copy_location(python3, stmt)
                     body.append(python3)
                     body.append(stmt)
