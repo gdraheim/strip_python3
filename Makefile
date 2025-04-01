@@ -54,6 +54,7 @@ test_3%: ; $(PYTHON) $(EXECS) $V $@ $(TODO)
 st_3%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) $(COVERAGE2)
 
 coverage: ; $(PYTHON) $(TESTS) $V $(COVERAGE2)
+coverage1: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_1
 coverage2: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_2
 
 # TESTS in container

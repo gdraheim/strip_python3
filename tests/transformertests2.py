@@ -30,7 +30,8 @@ logging.addLevelName(HINT, "HINT")
 DEBUG_TOML = logging.DEBUG
 
 logg = logging.getLogger(os.path.basename(__file__))
-UNITS = "tests/unittests.py"
+UNITS_PY = os.environ.get("UNITS_PY", "unittests1.py")
+UNITS = F"tests/{UNITS_PY}"
 STRIP = "src/strip_python3.py"
 PYTHON = "python3.11"
 KEEP = 0
