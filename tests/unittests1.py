@@ -93,10 +93,45 @@ class StripUnitTest(unittest.TestCase):
         self.assertEqual(d, "a\n        b\n")
         self.assertEqual(e, "a\n b\n")
     def test_1201(self) -> None:
-        other = ast.Constant(1) # unknown element
+        other = ast.Constant(1) # unknown script element
         have: ast.Module = app.pyi_module([other])
         have0 = cast(ast.Constant, have.body[0])
         self.assertEqual(other.value, have0.value)
+    def test_1202(self) -> None:
+        want = "foo"
+        script = app.text4("""
+        "foo"
+        """)
+        script1 = ast.parse(script)
+        assert isinstance(script1, ast.Module)
+        pyi = script1.body
+        have1: ast.Module = app.pyi_module(pyi)
+        have2 = have1.body[0]
+        assert isinstance(have2, ast.Expr)
+        have3 = have2.value
+        assert isinstance(have3, ast.Constant)
+        have = have3.value
+        self.assertEqual(want, have)
+    def test_1203(self) -> None:
+        want = "foo"
+        script = app.text4("""
+        class A:
+            "foo"
+            pass
+        """)
+        script1 = ast.parse(script)
+        assert isinstance(script1, ast.Module)
+        pyi = script1.body
+        have1: ast.Module = app.pyi_module(pyi)
+        have2 = have1.body[0]
+        assert isinstance(have2, ast.ClassDef)
+        have3 = have2.body[0]
+        assert isinstance(have3, ast.Expr)
+        have4 = have3.value
+        assert isinstance(have4, ast.Constant)
+        have = have4.value
+        self.assertEqual(want, have)
+
     def test_1210(self) -> None:
         pyi = ast.parse(app.text4("""
         def foo(a: A) -> B:
