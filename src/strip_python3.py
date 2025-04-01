@@ -221,14 +221,15 @@ def main() -> int:
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
-    cmdline.add_option("-6", "--py36", action="count", default=0, help="alias --no-pyi --python-version=3.6")
-    cmdline.add_option("-n", "--no-pyi", "--no-make-pyi", action="count", default=0, help="do not generate file.pyi includes")
-    cmdline.add_option("-y", "--pyi", "--make-pyi", action="count", default=0, help="generate file.pyi includes as well")
+    cmdline.add_option("-6", "--py36", action="count", default=0, help="alias --no-make-pyi --python-version=3.6")
+    cmdline.add_option("-9", "--py39", action="count", default=0, help="alias --no-make-pyi --python-version=3.9")
+    cmdline.add_option("-n", "--no-make-pyi", "--no-pyi", action="count", default=0, help="do not generate file.pyi includes")
+    cmdline.add_option("-y", "--make-pyi", "--pyi", action="count", default=0, help="generate file.pyi includes as well")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     cmdline_set_defaults_from(cmdline, want.toolsection, want.pyproject_toml, want.setup_cfg)
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
-    no_make_pyi = opt.no_pyi
+    no_make_pyi = opt.no_make_pyi
     pyi_version = (3,6)
     if opt.pyi_version:
         if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
@@ -238,6 +239,9 @@ def main() -> int:
     back_version = (2,7)
     if opt.py36:
         back_version = (3,6)
+        no_make_pyi = True
+    elif opt.py39:
+        back_version = (3,9)
         no_make_pyi = True
     elif opt.python_version:
         if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
@@ -337,7 +341,7 @@ def main() -> int:
     eachfile = EACH_REMOVE3 if opt.remove3 else 0
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
-    make_pyi = opt.pyi or opt.append2 or opt.remove3 or opt.inplace
+    make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
     return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not no_make_pyi, minversion=back_version)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
