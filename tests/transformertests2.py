@@ -2367,6 +2367,61 @@ class StripTest(unittest.TestCase):
             self.assertFalse(greps(py, "Self:"))
         self.coverage()
         self.rm_testdir()
+    def test_2199(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import Annotated
+        from pydantic import Field
+        class X:
+            a: int 
+
+            def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> Self:
+                x = int(b)
+                return self
+        def foo() -> None:
+            class Z:
+                a: int 
+
+                def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: None | int = 0) -> Self:
+                    x = int(b)
+                    return self
+        """)
+        run = sh(F"{strip} -2 {tmp}/tmp1.py --py39 {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py = file_text4(F"{tmp}/tmp1_2.py")
+        logg.debug("--- py:\n%s\n", py)
+        # python 3.9 has positional, builtin list annotation, Annotated wrapper, but needs Optional
+        self.assertEqual(lines4(py), lines4(text4("""
+        from typing import Optional, TypeVar
+        from typing import Annotated
+        from pydantic import Field
+        SelfX = TypeVar('SelfX', bound='X')
+        
+        class X:
+            a: int
+
+            def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)]=0, *, b: Optional[int]=0) -> SelfX:
+                x = int(b)
+                return self
+
+        def foo() -> None:
+
+            class Z:
+                a: int
+
+                def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)]=0, *, b: Optional[int]=0) -> Self:
+                    x = int(b)
+                    return self
+        """)))
+        if TODO:
+            self.assertFalse(greps(py, "Self:"))
+        self.coverage()
+        self.rm_testdir()
 
 
 
