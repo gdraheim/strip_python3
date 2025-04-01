@@ -105,6 +105,10 @@ def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
 # PEP 675 (python 3.11) LiteralString
 #         (python 3.11) Protocols, reveal_type(x), get_overloads
 #         (python 3.11)  assert_never(unreachable)
+# PEP 695 (python 3.12) compact generics syntax and "type" statements
+# PEP 692 (python 3.12) TypedDict und Unpack
+# PEP 698 (python 3.12) @override decorator
+#         (python 3.12) warning on ast.Num ast.Str ast.Bytes ast.NameConstant ast.Ellipsis (replaced by ast.Constant in 3.8)
 
 str_to_int_0 = ("n", "no", "false", "False", "na", "NA")
 str_to_int_1 = ("y", "yes", "true", "True", "ok", "OK")
