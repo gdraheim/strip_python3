@@ -809,11 +809,9 @@ class DetectImports(NodeTransformer):
 class RequireImportFrom:
     require: Dict[str, Optional[str]]
     removes: Dict[str, Optional[str]]
-    def __init__(self, require: Optional[List[str]] = None) -> None:
+    def __init__(self, require: Iterable[str] = ()) -> None:
         self.require = {}
-        if require:
-            for req in require:
-                self.require[req] = None
+        self.append(require)
         self.removes = {}
     def removefrom(self, module: str, *symbols: str) -> None:
         for symbol in symbols:
@@ -824,7 +822,7 @@ class RequireImportFrom:
     def add(self, *require: str) -> None:
         for req in require:
             self.require[req] = None
-    def append(self, requires: List[str]) -> None:
+    def append(self, requires: Iterable[str]) -> None:
         for req in requires:
             self.require[req] = None
     def remove(self, removes: List[str]) -> None:
@@ -921,23 +919,18 @@ class RequireImportFrom:
 
 class RequireImport:
     require: Dict[str, Optional[str]]
-    def __init__(self, require: Optional[List[str]] = None) -> None:
+    def __init__(self, require: Iterable[str] = ()) -> None:
         self.require = {}
-        if require:
-            for req in require:
-                self.require[req] = None
+        self.append(require)
     def add(self, *require: Union[str, Tuple[str, Optional[str]]]) -> None:
         for req in require:
             if isinstance(req, str):
                 self.require[req] = None
             else:
                 self.require[req[0]] = req[1]
-    def append(self, requires: List[str]) -> None:
+    def append(self, requires: Iterable[str]) -> None:
         for req in requires:
-            if isinstance(req, str):
-                self.require[req] = None
-            else:
-                self.require[req[0]] = req[1]
+            self.require[req] = None
     def visit(self, node: ast.AST) -> ast.AST:
         if not self.require:
             return node
