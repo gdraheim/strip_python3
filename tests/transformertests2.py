@@ -755,6 +755,20 @@ class StripTest(unittest.TestCase):
         NOTE:strip:remove-typehints = 1 
         """)))
         self.rm_testdir()
+    def test_2100(self) -> None:
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """a: int = 1""")
+        run = sh(F"{strip} -1 {tmp}/tmp1.py")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1.pyi"))
+        py, pyi = file_text(F"{tmp}/tmp1.py"), file_text(F"{tmp}/tmp1.pyi")
+        self.assertEqual(py, "a = 1^")
+        self.assertEqual(pyi, "a: int^")
+        self.coverage()
+        self.rm_testdir()
     def test_2101(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
