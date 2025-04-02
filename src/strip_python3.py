@@ -1126,19 +1126,18 @@ class DefineIfPython2:
     body: List[ast.stmt]
     requires: List[str]
     orelse: List[ast.stmt]
-    def __init__(self, expr: List[str], before: Optional[Tuple[int, int]] = None, atleast: Optional[Tuple[int, int]] = None, orelse: Union[List[str], List[ast.stmt]] = []) -> None:
+    def __init__(self, expr: Iterable[str], before: Optional[Tuple[int, int]] = None, atleast: Optional[Tuple[int, int]] = None, or_else: Iterable[str] = (), orelse: Iterable[ast.stmt] = ()) -> None:
         self.atleast = atleast
         self.before = before
         self.requires = [] # output
         self.body = []
         self.orelse = []
-        if not orelse:
-            pass
-        elif isinstance(orelse[0], str):
-            for elselist in [cast(ast.Module, ast.parse(e)).body for e in orelse]:
+        if or_else:
+            for elselist in [cast(ast.Module, ast.parse(part)).body for part in or_else]:
                 self.orelse += elselist
-        else:
-            self.orelse = cast(List[ast.stmt], orelse)
+        if orelse:
+            for stmt in orelse:
+                self.orelse.append(stmt)
         for stmtlist in [cast(ast.Module, ast.parse(e)).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
@@ -1199,19 +1198,18 @@ class DefineIfPython3:
     body: List[ast.stmt]
     requires: List[str]
     orelse: List[ast.stmt]
-    def __init__(self, expr: List[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, orelse: Union[List[str], List[ast.stmt]] = []) -> None:
+    def __init__(self, expr: Iterable[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, or_else: Iterable[str] = (), orelse: Iterable[ast.stmt] = ()) -> None:
         self.atleast = atleast
         self.before = before
         self.requires = [] # output
         self.body = []
         self.orelse = []
-        if not orelse:
-            pass
-        elif isinstance(orelse[0], str):
-            for elselist in [cast(ast.Module, ast.parse(e)).body for e in orelse]:
+        if or_else:
+            for elselist in [cast(ast.Module, ast.parse(part)).body for part in or_else]:
                 self.orelse += elselist
-        else:
-            self.orelse = cast(List[ast.stmt], orelse)
+        if orelse:
+            for stmt in orelse:
+                self.orelse.append(stmt)
         for stmtlist in [cast(ast.Module, ast.parse(e)).body for e in expr]:
             self.body += stmtlist
     def visit(self, node: ast.AST) -> ast.AST:
@@ -2042,7 +2040,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if "datetime.datetime.fromisoformat" in calls.found:
                 datetime_module = calls.imported["datetime.datetime"]
                 fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
-                isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), orelse=[text4(F"""
+                isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), or_else=[text4(F"""
                 def {fromisoformat}(x):
                     import re
                     m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d\\d\\d\\d)", x)
@@ -2066,7 +2064,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
                 # there is a timeout value available since Python 3.3
-                subprocessrundef33 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), orelse=[text4(F"""
+                subprocessrundef33 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), or_else=[text4(F"""
                 class CompletedProcess:
                     def __init__(self, args, returncode, outs, errs):
                         self.args = args
@@ -2088,7 +2086,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                         completed.check_returncode()
                     return completed
                 """)])
-                subprocessrundef27 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), orelse=[text4(F"""
+                subprocessrundef27 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), or_else=[text4(F"""
                 class CompletedProcess:
                     def __init__(self, args, returncode, outs, errs):
                         self.args = args
@@ -2116,7 +2114,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 time_module = calls.imported["time"]
                 defname = time_module + "_monotonic"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic"], atleast=(3,3), # ..
-                   orelse=[F"def {defname}(): return time.time()"])
+                   or_else=[F"def {defname}(): return time.time()"])
                 monotonicfunc = DetectFunctionCalls({"time.monotonic": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
                 importrequires.append(monotonicdef.requires)
@@ -2130,7 +2128,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                     importrequires.append(["time"])
                 defname = time_module + "_monotonic_ns"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
-                   orelse=[F"def {defname}(): return int((time.time() - 946684800) * 1000000000)"])
+                   or_else=[F"def {defname}(): return int((time.time() - 946684800) * 1000000000)"])
                 monotonicfunc = DetectFunctionCalls({"time.monotonic_ns": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
                 importrequires.append(monotonicdef.requires)
@@ -2140,7 +2138,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 logg.log(HINT, "detected pathlib")
                 pathlibname = calls.imported["pathlib"]
                 pathlibdef = DefineIfPython2([F"import pathlib2 as {pathlibname}"], before=(3,3), # ..
-                   orelse=[text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}""")])
+                   or_else=[text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}""")])
                 pathlibdrop = DetectFunctionCalls(noimport=["pathlib"])
                 tree = pathlibdef.visit(pathlibdrop.visit(tree))
                 importrequires.append(pathlibdef.requires)
@@ -2150,7 +2148,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 zoneinfoname = calls.imported["zoneinfo"]
                 as_zoneinfo = F"as {zoneinfoname}" if zoneinfoname != "zoneinfo" else ""
                 zoneinfodef = DefineIfPython2([F"from backports import zoneinfo {as_zoneinfo}"], before=(3,9), # ..
-                   orelse=[text4("import zoneinfo") if zoneinfoname == "zoneinfo" else text4(F"""import zoneinfo as {zoneinfoname}""")])
+                   or_else=[text4("import zoneinfo") if zoneinfoname == "zoneinfo" else text4(F"""import zoneinfo as {zoneinfoname}""")])
                 zoneinfodrop = DetectFunctionCalls(noimport=["zoneinfo"])
                 tree = zoneinfodef.visit(zoneinfodrop.visit(tree))
                 importrequires.append(zoneinfodef.requires)
@@ -2159,7 +2157,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 logg.log(HINT, "detected tomllib")
                 tomllibname = calls.imported["tomllib"]
                 tomllibdef = DefineIfPython2([F"import toml as {tomllibname}"], before=(3,11), # ..
-                   orelse=[text4("import tomllib") if tomllibname == "tomllib" else text4(F"""import tomllib as {tomllibname}""")])
+                   or_else=[text4("import tomllib") if tomllibname == "tomllib" else text4(F"""import tomllib as {tomllibname}""")])
                 tomllibdrop = DetectFunctionCalls(noimport=["tomllib"])
                 tree = tomllibdef.visit(tomllibdrop.visit(tree))
                 importrequires.append(tomllibdef.requires)
