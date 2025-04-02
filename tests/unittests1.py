@@ -296,6 +296,43 @@ class StripUnitTest(unittest.TestCase):
             a = None
         x = 1""")
         self.assertEqual(want, have)
+    def test_1404(self) -> None:
+        text1 = app.text4("""
+        "testing"
+        import b
+        
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"], orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        \"\"\"testing\"\"\"
+        import b
+        if sys.version_info < (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1405(self) -> None:
+        text1 = app.text4("""
+        "testing"
+        import b
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"], orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        \"\"\"testing\"\"\"
+        import b
+        if sys.version_info >= (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
     def test_1408(self) -> None:
         text1 = app.text4("""
         import b
@@ -458,6 +495,226 @@ class StripUnitTest(unittest.TestCase):
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
         import b
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1450(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 0):
+            a = b
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1451(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 0):
+            a = b
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1452(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"], orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1453(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"], orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1454(self) -> None:
+        text1 = app.text4("""
+        "testing"
+       
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"], orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        \"\"\"testing\"\"\"
+        if sys.version_info < (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1455(self) -> None:
+        text1 = app.text4("""
+        "testing"
+
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"], orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        \"\"\"testing\"\"\"
+        if sys.version_info >= (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+
+    def test_1458(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"], orelse=ast.parse("a = None").body)
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1459(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"], orelse=ast.parse("a = None").body)
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+
+    def test_1462(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"], (3,5), orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 5):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1463(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"], (3,5), orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 5):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1464(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2(["a = b"], (3,5), (3,7), orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 5) or sys.version_info >= (3, 7):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1465(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3(["a = b"], (3,5), (3, 7), orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 5) and sys.version_info < (3, 7):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1466(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2([], (3,5), (3,7), orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 5) or sys.version_info >= (3, 7):
+            pass
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1467(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3([], (3,5), (3, 7), orelse=["a = None"])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 5) and sys.version_info < (3, 7):
+            pass
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1468(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2([], (3,5), (3,7), orelse=[])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1469(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3([], (3,5), (3, 7), orelse=[])
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
         x = 1""")
         self.assertEqual(want, have)
 

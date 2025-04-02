@@ -903,7 +903,7 @@ class RequireImportFrom:
             body = []
             # have no Import/ImportFrom in file
             for stmt in module.body:
-                if isinstance(stmt, (ast.Comment, ast.Constant)):
+                if isinstance(stmt, (ast.Comment, ast.Constant)) or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)):
                     # find first being not a Comment/String
                     body.append(stmt)
                 elif done:
@@ -989,7 +989,7 @@ class RequireImport:
             # have no Import/ImportFrom or hidden in if-blocks
             body = []
             for stmt in module.body:
-                if isinstance(stmt, (ast.Comment, ast.Constant)):
+                if isinstance(stmt, (ast.Comment, ast.Constant)) or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)):
                     # find first being not a Comment/String
                     body.append(stmt)
                 elif done:
@@ -1160,7 +1160,7 @@ class DefineIfPython2:
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
-                elif before_imports or after_append:
+                elif before_imports or after_append or isinstance(stmt, (ast.Comment, ast.Constant)) or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)):
                     body.append(stmt)
                 else:
                     testcode = "sys.version_info < (3, 0)"
@@ -1228,11 +1228,12 @@ class DefineIfPython3:
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
+                logg.fatal("stmt %s", ast.dump(stmt))
                 if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     if before_imports:
                         before_imports = False
                     body.append(stmt)
-                elif before_imports or after_append:
+                elif before_imports or after_append or isinstance(stmt, (ast.Comment, ast.Constant)) or (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)):
                     body.append(stmt)
                 else:
                     testcode = "sys.version_info >= (3, 0)"
