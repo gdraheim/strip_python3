@@ -1126,7 +1126,8 @@ class DefineIfPython2:
     body: List[ast.stmt]
     requires: List[str]
     orelse: List[ast.stmt]
-    def __init__(self, expr: Iterable[str], before: Optional[Tuple[int, int]] = None, atleast: Optional[Tuple[int, int]] = None, or_else: Iterable[str] = (), orelse: Iterable[ast.stmt] = ()) -> None:
+    def __init__(self, expr: Iterable[str], before: Optional[Tuple[int, int]] = None, or_else: Iterable[str] = (), atleast: Optional[Tuple[int, int]] = None,
+        *, orelse: Iterable[ast.stmt] = (), body: Iterable[ast.stmt] = ()) -> None:
         self.atleast = atleast
         self.before = before
         self.requires = [] # output
@@ -1140,6 +1141,9 @@ class DefineIfPython2:
                 self.orelse.append(stmt)
         for stmtlist in [cast(ast.Module, ast.parse(e)).body for e in expr]:
             self.body += stmtlist
+        if body:
+            for stmt in body:
+                self.body.append(stmt)
     def visit(self, node: ast.AST) -> ast.AST:
         if isinstance(node, ast.Module) and (self.body or self.orelse):
             # pylint: disable=consider-using-f-string
@@ -1198,7 +1202,8 @@ class DefineIfPython3:
     body: List[ast.stmt]
     requires: List[str]
     orelse: List[ast.stmt]
-    def __init__(self, expr: Iterable[str], atleast: Optional[Tuple[int, int]] = None, before: Optional[Tuple[int, int]] = None, or_else: Iterable[str] = (), orelse: Iterable[ast.stmt] = ()) -> None:
+    def __init__(self, expr: Iterable[str], atleast: Optional[Tuple[int, int]] = None, or_else: Iterable[str] = (), before: Optional[Tuple[int, int]] = None,
+        *, orelse: Iterable[ast.stmt] = (), body: Iterable[ast.stmt] = ()) -> None:
         self.atleast = atleast
         self.before = before
         self.requires = [] # output
@@ -1212,6 +1217,9 @@ class DefineIfPython3:
                 self.orelse.append(stmt)
         for stmtlist in [cast(ast.Module, ast.parse(e)).body for e in expr]:
             self.body += stmtlist
+        if body:
+            for stmt in body:
+                self.body.append(stmt)
     def visit(self, node: ast.AST) -> ast.AST:
         if isinstance(node, ast.Module) and (self.body or self.orelse):
             # pylint: disable=consider-using-f-string

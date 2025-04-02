@@ -333,7 +333,7 @@ class StripUnitTest(unittest.TestCase):
             a = None
         x = 1""")
         self.assertEqual(want, have)
-    def test_1408(self) -> None:
+    def test_1406(self) -> None:
         text1 = app.text4("""
         import b
         
@@ -350,13 +350,47 @@ class StripUnitTest(unittest.TestCase):
             a = None
         x = 1""")
         self.assertEqual(want, have)
-    def test_1409(self) -> None:
+    def test_1407(self) -> None:
         text1 = app.text4("""
         import b
         
         x = 1""")
         tree1 = ast.parse(text1)
         defs1 = app.DefineIfPython3(["a = b"], orelse=ast.parse("a = None").body)
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        import b
+        if sys.version_info >= (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1408(self) -> None:
+        text1 = app.text4("""
+        import b
+        
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2([], body=ast.parse("a = b").body, orelse=ast.parse("a = None").body)
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        import b
+        if sys.version_info < (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1409(self) -> None:
+        text1 = app.text4("""
+        import b
+        
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3([], body=ast.parse("a = b").body, orelse=ast.parse("a = None").body)
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -374,7 +408,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2(["a = b"], (3,5), or_else=["a = None"])
+        defs1 = app.DefineIfPython2(["a = b"], (3,5), ["a = None"])
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -391,7 +425,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3(["a = b"], (3,5), or_else=["a = None"])
+        defs1 = app.DefineIfPython3(["a = b"], (3,5), ["a = None"])
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -408,7 +442,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2(["a = b"], (3,5), (3,7), or_else=["a = None"])
+        defs1 = app.DefineIfPython2(["a = b"], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -425,7 +459,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3(["a = b"], (3,5), (3, 7), or_else=["a = None"])
+        defs1 = app.DefineIfPython3(["a = b"], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -442,7 +476,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2([], (3,5), (3,7), or_else=["a = None"])
+        defs1 = app.DefineIfPython2([], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -459,7 +493,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3([], (3,5), (3, 7), or_else=["a = None"])
+        defs1 = app.DefineIfPython3([], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -477,7 +511,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2([], (3,5), (3,7), or_else=[])
+        defs1 = app.DefineIfPython2([], (3,5), [], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -490,7 +524,7 @@ class StripUnitTest(unittest.TestCase):
         
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3([], (3,5), (3, 7), or_else=[])
+        defs1 = app.DefineIfPython3([], (3,5), [], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -584,7 +618,7 @@ class StripUnitTest(unittest.TestCase):
         x = 1""")
         self.assertEqual(want, have)
 
-    def test_1458(self) -> None:
+    def test_1456(self) -> None:
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
@@ -598,11 +632,39 @@ class StripUnitTest(unittest.TestCase):
             a = None
         x = 1""")
         self.assertEqual(want, have)
-    def test_1459(self) -> None:
+    def test_1457(self) -> None:
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
         defs1 = app.DefineIfPython3(["a = b"], orelse=ast.parse("a = None").body)
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info >= (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1458(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython2([], body=ast.parse("a = b").body, orelse=ast.parse("a = None").body)
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        if sys.version_info < (3, 0):
+            a = b
+        else:
+            a = None
+        x = 1""")
+        self.assertEqual(want, have)
+    def test_1459(self) -> None:
+        text1 = app.text4("""
+        x = 1""")
+        tree1 = ast.parse(text1)
+        defs1 = app.DefineIfPython3([], body=ast.parse("a = b").body, orelse=ast.parse("a = None").body)
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -617,7 +679,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2(["a = b"], (3,5), or_else=["a = None"])
+        defs1 = app.DefineIfPython2(["a = b"], (3,5), ["a = None"])
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -631,7 +693,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3(["a = b"], (3,5), or_else=["a = None"])
+        defs1 = app.DefineIfPython3(["a = b"], (3,5), ["a = None"])
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -645,7 +707,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2(["a = b"], (3,5), (3,7), or_else=["a = None"])
+        defs1 = app.DefineIfPython2(["a = b"], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -659,7 +721,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3(["a = b"], (3,5), (3, 7), or_else=["a = None"])
+        defs1 = app.DefineIfPython3(["a = b"], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -673,7 +735,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2([], (3,5), (3,7), or_else=["a = None"])
+        defs1 = app.DefineIfPython2([], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -687,7 +749,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3([], (3,5), (3, 7), or_else=["a = None"])
+        defs1 = app.DefineIfPython3([], (3,5), ["a = None"], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -701,7 +763,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython2([], (3,5), (3,7), or_else=[])
+        defs1 = app.DefineIfPython2([], (3,5), [], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -711,7 +773,7 @@ class StripUnitTest(unittest.TestCase):
         text1 = app.text4("""
         x = 1""")
         tree1 = ast.parse(text1)
-        defs1 = app.DefineIfPython3([], (3,5), (3, 7), or_else=[])
+        defs1 = app.DefineIfPython3([], (3,5), [], (3, 7))
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
