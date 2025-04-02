@@ -1270,52 +1270,11 @@ class DefineIfPython3:
 
 class FStringToFormat(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
-    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name # pragma: nocover
-        """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
-        # NOTE: I did not manage to create a test case that triggers this visitor
+    def string_format(self, values: List[Union[ast.Constant, ast.FormattedValue]]) -> ast.Call:
         num: int = 0
         form: str = ""
         args: List[ast.expr] = []
-        if OK:
-            if OK:
-                fmt: ast.FormattedValue = node
-                conv = ""
-                if fmt.conversion == 115:
-                    conv = "!s"
-                elif fmt.conversion == 114:
-                    conv = "!r"
-                elif fmt.conversion == 97:
-                    conv = "!a"
-                elif fmt.conversion != -1:
-                    logg.error("unknown conversion id in f-string: %s > %s", type(node), fmt.conversion)
-                if fmt.format_spec:
-                    if isinstance(fmt.format_spec, ast.JoinedStr):
-                        join: ast.JoinedStr = fmt.format_spec
-                        for val in join.values:
-                            if isinstance(val, ast.Constant):
-                                if want.fstring_numbered:
-                                    form += "{%i%s:%s}" % (num, conv, val.value)
-                                else:
-                                    form += "{%s:%s}" % (conv, val.value)
-                            else:
-                                logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
-                    else:
-                        logg.error("unknown format_spec in f-string: %s", type(node))
-                else:
-                    if want.fstring_numbered:
-                        form += "{%i%s}" % (num, conv)
-                    else:
-                        form += "{%s}" %(conv)
-                num += 1
-                args += [fmt.value]
-                self.generic_visit(fmt.value)
-        make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
-        return make
-    def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.Call:  # pylint: disable=invalid-name
-        num: int = 0
-        form: str = ""
-        args: List[ast.expr] = []
-        for part in node.values:
+        for part in values:
             if isinstance(part, ast.Constant):
                 con: ast.Constant = part
                 form += con.value
@@ -1329,7 +1288,7 @@ class FStringToFormat(NodeTransformer):
                 elif fmt.conversion == 97:
                     conv = "!a"
                 elif fmt.conversion != -1:
-                    logg.error("unknown conversion id in f-string: %s > %s", type(node), fmt.conversion)
+                    logg.error("unknown conversion id in f-string: %s > %s", type(part), fmt.conversion)
                 if fmt.format_spec:
                     if isinstance(fmt.format_spec, ast.JoinedStr):
                         join: ast.JoinedStr = fmt.format_spec
@@ -1340,9 +1299,9 @@ class FStringToFormat(NodeTransformer):
                                 else:
                                     form += "{%s:%s}" % (conv, val.value)
                             else:
-                                logg.error("unknown part of format_spec in f-string: %s > %s", type(node), type(val))
+                                logg.error("unknown part of format_spec in f-string: %s > %s", type(part), type(val))
                     else:
-                        logg.error("unknown format_spec in f-string: %s", type(node))
+                        logg.error("unknown format_spec in f-string: %s", type(part))
                 else:
                     if want.fstring_numbered:
                         form += "{%i%s}" % (num, conv)
@@ -1352,9 +1311,16 @@ class FStringToFormat(NodeTransformer):
                 args += [fmt.value]
                 self.generic_visit(fmt.value)
             else:
-                logg.error("unknown part of f-string: %s", type(node))
+                logg.error("unknown part of f-string: %s", type(part))
         make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
         return make
+
+    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name # pragma: nocover
+        """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
+        # NOTE: I did not manage to create a test case that triggers this visitor
+        return self.string_format([node])
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.Call:  # pylint: disable=invalid-name
+        return self.string_format(cast(List[Union[ast.Constant, ast.FormattedValue]], node.values))
 
 class DetectAnnotation(NodeVisitor):
     names: Dict[str, str]
