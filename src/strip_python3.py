@@ -448,199 +448,161 @@ def text4(content: str) -> str:
 
 class BlockTransformer:
     """ only runs visitor on body-elements, storing the latest block head in an attribute """
-    block: Deque[ast.AST]
-
-    def __init__(self) -> None:
-        self.block = deque()
-
     def visit(self, node: TypeAST) -> TypeAST:
         """Visit a node."""
+        nodes = self.generic_visit2(node, deque())
+        for first in nodes:
+            return first
+        return node
+    def visit2(self, node: TypeAST, block: Deque[ast.AST]) -> Iterable[TypeAST]:
+        """Visit a node in a block"""
+        return self.generic_visit2(node, block)
+    def generic_visit2(self, node: TypeAST, block: Deque[ast.AST]) -> Iterable[TypeAST]:
         if isinstance(node, ast.Module):
-            self.block.appendleft(node)
-            modbody: List[ast.stmt] = []
+            block.appendleft(node)
+            modulebody: List[ast.stmt] = []
             for stmt in node.body:
                 logg.log(DEBUG_TYPING, "stmt Module %s", ast.dump(stmt))
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                for elem in visitor(stmt):
-                    modbody.append(copy_location(elem, stmt))
-            node.body = modbody
-            self.block.popleft()
-        else:
-            nodes = self.generic_visit(node)
-            if len(nodes) > 0:
-                return nodes[0]
-        return node
-    def generic_visit(self, node: TypeAST) -> List[TypeAST]:
-        if isinstance(node, ast.ClassDef):
-            self.block.appendleft(node)
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    modulebody.append(copy_location(elem, stmt))
+            node.body = modulebody
+            block.popleft()
+        elif isinstance(node, ast.ClassDef):
+            block.appendleft(node)
             classbody: List[ast.stmt] = []
             for stmt in node.body:
                 logg.log(DEBUG_TYPING, "stmt ClassDef %s", ast.dump(stmt))
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        classbody.append(copy_location(elem, stmt))
-                else:
-                    classbody.append(result)
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    classbody.append(copy_location(elem, stmt))
             node.body = classbody
-            self.block.popleft()
+            block.popleft()
         elif isinstance(node, ast.FunctionDef):
-            self.block.appendleft(node)
+            block.appendleft(node)
             funcbody: List[ast.stmt] = []
             for stmt in node.body:
                 logg.log(DEBUG_TYPING, "stmt FunctionDef %s", ast.dump(stmt))
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        funcbody.append(copy_location(elem, stmt))
-                else:
-                    funcbody.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    funcbody.append(copy_location(elem, stmt))
             node.body = funcbody
-            self.block.popleft()
+            block.popleft()
         elif isinstance(node, ast.With):
-            self.block.appendleft(node)
+            block.appendleft(node)
             withbody: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        withbody.append(copy_location(elem, stmt))
-                else:
-                    withbody.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    withbody.append(copy_location(elem, stmt))
             node.body = withbody
-            self.block.popleft()
+            block.popleft()
         elif isinstance(node, ast.If):
-            self.block.appendleft(node)
+            block.appendleft(node)
             ifbody: List[ast.stmt] = []
             ifelse: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        ifbody.append(copy_location(elem, stmt))
-                else:
-                    ifbody.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    ifbody.append(copy_location(elem, stmt))
             for stmt in node.orelse:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        ifelse.append(copy_location(elem, stmt))
-                else:
-                    ifelse.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    ifelse.append(copy_location(elem, stmt))
             node.body = ifbody
             node.orelse = ifelse
-            self.block.popleft()
+            block.popleft()
         elif isinstance(node, ast.While):
-            self.block.appendleft(node)
+            block.appendleft(node)
             whilebody: List[ast.stmt] = []
             whileelse: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        whilebody.append(copy_location(elem, stmt))
-                else:
-                    whilebody.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    whilebody.append(copy_location(elem, stmt))
             for stmt in node.orelse:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        whileelse.append(copy_location(elem, stmt))
-                else:
-                    whileelse.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    whileelse.append(copy_location(elem, stmt))
             node.body = whilebody
             node.orelse = whileelse
-            self.block.popleft()
+            block.popleft()
         elif isinstance(node, ast.For):
-            self.block.appendleft(node)
+            block.appendleft(node)
             forbody: List[ast.stmt] = []
             forelse: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                for elem in visitor(stmt):
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                for elem in visitor(stmt, block):
                     forbody.append(copy_location(elem, stmt))
             for stmt in node.orelse:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        forelse.append(copy_location(elem, stmt))
-                else:
-                    forelse.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    forelse.append(copy_location(elem, stmt))
             node.body = forbody
             node.orelse = forelse
-            self.block.popleft()
+            block.popleft()
         elif isinstance(node, ast.Try):
-            self.block.appendleft(node)
+            block.appendleft(node)
             trybody: List[ast.stmt] = []
             tryelse: List[ast.stmt] = []
             tryfinal: List[ast.stmt] = []
             for stmt in node.body:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        trybody.append(copy_location(elem, stmt))
-                else:
-                    trybody.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    trybody.append(copy_location(elem, stmt))
             for excpt in node.handlers:
                 excptbody: List[ast.stmt] = []
                 for stmt in excpt.body:
-                    method = 'visit_' + stmt.__class__.__name__
-                    visitor = getattr(self, method, self.generic_visit)
-                    result = visitor(stmt)
-                    if isinstance(result, Iterable):
-                        for elem in result:
-                            excptbody.append(copy_location(elem, stmt))
-                    else:
-                        excptbody.append(copy_location(result, stmt))
+                    method = 'visit2_' + stmt.__class__.__name__
+                    visitor = getattr(self, method, self.generic_visit2)
+                    result = visitor(stmt, block)
+                    for elem in result:
+                        excptbody.append(copy_location(elem, stmt))
                     excpt.body = excptbody
             for stmt in node.orelse:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        tryelse.append(copy_location(elem, stmt))
-                else:
-                    tryelse.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    tryelse.append(copy_location(elem, stmt))
             for stmt in node.finalbody:
-                method = 'visit_' + stmt.__class__.__name__
-                visitor = getattr(self, method, self.generic_visit)
-                result = visitor(stmt)
-                if isinstance(result, Iterable):
-                    for elem in result:
-                        tryfinal.append(copy_location(elem, stmt))
-                else:
-                    tryfinal.append(copy_location(result, stmt))
+                method = 'visit2_' + stmt.__class__.__name__
+                visitor = getattr(self, method, self.generic_visit2)
+                result = visitor(stmt, block)
+                for elem in result:
+                    tryfinal.append(copy_location(elem, stmt))
             node.body = trybody
             node.orelse = tryelse
             node.finalbody = tryfinal
-            self.block.popleft()
+            block.popleft()
         else:
             pass
         return [node]
 
 class WalrusTransformer(BlockTransformer):
-    def visit_If(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
+    def visit2_If(self, node: ast.If, block: Deque[ast.AST]) -> Iterable[ast.stmt]:  # pylint: disable=invalid-name,unused-argument
         if isinstance(node.test, ast.NamedExpr):
             test: ast.NamedExpr = node.test
             logg.log(DEBUG_TYPING, "ifwalrus-test: %s", ast.dump(test))
@@ -687,7 +649,7 @@ class WalrusTransformer(BlockTransformer):
             return [node]
 
 class WhileWalrusTransformer(BlockTransformer):
-    def visit_While(self, node: ast.If) -> List[ast.stmt]:  # pylint: disable=invalid-name
+    def visit2_While(self, node: ast.If, block: Deque[ast.AST]) -> Iterable[ast.stmt]:  # pylint: disable=invalid-name,unused-argument
         if isinstance(node.test, ast.NamedExpr):
             test: ast.NamedExpr = node.test
             logg.log(DEBUG_TYPING, "whwalrus-test: %s", ast.dump(test))
