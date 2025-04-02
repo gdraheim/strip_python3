@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,too-many-lines
 # pylint: disable=invalid-name,unspecified-encoding,consider-using-with
 """ testing functions directly in strip_python3 module """
 

@@ -1155,7 +1155,6 @@ class DefineIfPython2:
             for stmt in module1.body:
                 if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     count_imports += 1
-            logg.fatal("count imports %s", count_imports)
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
@@ -1234,7 +1233,6 @@ class DefineIfPython3:
             if not count_imports:
                 before_imports = False
             for stmt in module1.body:
-                logg.fatal("stmt %s", ast.dump(stmt))
                 if isinstance(stmt, (ast.ImportFrom, ast.Import)):
                     if before_imports:
                         before_imports = False
