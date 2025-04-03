@@ -1,5 +1,5 @@
 #! /usr/bin/env python3.11
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,no-else-return,line-too-long,too-many-lines
+# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,no-else-return,line-too-long,too-many-lines,too-many-arguments
 # pylint: disable=too-many-instance-attributes,too-few-public-methods,too-many-branches,too-many-locals,too-many-nested-blocks,too-many-statements
 # pylint: disable=wrong-import-order,wrong-import-position,use-list-literal,use-dict-literal
 """ easy way to transform and remove python3 typehints """
