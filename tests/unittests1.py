@@ -232,6 +232,402 @@ class StripUnitTest(unittest.TestCase):
         pyi2 = app.pyi_copy_imports(pyi, py1, py2)
         have = ast.unparse(pyi2) + "\n"
         self.assertEqual(want, have)
+    # .................................
+    def test_1300(self) -> None:
+        want = ["callable"]
+        text1 = app.text4("""
+        if callable(x):
+            pass""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        have = sorted(found.keys())
+        self.assertEqual(want, have)
+    def test_1301(self) -> None:
+        want = ["callable"]
+        text1 = app.text4("""
+        def function() -> None:
+            def __inner_():
+                if callable(x):
+                    pass""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        have = sorted(found.keys())
+        self.assertEqual(want, have)
+    def test_1302(self) -> None:
+        want = ["callable"]
+        text1 = app.text4("""
+        class A:
+            def __add__(self):
+                if callable(x):
+                    pass""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        have = sorted(found.keys())
+        self.assertEqual(want, have)
+    def test_1303(self) -> None:
+        want = ["callable", "function"]
+        text1 = app.text4("""
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        have = sorted(found.keys())
+        self.assertEqual(want, have)
+    def test_1310(self) -> None:
+        # note how it ignores the local function returning the imported one
+        want = {"callable": "callable", "X.function": "function"}
+        uses = {"callable": "callable", "function": "X.function"}
+        text1 = app.text4("""
+        from X import function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1311(self) -> None:
+        want = {"callable": "callable", "X.function2": "function"}
+        uses = {"callable": "callable", "function": "X.function2"}
+        text1 = app.text4("""
+        from X import function2 as function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1312(self) -> None:
+        want = {"callable": "callable", "X.Y.function2": "function"}
+        uses = {"callable": "callable", "function": "X.Y.function2"}
+        text1 = app.text4("""
+        from X.Y import function2 as function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1313(self) -> None:
+        want = {"callable": "callable", "X.Y.Z.function2": "function"}
+        uses = {"callable": "callable", "function": "X.Y.Z.function2"}
+        text1 = app.text4("""
+        from X.Y.Z import function2 as function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1314(self) -> None:
+        want = {"callable": "callable", "X.Y.Z.function": "function"}
+        uses = {"callable": "callable", "function": "X.Y.Z.function"}
+        text1 = app.text4("""
+        from X.Y.Z import function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1315(self) -> None:
+        want = {"callable": "callable", "X.Y.Z.function": "function"}
+        uses = {"callable": "callable", "function": "X.Y.Z.function"}
+        text1 = app.text4("""
+        from X.Y.Z import function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1319(self) -> None:
+        want = {"callable": "callable", "X.Y.Z.function": "function2"}
+        uses = {"callable": "callable", "function2": "X.Y.Z.function"}
+        text1 = app.text4("""
+        from X.Y.Z import function
+        function2 = function
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    function2()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        if TODO:
+            logg.info("would be nice - allowing renames")
+            self.assertEqual(want, found)
+            self.assertEqual(uses, calls)
+        else:
+            real = {"callable": "callable", "function2": "function2"}
+            self.assertEqual(real, found)
+            self.assertEqual(real, calls)
+    def test_1320(self) -> None:
+        # note how it ignores the local function returning the imported one
+        want = {"callable": "callable", "X.function": "X.function"}
+        uses = {"callable": "callable", "X.function": "X.function"}
+        text1 = app.text4("""
+        import X
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1321(self) -> None:
+        want = {"callable": "callable", "X.Y.function": "X.Y.function"}
+        uses = {"callable": "callable", "X.Y.function": "X.Y.function"}
+        text1 = app.text4("""
+        import X.Y
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.Y.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    @unittest.expectedFailure
+    def test_1322(self) -> None:
+        want = {"callable": "callable", "X.Y.Z.function": "X.Y.Z.function"}
+        uses = {"callable": "callable", "X.Y.Z.function": "X.Y.Z.function"}
+        text1 = app.text4("""
+        import X.Y.Z
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.Y.Z.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1323(self) -> None:
+        want = {"callable": "callable", "X.Y.Z.function": "P.function"}
+        uses = {"callable": "callable", "P.function": "X.Y.Z.function"}
+        text1 = app.text4("""
+        import X.Y.Z as P
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    P.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1329(self) -> None:
+        # note how it ignores the local function returning the imported one
+        want = {"callable": "callable", "X.Y.Z.function": "Q.function"}
+        uses = {"callable": "callable", "Q.function": "X.Y.Z.function"}
+        text1 = app.text4("""
+        import X.Y.Z as P
+        Q = P
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    Q.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        if TODO:
+            self.assertEqual(want, found)
+            self.assertEqual(uses, calls)
+        else:
+            real = {'callable': 'callable'}
+            self.assertEqual(real, found)
+            self.assertEqual(real, calls)
+    def test_1331(self) -> None:
+        want = {"callable": "callable"}
+        uses = {"callable": "callable"}
+        text1 = app.text4("""
+        import Q
+        class X:
+            def function():
+                pass
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1332(self) -> None:
+        want = {"callable": "callable"}
+        uses = {"callable": "callable"}
+        text1 = app.text4("""
+        import Q
+        class X:
+            class Y:
+                def function():
+                    pass
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.Y.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1333(self) -> None:
+        want = {"callable": "callable"}
+        uses = {"callable": "callable"}
+        text1 = app.text4("""
+        import Q
+        class X:
+            class Y:
+                class Z:
+                    def function():
+                       pass
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.Y.Z.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+
+    # .................................
     def test_1400(self) -> None:
         text1 = app.text4("""
         import b

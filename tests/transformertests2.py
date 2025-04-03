@@ -324,6 +324,15 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertFalse(run.returncode)
         self.rm_testdir()
+    def test_1300(self) -> None:
+        if os.path.isfile(".coverage"):
+            os.unlink(".coverage")
+        units = coverage(UNITS)
+        run = sh(F"{units} test_13 {VV}")
+        logg.debug("%s %s %s", units, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertFalse(run.returncode)
+        self.rm_testdir()
     def test_1400(self) -> None:
         if os.path.isfile(".coverage"):
             os.unlink(".coverage")
