@@ -239,7 +239,7 @@ class StripUnitTest(unittest.TestCase):
         if callable(x):
             pass""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -255,7 +255,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     pass""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -271,7 +271,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     pass""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -289,7 +289,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -310,7 +310,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -330,7 +330,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -350,7 +350,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -370,7 +370,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -390,7 +390,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -410,7 +410,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -431,7 +431,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     function2()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -458,7 +458,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     X.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -478,7 +478,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     X.Y.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -499,7 +499,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     X.Y.Z.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -519,7 +519,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     P.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -541,7 +541,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     Q.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -569,7 +569,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     X.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -593,7 +593,7 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     X.Y.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls
@@ -618,7 +618,33 @@ class StripUnitTest(unittest.TestCase):
                 if callable(x):
                     X.Y.Z.function()""")
         tree1 = ast.parse(text1)
-        deep1 = app.DetectFunctionCalls()
+        deep1 = app.DetectImportedFunctionCalls()
+        deep1.visit(tree1)
+        found = deep1.found
+        calls = deep1.calls
+        logg.info("found %s", found)
+        logg.info("calls %s", calls)
+        self.assertEqual(want, found)
+        self.assertEqual(uses, calls)
+    def test_1334(self) -> None:
+        want = {"callable": "callable"}
+        uses = {"callable": "callable"}
+        text1 = app.text4("""
+        import Q
+        class X:
+            class Y:
+                class Z:
+                    class U:
+                       def function():
+                          pass
+        def function() -> None:
+            pass
+        class A:
+            def __add__(self):
+                if callable(x):
+                    X.Y.Z.U.function()""")
+        tree1 = ast.parse(text1)
+        deep1 = app.DetectImportedFunctionCalls()
         deep1.visit(tree1)
         found = deep1.found
         calls = deep1.calls

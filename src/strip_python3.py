@@ -990,7 +990,7 @@ class ReplaceIsinstanceBaseType(NodeTransformer):
                 self.defines.append(F"{basename} = {origname}")
         return self.generic_visit(node)
 
-class DetectFunctionCalls(NodeTransformer):
+class DetectImportedFunctionCalls(NodeTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None, noimport: Optional[List[str]] = None) -> None:
         ast.NodeTransformer.__init__(self)
         self.imported: Dict[str, str] = {}
@@ -1069,12 +1069,12 @@ class DetectFunctionCalls(NodeTransformer):
                         logg.debug("have imports: %s", ", ".join(self.importas.keys()))
                 elif isinstance(call3.value, ast.Attribute):
                     logg.debug("skips call4+ (not implemented)")
-                else:
-                    logg.debug("skips call3+ [%s]", type(call3.value))
-            else:
-                logg.debug("skips call2+ [%s]", type(call2.value))
-        else:
-            logg.debug("skips call1+ [%s]", type(calls.func))
+                else: # pragma: nocover
+                    logg.debug("skips unknown call3+ [%s]", type(call3.value))
+            else: # pragma: nocover
+                logg.debug("skips unknown call2+ [%s]", type(call2.value))
+        else: # pragma: nocover
+            logg.debug("skips unknown call1+ [%s]", type(calls.func))
         return self.generic_visit(node)
 
 class DefineIfPython2:
@@ -1988,7 +1988,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             tree = fstring.visit(tree)
         importrequires = RequireImport()
         importrequiresfrom = RequireImportFrom()
-        calls = DetectFunctionCalls()
+        calls = DetectImportedFunctionCalls()
         calls.visit(tree)
         if want.show_dump:
             logg.log(HINT, "detected module imports:\n%s", "\n".join(calls.imported.keys()))
@@ -2016,7 +2016,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                     if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)) )
                     raise ValueError("not a datetime isoformat: "+x)
                 """)])
-                isoformatfunc = DetectFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
+                isoformatfunc = DetectImportedFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
                 importrequires.append(isoformatdef.requires)
                 importrequiresfrom.remove(["datetime.datetime.fromisoformat"])
@@ -2066,7 +2066,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                     return completed
                 """)])
                 subprocessrundef = subprocessrundef33 if minversion >= (3,3) else subprocessrundef27
-                subprocessrunfunc = DetectFunctionCalls({"subprocess.run": defname})
+                subprocessrunfunc = DetectImportedFunctionCalls({"subprocess.run": defname})
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
                 importrequires.append(subprocessrundef.requires)
                 importrequiresfrom.remove(["subprocess.run"])
@@ -2076,7 +2076,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 defname = time_module + "_monotonic"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic"], atleast=(3,3), # ..
                    or_else=[F"def {defname}(): return time.time()"])
-                monotonicfunc = DetectFunctionCalls({"time.monotonic": defname})
+                monotonicfunc = DetectImportedFunctionCalls({"time.monotonic": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
                 importrequires.append(monotonicdef.requires)
                 importrequiresfrom.remove(["time.monotonic"])
@@ -2090,7 +2090,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 defname = time_module + "_monotonic_ns"
                 monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
                    or_else=[F"def {defname}(): return int((time.time() - 946684800) * 1000000000)"])
-                monotonicfunc = DetectFunctionCalls({"time.monotonic_ns": defname})
+                monotonicfunc = DetectImportedFunctionCalls({"time.monotonic_ns": defname})
                 tree = monotonicdef.visit(monotonicfunc.visit(tree))
                 importrequires.append(monotonicdef.requires)
                 importrequiresfrom.remove(["time.monotonic_ns"])
@@ -2100,7 +2100,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 pathlibname = calls.imported["pathlib"]
                 pathlibdef = DefineIfPython2([F"import pathlib2 as {pathlibname}"], before=(3,3), # ..
                    or_else=[text4("import pathlib") if pathlibname == "pathlib" else text4(F"""import pathlib as {pathlibname}""")])
-                pathlibdrop = DetectFunctionCalls(noimport=["pathlib"])
+                pathlibdrop = DetectImportedFunctionCalls(noimport=["pathlib"])
                 tree = pathlibdef.visit(pathlibdrop.visit(tree))
                 importrequires.append(pathlibdef.requires)
         if want.import_backports_zoneinfo:
@@ -2110,7 +2110,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 as_zoneinfo = F"as {zoneinfoname}" if zoneinfoname != "zoneinfo" else ""
                 zoneinfodef = DefineIfPython2([F"from backports import zoneinfo {as_zoneinfo}"], before=(3,9), # ..
                    or_else=[text4("import zoneinfo") if zoneinfoname == "zoneinfo" else text4(F"""import zoneinfo as {zoneinfoname}""")])
-                zoneinfodrop = DetectFunctionCalls(noimport=["zoneinfo"])
+                zoneinfodrop = DetectImportedFunctionCalls(noimport=["zoneinfo"])
                 tree = zoneinfodef.visit(zoneinfodrop.visit(tree))
                 importrequires.append(zoneinfodef.requires)
         if want.import_toml:
@@ -2119,11 +2119,11 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 tomllibname = calls.imported["tomllib"]
                 tomllibdef = DefineIfPython2([F"import toml as {tomllibname}"], before=(3,11), # ..
                    or_else=[text4("import tomllib") if tomllibname == "tomllib" else text4(F"""import tomllib as {tomllibname}""")])
-                tomllibdrop = DetectFunctionCalls(noimport=["tomllib"])
+                tomllibdrop = DetectImportedFunctionCalls(noimport=["tomllib"])
                 tree = tomllibdef.visit(tomllibdrop.visit(tree))
                 importrequires.append(tomllibdef.requires)
         if want.define_range:
-            calls = DetectFunctionCalls()
+            calls = DetectImportedFunctionCalls()
             calls.visit(tree)
             if "range" in calls.found:
                 defs2 = DefineIfPython2(["range = xrange"])
@@ -2141,7 +2141,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             tree = whwalrus.visit(tree)
         futurerequires = RequireImportFrom()
         if want.define_print_function or want.define_float_division:
-            calls2 = DetectFunctionCalls()
+            calls2 = DetectImportedFunctionCalls()
             calls2.visit(tree)
             if "print" in calls.found and want.define_print_function:
                 futurerequires.add("__future__.print_function")
