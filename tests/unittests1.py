@@ -1201,6 +1201,201 @@ class StripUnitTest(unittest.TestCase):
         want = app.text4("""
         x = 1""")
         self.assertEqual(want, have)
+    def test_1500(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F""
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        x = 1
+        s = ''
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1501(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"{y}"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = '{}'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1502(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"{y}"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = '{}'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1503(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'x{}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1504(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y=}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'xy={!r}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1510(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y!r}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'x{!r}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1511(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y!s}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'x{!s}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1512(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y!a}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'x{!a}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1519(self) -> None:
+        want = True
+        have = False
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y!q}z"
+        print(s)""")
+        try:
+            __tree1 = ast.parse(text1)
+        except SyntaxError:
+            have = True
+        self.assertEqual(want, have)
+    def test_1520(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"{y:n}"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = '{:n}'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1522(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y:n}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'x{:n}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1523(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y:3.2n}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'x{:3.2n}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1529(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"x{y=:3.2n}z"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = 'xy={:3.2n}z'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1530(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = F"{y!a:n}"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = '{!a:n}'.format(y)
+        print(s)""")
+        self.assertEqual(want, have)
+
 
 if __name__ == "__main__":
     # unittest.main()

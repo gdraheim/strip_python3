@@ -72,6 +72,9 @@ def copy_location(new_node: TypeAST, old_node: ast.AST) -> TypeAST:
         setattr(new_node, "end_lineno", old_node.end_lineno)
     return new_node
 
+class TransformerSyntaxError(SyntaxError):
+    pass
+
 # (python3.12) = type() statement
 # (python3.12) = support for generics
 # (python3.6) = NoReturn
@@ -1229,7 +1232,7 @@ class DefineIfPython3:
 
 class FStringToFormat(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
-    def string_format(self, values: List[Union[ast.Constant, ast.FormattedValue]]) -> ast.Call:
+    def string_format(self, values: List[Union[ast.Constant, ast.FormattedValue]]) -> ast.AST:
         num: int = 0
         form: str = ""
         args: List[ast.expr] = []
@@ -1259,8 +1262,8 @@ class FStringToFormat(NodeTransformer):
                                     form += "{%s:%s}" % (conv, val.value)
                             else:
                                 logg.error("unknown part of format_spec in f-string: %s > %s", type(part), type(val))
-                    else:
-                        logg.error("unknown format_spec in f-string: %s", type(part))
+                    else: # pragma: nocover
+                        raise TransformerSyntaxError("unknown format_spec in f-string", (None, fmt.lineno, fmt.col_offset, str(type(fmt)), fmt.end_lineno, fmt.end_col_offset))
                 else:
                     if want.fstring_numbered:
                         form += "{%i%s}" % (num, conv)
@@ -1269,16 +1272,20 @@ class FStringToFormat(NodeTransformer):
                 num += 1
                 args += [fmt.value]
                 self.generic_visit(fmt.value)
-            else:
-                logg.error("unknown part of f-string: %s", type(part))
-        make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
+            else: # pragma: nocover
+                raise TransformerSyntaxError("unknown part in f-string", (None, part.lineno, part.col_offset, str(type(part)), part.end_lineno, part.end_col_offset))
+        make: ast.AST
+        if not args:
+            make = ast.Constant(form)
+        else:
+            make = ast.Call(ast.Attribute(ast.Constant(form), attr="format"), args, keywords=[])
         return make
 
-    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.Call:  # pylint: disable=invalid-name # pragma: nocover
+    def visit_FormattedValue(self, node: ast.FormattedValue) -> ast.AST:  # pylint: disable=invalid-name # pragma: nocover
         """ If the string contains a single formatting field and nothing else the node can be isolated otherwise it appears in JoinedStr."""
         # NOTE: I did not manage to create a test case that triggers this visitor
         return self.string_format([node])
-    def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.Call:  # pylint: disable=invalid-name
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.AST:  # pylint: disable=invalid-name
         return self.string_format(cast(List[Union[ast.Constant, ast.FormattedValue]], node.values))
 
 class DetectAnnotation(NodeVisitor):
