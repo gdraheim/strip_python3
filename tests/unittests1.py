@@ -1211,7 +1211,7 @@ class StripUnitTest(unittest.TestCase):
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
-        x = 1
+        y = 1
         s = ''
         print(s)""")
         self.assertEqual(want, have)
@@ -1395,6 +1395,80 @@ class StripUnitTest(unittest.TestCase):
         s = '{!a:n}'.format(y)
         print(s)""")
         self.assertEqual(want, have)
+    def test_1540(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        z = 2
+        s = F"{y:n}{z=}"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        z = 2
+        s = '{:n}z={!r}'.format(y, z)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1541(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        z = 2
+        s = F"{y:n}{z:s}"
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringToFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        z = 2
+        s = '{:n}{:s}'.format(y, z)
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1550(self) -> None:
+        old = app.want.fstring_numbered
+        app.want.fstring_numbered = True
+        try:
+            text1 = app.text4("""
+            y = 1
+            z = 2
+            s = F"{y:n}{z=}"
+            print(s)""")
+            tree1 = ast.parse(text1)
+            defs1 = app.FStringToFormat()
+            tree2 = defs1.visit(tree1)
+            have = ast.unparse(tree2) + "\n"
+            want = app.text4("""
+            y = 1
+            z = 2
+            s = '{1:n}z={2!r}'.format(y, z)
+            print(s)""")
+            self.assertEqual(want, have)
+        finally:
+            app.want.fstring_numbered = old
+    def test_1551(self) -> None:
+        old = app.want.fstring_numbered
+        app.want.fstring_numbered = True
+        try:
+            text1 = app.text4("""
+            y = 1
+            z = 2
+            s = F"{y:n}{z:s}"
+            print(s)""")
+            tree1 = ast.parse(text1)
+            defs1 = app.FStringToFormat()
+            tree2 = defs1.visit(tree1)
+            have = ast.unparse(tree2) + "\n"
+            want = app.text4("""
+            y = 1
+            z = 2
+            s = '{1:n}{2:s}'.format(y, z)
+            print(s)""")
+            self.assertEqual(want, have)
+        finally:
+            app.want.fstring_numbered = old
 
 
 if __name__ == "__main__":

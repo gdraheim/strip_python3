@@ -1233,7 +1233,7 @@ class DefineIfPython3:
 class FStringToFormat(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
     def string_format(self, values: List[Union[ast.Constant, ast.FormattedValue]]) -> ast.AST:
-        num: int = 0
+        num: int = 1
         form: str = ""
         args: List[ast.expr] = []
         for part in values:

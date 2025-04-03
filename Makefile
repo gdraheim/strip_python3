@@ -53,7 +53,8 @@ st_1%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) $(COVERAGE2)
 test_3%: ; $(PYTHON) $(EXECS) $V $@ $(TODO)
 st_3%: ; $(PYTHON) $(EXECS) $V te$@ $(TODO) $(COVERAGE2)
 
-coverage: ; $(PYTHON) $(TESTS) $V $(COVERAGE2)
+testcases: ; grep "def test" $(TESTS_PY) $(UNITS_PY) | wc -l | sed -e "s|^|$@: |"
+coverage: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) && $(MAKE) testcases
 coverage1: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_1
 coverage2: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_2
 
