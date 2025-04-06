@@ -992,11 +992,9 @@ class ReplaceIsinstanceBaseType(NodeTransformer):
                 self.defines.append(F"{basename} = {origname}")
         return self.generic_visit(node)
 
-class DetectImportedFunctionCalls(NodeTransformer):
+class DetectImportedFunctionCalls(DetectImports):
     def __init__(self, replace: Optional[Dict[str, str]] = None, noimport: Optional[List[str]] = None) -> None:
-        ast.NodeTransformer.__init__(self)
-        self.imported: Dict[str, str] = {}
-        self.importas: Dict[str, str] = {}
+        DetectImports.__init__(self)
         self.found: Dict[str, str] = {} # funcname to callname
         self.calls: Dict[str, str] = {} # callname to funcname
         self.divs: int = 0
@@ -1005,22 +1003,7 @@ class DetectImportedFunctionCalls(NodeTransformer):
     def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         if node.names and node.names[0].name in self.noimport:
             return None # to remove the node
-        for symbol in node.names:
-            origname = symbol.name
-            codename = symbol.name if not symbol.asname else symbol.asname
-            self.imported[origname] = codename
-            self.importas[codename] = origname
-        return self.generic_visit(node)
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        imports: ast.ImportFrom = node
-        if imports.module:
-            modulename = ("." * imports.level) + imports.module
-            for symbol in imports.names:
-                origname = modulename + "." + symbol.name
-                codename = symbol.asname if symbol.asname else symbol.name
-                self.imported[origname] = codename
-                self.importas[codename] = origname
-        return self.generic_visit(node)
+        return DetectImports.visit_Import(self, node)
     def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
         self.divs += 1
         return self.generic_visit(node)
