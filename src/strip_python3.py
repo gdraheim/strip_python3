@@ -739,13 +739,21 @@ class WhileWalrusTransformer(BlockTransformer):
 
 class DetectImports(NodeTransformer):
     importfrom: Dict[str, Dict[str, str]]
-    imported: Dict[str, ast.stmt]
-    asimport: Dict[str, str]
+    imported: Dict[str, str]
+    importas: Dict[str, str]
     def __init__(self) -> None:
         ast.NodeTransformer.__init__(self)
         self.importfrom = {}
         self.imported = {}
-        self.asimport = {}
+        self.importas = {}
+    def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.Import = node
+        for symbol in imports.names:
+            origname = symbol.name
+            codename = symbol.name if not symbol.asname else symbol.asname
+            self.imported[origname] = codename
+            self.importas[codename] = origname
+        return self.generic_visit(node)
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.ImportFrom = node
         if imports.module:
@@ -753,22 +761,12 @@ class DetectImports(NodeTransformer):
             if modulename not in self.importfrom:
                 self.importfrom[modulename] = {}
             for symbol in imports.names:
+                origname = modulename + "." + symbol.name
+                codename = symbol.name if not symbol.asname else symbol.asname
+                self.imported[origname] = codename
+                self.importas[codename] = origname
                 if symbol.name not in self.importfrom[modulename]:
-                    self.importfrom[modulename][symbol.name] = symbol.asname or symbol.name
-                    origname = modulename + "." + symbol.name
-                    codename = symbol.name if not symbol.asname else symbol.asname
-                    stmt = ast.ImportFrom(imports.module, [ast.alias(symbol.name, symbol.asname if symbol.asname != symbol.name else None)], imports.level)
-                    self.imported[origname] = stmt
-                    self.asimport[codename] = origname
-        return self.generic_visit(node)
-    def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
-        imports: ast.Import = node
-        for symbol in imports.names:
-            origname = symbol.name
-            codename = symbol.name if not symbol.asname else symbol.asname
-            stmt = ast.Import([ast.alias(symbol.name, symbol.asname if symbol.asname != symbol.name else None)])
-            self.imported[origname] = stmt
-            self.asimport[codename] = origname
+                    self.importfrom[modulename][symbol.name] = codename
         return self.generic_visit(node)
 
 class RequireImportFrom:
@@ -923,6 +921,7 @@ class RequireImport:
                 simple[new] = asname
         logg.debug("requiredimports dotted %s", dotted)
         logg.debug("requiredimports simple %s", simple)
+        # if imports.imported:
         if imports.imported:
             body = []
             for stmt in module.body:
@@ -1006,23 +1005,21 @@ class DetectImportedFunctionCalls(NodeTransformer):
     def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         if node.names and node.names[0].name in self.noimport:
             return None # to remove the node
-        for alias in node.names:
-            if alias.asname:
-                self.imported[alias.name] = alias.asname
-                self.importas[alias.asname] = alias.name
-            else:
-                self.imported[alias.name] = alias.name
-                self.importas[alias.name] = alias.name
+        for symbol in node.names:
+            origname = symbol.name
+            codename = symbol.name if not symbol.asname else symbol.asname
+            self.imported[origname] = codename
+            self.importas[codename] = origname
         return self.generic_visit(node)
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         imports: ast.ImportFrom = node
         if imports.module:
             modulename = ("." * imports.level) + imports.module
             for symbol in imports.names:
-                moname = modulename + "." + symbol.name
-                asname = symbol.asname if symbol.asname else symbol.name
-                self.imported[moname] = asname
-                self.importas[asname] = moname
+                origname = modulename + "." + symbol.name
+                codename = symbol.asname if symbol.asname else symbol.name
+                self.imported[origname] = codename
+                self.importas[codename] = origname
         return self.generic_visit(node)
     def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
         self.divs += 1
@@ -1929,35 +1926,35 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
     pyi_hints = DetectHints()
     pyi_hints.visit(pyi)
     logg.log(DEBUG_COPY, "found pyi used classes = %s", pyi_hints.classes)
-    logg.log(DEBUG_COPY, "py1 imported %s", py1_imports.imported.values())
-    logg.log(DEBUG_COPY, "py2 imported %s", py2_imports.imported.values())
+    logg.log(DEBUG_COPY, "py1 imported %s", py1_imports.imported)
+    logg.log(DEBUG_COPY, "py2 imported %s", py2_imports.imported)
     requiredimport = RequireImport()
     imports: Dict[str, str] = {}
     notfound: List[str] = []
     for name in pyi_hints.classes:
         if name not in imports:
-            if name in py1_imports.asimport:
-                orig = py1_imports.asimport[name]
+            if name in py1_imports.importas:
+                orig = py1_imports.importas[name]
                 logg.info("found %s in py1: %s", name, orig)
                 imports[name] = orig
                 requiredimport.add((orig, name))
             elif "." in name:
                 libname, _name = name.rsplit(".", )
-                if libname in py1_imports.asimport:
-                    orig = py1_imports.asimport[libname]
+                if libname in py1_imports.importas:
+                    orig = py1_imports.importas[libname]
                     logg.info("found %s in py1: %s", libname, orig)
                     imports[name] = orig
                     requiredimport.add((orig, libname))
         if name not in imports:
-            if name in py2_imports.asimport:
-                orig = py2_imports.asimport[name]
+            if name in py2_imports.importas:
+                orig = py2_imports.importas[name]
                 logg.info("found %s in py2: %s", name, orig)
                 imports[name] = orig
                 requiredimport.add((orig, name))
             elif "." in name:
                 libname, _name = name.rsplit(".", )
-                if libname in py2_imports.asimport:
-                    orig = py2_imports.asimport[libname]
+                if libname in py2_imports.importas:
+                    orig = py2_imports.importas[libname]
                     logg.info("found %s in py2: %s", libname, orig)
                     imports[name] = orig
                     requiredimport.add((orig, libname))
@@ -1966,8 +1963,8 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
                 notfound += [ name ]
         if notfound:
             logg.debug("name not found as import: %s", " ".join(notfound))
-            logg.debug("py1 imports: %s", py1_imports.asimport)
-            logg.debug("py2 imports: %s", py2_imports.asimport)
+            logg.debug("py1 imports: %s", py1_imports.importas)
+            logg.debug("py2 imports: %s", py2_imports.importas)
     return cast(ast.Module, requiredimport.visit(pyi))
 
 # ............................................................................... MAIN
