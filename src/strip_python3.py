@@ -1856,11 +1856,6 @@ class ExtractTypeHints:
                                     annos += 1
                             if annos or funcdef1.returns:
                                 funcargs3 = funcdef1.args
-                                if want.remove_pyi_positional:
-                                    posonly3: List[ast.arg] = funcdef1.args.posonlyargs if not want.remove_pyi_positional else []
-                                    functionargs3 = funcdef1.args.args if not want.remove_pyi_positional else funcdef1.args.posonlyargs + funcdef1.args.args
-                                    funcargs3 = ast.arguments(posonly3, functionargs3, funcdef1.args.vararg, funcdef1.args.kwonlyargs, # ..
-                                           funcdef1.args.kw_defaults, funcdef1.args.kwarg, funcdef1.args.defaults)
                                 funcdef3 = ast.FunctionDef(funcdef1.name, funcargs3, [ast.Pass()], funcdef1.decorator_list, funcdef1.returns)
                                 funcdef3 = copy_location(funcdef3, funcdef1)
                                 self.typedefs.append(funcdef3)
@@ -1906,11 +1901,6 @@ class ExtractTypeHints:
                                     annos += 1
                             if annos or func.returns:
                                 args3 = func.args
-                                if want.remove_pyi_positional:
-                                    posonlyargs3: List[ast.arg] = func.args.posonlyargs if not want.remove_pyi_positional else []
-                                    functionargs3 = func.args.args if not want.remove_pyi_positional else func.args.posonlyargs + func.args.args
-                                    args3 = ast.arguments(posonlyargs3, functionargs3, func.args.vararg, func.args.kwonlyargs, # ..
-                                           func.args.kw_defaults, func.args.kwarg, func.args.defaults)
                                 func3 = ast.FunctionDef(func.name, args3, [ast.Pass()], func.decorator_list, func.returns)
                                 func3 = copy_location(func3, func)
                                 decl.append(func3)
@@ -2011,6 +2001,14 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
             body.append(stmt)
         elif isinstance(stmt, ast.FunctionDef):
             funcdef1: ast.FunctionDef = stmt
+            for n, arg1 in enumerate(funcdef1.args.posonlyargs):
+                ann1 = arg1.annotation
+                if ann1:
+                    logg.log(DEBUG_TYPING, "anp1[%i] %s", n, ast.dump(ann1))
+                    new1 = types36(ann1)
+                    arg1.annotation = new1.annotation
+                    typing_require.update(new1.typing)
+                    typing_removed.update(new1.removed)
             for n, arg1 in enumerate(funcdef1.args.args):
                 ann1 = arg1.annotation
                 if ann1:
@@ -2051,8 +2049,7 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
                     typing_removed.update(newv.removed)
                 elif isinstance(part, ast.FunctionDef):
                     funcdef: ast.FunctionDef = part
-                    logg.log(DEBUG_TYPING, "method args %s",  [ast.dump(a) for a in funcdef.args.args])
-                    for n, arg in enumerate(funcdef.args.args):
+                    for n, arg in enumerate(funcdef.args.posonlyargs):
                         annp = arg.annotation
                         if annp:
                             logg.log(DEBUG_TYPING, "annp[%i] %s", n, ast.dump(annp))
@@ -2060,9 +2057,16 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
                             arg.annotation = newp.annotation
                             typing_require.update(newp.typing)
                             typing_removed.update(newp.removed)
+                    for n, arg in enumerate(funcdef.args.args):
+                        annp = arg.annotation
+                        if annp:
+                            logg.log(DEBUG_TYPING, "anna[%i] %s", n, ast.dump(annp))
+                            newp = types36(annp)
+                            arg.annotation = newp.annotation
+                            typing_require.update(newp.typing)
+                            typing_removed.update(newp.removed)
                     kwargs = funcdef.args.kwonlyargs
                     if kwargs:
-                        logg.log(DEBUG_TYPING, "method kwargs %s",  [ast.dump(a) for a in kwargs])
                         for k, argk in enumerate(kwargs):
                             annk = argk.annotation
                             if annk:
