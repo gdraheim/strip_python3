@@ -4075,6 +4075,44 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_2522(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        from typing import TypedDict
+        class A(TypedDict):
+            b: int = 4
+            c: str
+        def func1() -> int:
+            class X(TypedDict):
+                y: int = 5
+                z: str
+            return X(x=1, y=2)["y"]
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        A = dict
+
+        def func1():
+            X = dict
+            return X(x=1, y=2)['y']
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        A = dict
+
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
+
 
 def summary() -> None:
     if OK:

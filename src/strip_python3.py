@@ -2213,6 +2213,9 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
     if want.replace_typeddict_pyi:
         typeddict = TypedDictToDictTransformer()
         tree = cast(ast.Module, typeddict.visit(tree))
+        typedrequires = RequireImportFrom()
+        typedrequires.remove(["typing.TypedDict"])
+        tree = cast(ast.Module, typedrequires.visit(tree))
     return tree
 
 # ............................................................................... MAIN
