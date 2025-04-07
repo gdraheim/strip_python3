@@ -226,7 +226,7 @@ python39: $(CONTAINER)/test39
 python310: $(CONTAINER)/test310
 python311: $(CONTAINER)/test311
 python312: $(CONTAINER)/test312
-python311: $(CONTAINER)/test11
+python11: $(CONTAINER)/test11
 
 
 $(CONTAINER)/testt27: ; $(DOCKER_IMAGE) FROM ubuntu:22.04 INTO $@ INSTALL "python3 psmisc python2" TEST "python2 --version"
