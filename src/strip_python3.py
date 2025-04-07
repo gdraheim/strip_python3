@@ -1362,8 +1362,8 @@ def replace_datetime_fromisoformat(tree: ast.AST, calls: Optional[DetectImported
                 tree = isoformatdef.visit(isoformatfunc.visit(tree))
                 # importrequires.append(isoformatdef.requires)
                 # importrequiresfrom.remove(["datetime.datetime.fromisoformat"])
-                requires = isoformatdef.requires
-                removed = ["datetime.datetime.fromisoformat"]
+                requires += isoformatdef.requires
+                removed += ["datetime.datetime.fromisoformat"]
     return ReplaceCallResult(tree, requires, removed)
 
 def replace_subprocess_run(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None, minversion: Tuple[int, int] = (2, 7)) -> ReplaceCallResult:
@@ -1424,8 +1424,56 @@ def replace_subprocess_run(tree: ast.AST, calls: Optional[DetectImportedFunction
                 tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
                 # importrequires.append(subprocessrundef.requires)
                 # importrequiresfrom.remove(["subprocess.run"])
-                requires = subprocessrundef.requires
-                removed = ["subprocess.run"]
+                requires += subprocessrundef.requires
+                removed += ["subprocess.run"]
+    return ReplaceCallResult(tree, requires, removed)
+
+def replace_time_monotonic(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
+    if calls is None:
+        calls = DetectImportedFunctionCalls()
+        calls.visit(tree)
+    assert calls is not None
+    requires: List[str] = []
+    removed: List[str] = []
+    if "time.monotonic" in calls.found:
+        if OK:
+            if OK:
+                time_module = calls.imported["time"]
+                defname = time_module + "_monotonic"
+                monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic"], atleast=(3,3), # ..
+                   or_else=[F"def {defname}(): return time.time()"])
+                monotonicfunc = DetectImportedFunctionCalls({"time.monotonic": defname})
+                tree = monotonicdef.visit(monotonicfunc.visit(tree))
+                # importrequires.append(monotonicdef.requires)
+                # importrequiresfrom.remove(["time.monotonic"])
+                requires += monotonicdef.requires
+                removed += ["time.monotonic"]
+    return ReplaceCallResult(tree, requires, removed)
+
+def replace_time_monotonic_ns(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
+    if calls is None:
+        calls = DetectImportedFunctionCalls()
+        calls.visit(tree)
+    assert calls is not None
+    requires: List[str] = []
+    removed: List[str] = []
+    if "time.monotonic_ns" in calls.found:
+        if OK:
+            if OK:
+                if "time" in calls.imported:
+                    time_module = calls.imported["time"]
+                else:
+                    time_module = "time"
+                    requires += ["time"]
+                defname = time_module + "_monotonic_ns"
+                monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
+                   or_else=[F"def {defname}(): return int((time.time() - 946684800) * 1000000000)"])
+                monotonicfunc = DetectImportedFunctionCalls({"time.monotonic_ns": defname})
+                tree = monotonicdef.visit(monotonicfunc.visit(tree))
+                # importrequires.append(monotonicdef.requires)
+                # importrequiresfrom.remove(["time.monotonic_ns"])
+                requires += monotonicdef.requires
+                removed += ["time.monotonic_ns"]
     return ReplaceCallResult(tree, requires, removed)
 
 # ...................................................................................
@@ -2231,28 +2279,16 @@ def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformRe
                 importrequiresfrom.remove(subprocessrundef.removed)
         if want.time_monotonic:
             if "time.monotonic" in calls.found:
-                time_module = calls.imported["time"]
-                defname = time_module + "_monotonic"
-                monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic"], atleast=(3,3), # ..
-                   or_else=[F"def {defname}(): return time.time()"])
-                monotonicfunc = DetectImportedFunctionCalls({"time.monotonic": defname})
-                tree = monotonicdef.visit(monotonicfunc.visit(tree))
+                monotonicdef = replace_time_monotonic(tree, calls)
+                tree = monotonicdef.tree
                 importrequires.append(monotonicdef.requires)
-                importrequiresfrom.remove(["time.monotonic"])
+                importrequiresfrom.remove(monotonicdef.removed)
         if want.time_monotonic_ns:
             if "time.monotonic_ns" in calls.found:
-                if "time" in calls.imported:
-                    time_module = calls.imported["time"]
-                else:
-                    time_module = "time"
-                    importrequires.append(["time"])
-                defname = time_module + "_monotonic_ns"
-                monotonicdef = DefineIfPython3([F"{defname} = {time_module}.monotonic_ns"], atleast=(3,7), # ..
-                   or_else=[F"def {defname}(): return int((time.time() - 946684800) * 1000000000)"])
-                monotonicfunc = DetectImportedFunctionCalls({"time.monotonic_ns": defname})
-                tree = monotonicdef.visit(monotonicfunc.visit(tree))
+                monotonicdef = replace_time_monotonic_ns(tree, calls)
+                tree = monotonicdef.tree
                 importrequires.append(monotonicdef.requires)
-                importrequiresfrom.remove(["time.monotonic_ns"])
+                importrequiresfrom.remove(monotonicdef.removed)
         if want.import_pathlib2:
             if "pathlib" in calls.imported:
                 logg.log(HINT, "detected pathlib")
