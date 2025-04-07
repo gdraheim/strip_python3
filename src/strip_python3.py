@@ -1860,20 +1860,10 @@ class ExtractTypeHints:
                                 funcdef3 = copy_location(funcdef3, funcdef1)
                                 self.typedefs.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
-                    stmt: List[ast.stmt] = []
                     decl: List[ast.stmt] = []
                     for part in child.body:
                         if isinstance(part, ast.AnnAssign):
                             assign: ast.AnnAssign = part
-                            if want.remove_typehints or want.remove_var_typehints:
-                                if assign.value is not None:
-                                    assign2 = ast.Assign(targets=[assign.target], value=assign.value)
-                                    assign2 = copy_location(assign2, assign)
-                                    stmt.append(assign2)
-                                else:
-                                    logg.debug("remove simple typehint")
-                            else:
-                                stmt.append(assign)
                             assign3 = ast.AnnAssign(target=assign.target, annotation=assign.annotation, value=None, simple=assign.simple)
                             decl.append(assign3)
                         elif isinstance(part, ast.FunctionDef):
