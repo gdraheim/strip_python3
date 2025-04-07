@@ -142,6 +142,7 @@ class Want:
     replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
     replace_namedtuple_class = to_int(os.environ.get("PYTHON3_REPLACE_NAMEDTUPLE_CLASS", NIX))
     replace_typeddict_class = to_int(os.environ.get("PYTHON3_REPLACE_TYPEDDICT_CLASS", NIX))
+    replace_typeddict_pyi = to_int(os.environ.get("PYTHON3_REPLACE_TYPEDDICT_PYI", NIX))
     replace_walrus_operator = to_int(os.environ.get("PYTHON3_REPLACE_WALRUS_OPERATOR", NIX))
     replace_annotated_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_builtin_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
@@ -190,6 +191,7 @@ def main() -> int:
     cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
     cmdline.add_option("--no-replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple class")
     cmdline.add_option("--no-replace-typeddict-class", action="count", default=0, help="3.8 TypeDict class")
+    cmdline.add_option("--no-replace-typeddict-pyi", action="count", default=0, help="3.8 TypeDict class (in pyi)")
     cmdline.add_option("--no-replace-walrus-operator", action="count", default=0, help="3.8 walrus-operator")
     cmdline.add_option("--no-replace-annotated-typing", action="count", default=0, help="3.9 Annotated[int, x] (in pyi)")
     cmdline.add_option("--no-replace-builtin-typing", action="count", default=0, help="3.9 list[int] (in pyi)")
@@ -214,6 +216,7 @@ def main() -> int:
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
     cmdline.add_option("--replace-typeddict-class", action="count", default=0, help="3.8 TypedDict to builtin dict")
+    cmdline.add_option("--replace-typeddict-pyi", action="count", default=0, help="3.8 TypedDict to builtin dict in *.pyi")
     cmdline.add_option("--replace-walrus-operator", action="count", default=0, help="3.8 walrus 'if x := ():' to 'if x:'")
     cmdline.add_option("--replace-annotated-typing", action="count", default=0, help="3.9 Annotated[int, x] converted to int")
     cmdline.add_option("--replace-builtin-typing", action="count", default=0, help="3.9 list[int] converted to List[int]")
@@ -295,6 +298,9 @@ def main() -> int:
     if back_version < (3,8) or opt.replace_typeddict_class:
         if not opt.no_replace_typeddict_class:
             want.replace_typeddict_class = max(1, opt.replace_typeddict_class)
+    if pyi_version < (3,8) or opt.replace_typeddict_pyi:
+        if not opt.no_replace_typeddict_pyi:
+            want.replace_typeddict_pyi = max(1, opt.replace_typeddict_pyi)
     if back_version < (3,8) or opt.replace_walrus_operator:
         if not opt.no_replace_walrus_operator:
             want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
@@ -2201,6 +2207,9 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
     if want.remove_positional_pyi:
         posonly = RemovePosonlyArgs()
         tree = posonly.visit(tree)
+    if want.replace_typeddict_pyi:
+        typeddict = TypedDictToDictTransformer()
+        tree = cast(ast.Module, typeddict.visit(tree))
     return tree
 
 # ............................................................................... MAIN
