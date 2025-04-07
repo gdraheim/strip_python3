@@ -187,6 +187,14 @@ you can write `F"string {len(part):4n}: {part}"` which gets expanded to:
 
     "string {:4n}: {}".format(len(part), part)
 
+## replace-namedtuple-class
+
+If `class Result(NamedTuple)` is used then it is replaced by `Result = namedtuple("Result",[])`
+if python2 compatibility requested, as well as python3 older than 3.6.
+
+They pyi typehints file retains the NamedTuple definition. An exception is thrown if
+the NamedTuple class contains non-variable definitions (like method functions).
+
 ## replace-walrus-operator
 
 If `if x := fu(): pass` is used then it is replaced by `x = fu()` followed
