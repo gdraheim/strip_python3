@@ -199,7 +199,7 @@ def main() -> int:
     cmdline.add_option("--no-replace-self-typing", action="count", default=0, help="3.11 Self (in pyi)")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
-    cmdline.add_option("--no-remove-positionalonly-pyi", action="count", default=0, help="3.8 positionalonly in *.pyi")
+    cmdline.add_option("--no-remove-positional-pyi", action="count", default=0, help="3.8 positionalonly in *.pyi")
     cmdline.add_option("--define-range", action="count", default=0, help="3.0 define range() to xrange() iterator")
     cmdline.add_option("--define-basestring", action="count", default=0, help="3.0 isinstance(str) is basestring python2")
     cmdline.add_option("--define-callable", action="count", default=0, help="3.2 callable(x) as in python2")
@@ -225,7 +225,7 @@ def main() -> int:
     cmdline.add_option("--remove-typehints", action="count", default=0, help="3.5 function annotations and cast()")
     cmdline.add_option("--remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
-    cmdline.add_option("--remove-positionalonly-pyi", action="count", default=0, help="3.8 positionalonly parameters in *.pyi")
+    cmdline.add_option("--remove-positional-pyi", action="count", default=0, help="3.8 positional parameters in *.pyi")
     cmdline.add_option("--remove-var-typehints", action="count", default=0, help="only 3.6 variable annotations (typehints)")
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
     cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
@@ -265,9 +265,9 @@ def main() -> int:
         else:
             logg.error("can not decode --python-version %s", opt.python_version)
     logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
-    if pyi_version < (3,8) or opt.remove_positionalonly_pyi:
-        if not opt.no_remove_positionalonly_pyi:
-            want.remove_positional_pyi = max(1, opt.remove_positionalonly_pyi)
+    if pyi_version < (3,8) or opt.remove_positional_pyi:
+        if not opt.no_remove_positional_pyi:
+            want.remove_positional_pyi = max(1, opt.remove_positional_pyi)
     if back_version < (3,8) or opt.remove_positionalonly:
         if not opt.no_remove_positionalonly:
             want.remove_positional = max(1, opt.remove_positionalonly)
@@ -358,7 +358,7 @@ def main() -> int:
         logg.log(NOTE, "%s = %s", "replace-fstring", want.replace_fstring)
         logg.log(NOTE, "%s = %s", "remove-keywordsonly", want.remove_keywordonly)
         logg.log(NOTE, "%s = %s", "remove-positionalonly", want.remove_positional)
-        logg.log(NOTE, "%s = %s", "remove-positionalonly-pyi", want.remove_positional_pyi)
+        logg.log(NOTE, "%s = %s", "remove-positional-pyi", want.remove_positional_pyi)
         logg.log(NOTE, "%s = %s", "remove-var-typehints", want.remove_var_typehints)
         logg.log(NOTE, "%s = %s", "remove-typehints", want.remove_typehints)
     if opt.dump:

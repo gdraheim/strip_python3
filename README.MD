@@ -264,9 +264,14 @@ The `"*.pyi"` file generation needs to be requested with the "--pyi" commandline
 The transformations are automatically selected by the minimum target python version
 that is given by --pyi-version=3.6 (which is the default). 
 
-## remove-pyi-positionalonly
+## remove-positional-pyi
 
 The postionalonly syntax became available in python 3.8, so it need to be
+removed for python3 compatiblity older than 3.8.
+
+## remove-typeddict-pyi
+
+The TypedDict definition became available in python 3.8, so it need to be
 removed for python3 compatiblity older than 3.8.
 
 ## outer interface only
