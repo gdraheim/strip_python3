@@ -1326,12 +1326,56 @@ class FStringToFormat(NodeTransformer):
     def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.AST:  # pylint: disable=invalid-name
         return self.string_format(cast(List[Union[ast.Constant, ast.FormattedValue]], node.values))
 
-class ReplaceResult(NamedTuple):
+class ReplaceCallResult(NamedTuple):
     tree: ast.AST
     requires: List[str]
     removed: List[str]
 
-def replace_subprocess_run(tree: ast.AST, calls: DetectImportedFunctionCalls, minversion: Tuple[int, int] = (2, 7)) -> ReplaceResult:
+def replace_datetime_fromisoformat(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
+    if calls is None:
+        calls = DetectImportedFunctionCalls()
+        calls.visit(tree)
+    assert calls is not None
+    requires: List[str] = []
+    removed: List[str] = []
+    if "datetime.datetime.fromisoformat" in calls.found:
+        if OK:
+            if OK:
+                datetime_module = calls.imported["datetime.datetime"]
+                fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
+                isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), or_else=[text4(F"""
+                def {fromisoformat}(x):
+                    import re
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d\\d\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) )
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)) )
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)) )
+                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)", x)
+                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)) )
+                    raise ValueError("not a datetime isoformat: "+x)
+                """)])
+                isoformatfunc = DetectImportedFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
+                tree = isoformatdef.visit(isoformatfunc.visit(tree))
+                # importrequires.append(isoformatdef.requires)
+                # importrequiresfrom.remove(["datetime.datetime.fromisoformat"])
+                requires = isoformatdef.requires
+                removed = ["datetime.datetime.fromisoformat"]
+    return ReplaceCallResult(tree, requires, removed)
+
+def replace_subprocess_run(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None, minversion: Tuple[int, int] = (2, 7)) -> ReplaceCallResult:
+    if calls is None:
+        calls = DetectImportedFunctionCalls()
+        calls.visit(tree)
+    assert calls is not None
+    requires: List[str] = []
+    removed: List[str] = []
+    if "subprocess.run" in calls.found:
+        if OK:
+            if OK:
                 subprocess_module = calls.imported["subprocess"]
                 defname = subprocess_module + "_run"
                 # there is a timeout value available since Python 3.3
@@ -1382,7 +1426,7 @@ def replace_subprocess_run(tree: ast.AST, calls: DetectImportedFunctionCalls, mi
                 # importrequiresfrom.remove(["subprocess.run"])
                 requires = subprocessrundef.requires
                 removed = ["subprocess.run"]
-                return ReplaceResult(tree, requires, removed)
+    return ReplaceCallResult(tree, requires, removed)
 
 # ...................................................................................
 
@@ -2175,27 +2219,10 @@ def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformRe
                 tree = defs1.visit(tree)
         if want.datetime_fromisoformat:
             if "datetime.datetime.fromisoformat" in calls.found:
-                datetime_module = calls.imported["datetime.datetime"]
-                fromisoformat = F"{datetime_module}_fromisoformat"  if "." not in datetime_module else "datetime_fromisoformat"
-                isoformatdef = DefineIfPython3([F"def {fromisoformat}(x): return {datetime_module}.fromisoformat(x)"], atleast=(3,7), or_else=[text4(F"""
-                def {fromisoformat}(x):
-                    import re
-                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d\\d\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) )
-                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d).(\\d\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)) * 1000)
-                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d):(\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)) )
-                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d).(\\d\\d):(\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)) )
-                    m = re.match(r"(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)", x)
-                    if m: return {datetime_module}(int(m.group(1)), int(m.group(2)), int(m.group(3)) )
-                    raise ValueError("not a datetime isoformat: "+x)
-                """)])
-                isoformatfunc = DetectImportedFunctionCalls({"datetime.datetime.fromisoformat": fromisoformat})
-                tree = isoformatdef.visit(isoformatfunc.visit(tree))
+                isoformatdef = replace_datetime_fromisoformat(tree, calls)
+                tree = isoformatdef.tree
                 importrequires.append(isoformatdef.requires)
-                importrequiresfrom.remove(["datetime.datetime.fromisoformat"])
+                importrequiresfrom.remove(isoformatdef.removed)
         if want.subprocess_run:
             if "subprocess.run" in calls.found:
                 subprocessrundef = replace_subprocess_run(tree, calls, minversion)
