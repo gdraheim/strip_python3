@@ -4049,7 +4049,7 @@ class StripTest(unittest.TestCase):
                 z: str
             return X(x=1, y=2)["y"]
         """)
-        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        run = sh(F"{strip} -38 {tmp}/test3.py {vv} -VVV")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))

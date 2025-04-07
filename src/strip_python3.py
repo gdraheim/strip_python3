@@ -235,6 +235,7 @@ def main() -> int:
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
     cmdline.add_option("-6", "--py36", action="count", default=0, help="alias --no-make-pyi --python-version=3.6")
+    cmdline.add_option("-8", "--pyi38", action="count", default=0, help="alias --pyi-version=3.8")
     cmdline.add_option("-9", "--py39", action="count", default=0, help="alias --no-make-pyi --python-version=3.9")
     cmdline.add_option("-n", "--no-make-pyi", "--no-pyi", action="count", default=0, help="do not generate file.pyi includes")
     cmdline.add_option("-y", "--make-pyi", "--pyi", action="count", default=0, help="generate file.pyi includes as well")
@@ -244,7 +245,9 @@ def main() -> int:
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
     no_make_pyi = opt.no_make_pyi
     pyi_version = (3,6)
-    if opt.pyi_version:
+    if opt.pyi38:
+        pyi_version = (3, 8)
+    elif opt.pyi_version:
         if len(opt.pyi_version) >= 3 and opt.pyi_version[1] == ".":
             pyi_version = int(opt.pyi_version[0]), int(opt.pyi_version[2:])
         else:
