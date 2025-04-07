@@ -1497,10 +1497,10 @@ class DetectAnnotation(NodeVisitor):
 
 def get_simple_typehint(node: ast.expr) -> str:
     if isinstance(node, ast.Name):
-        return node.id
+        return cast(str, node.id) # type: ignore[redundant-cast]
     if isinstance(node, ast.Attribute):
         if isinstance(node.value, ast.Name):
-            name = node.value.id
+            name = cast(str, node.value.id) # type: ignore[redundant-cast]
             if node.attr:
                 name += "." + node.attr
             return name
