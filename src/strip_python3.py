@@ -1250,7 +1250,8 @@ class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
                                 body.append(ast.AnnAssign(ast.Name(fieldname), annotation, None, assign.simple))
                                 fields.append(ast.Constant(fieldname))
                             else: # pragma: nocover
-                                raise TransformerSyntaxError(F"NamedTuple {classname} - can only replace variable declarations")
+                                raise TransformerSyntaxError(F"NamedTuple {classname} - can only replace variable declarations", #  ..
+                                    (None, stmt.lineno, stmt.col_offset, str(type(stmt)), stmt.end_lineno, stmt.end_col_offset))
                         typebase = ast.Name("NamedTuple")
                         copy_location(typebase, node)
                         typebases: List[ast.expr] = [typebase]
