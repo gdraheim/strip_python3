@@ -262,7 +262,7 @@ in python 3.5 - before that the "typing" module did not exist.
 The `"*.pyi"` file generation needs to be requested with the "--pyi" commandline option.
 
 The transformations are automatically selected by the minimum target python version
-that is given by --pyi-version=3.6 (which is the default). 
+that is given by --pyi-version=3.8 (which is the default). 
 
 ## remove-positional-pyi
 

@@ -836,7 +836,7 @@ class StripPythonExecTest(unittest.TestCase):
             return X(y=8, z=9)["y"]
         print(func1())
         """)
-        sh____(F"{PYTHON3} {STRIP} -38 {tmp}/test3.py {vv}")
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())
@@ -871,7 +871,7 @@ class StripPythonExecTest(unittest.TestCase):
             return X(y=8, z=9)["y"]
         print(func1())
         """)
-        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        sh____(F"{PYTHON3} {STRIP} -37 {tmp}/test3.py {vv}")
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
         self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
         script = lines4(open(F"{tmp}/test.py").read())

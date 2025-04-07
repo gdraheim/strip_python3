@@ -379,7 +379,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         NOTE:strip:python-version-int = (2, 7)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 1
         NOTE:strip:define-range = 1
         NOTE:strip:define-callable = 1
@@ -389,7 +389,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 1
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """)))
@@ -401,7 +401,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -411,7 +411,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
         """))
@@ -428,7 +428,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         NOTE:strip:python-version-int = (3, 6)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -438,7 +438,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
         """)))
@@ -455,7 +455,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -465,7 +465,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """))
@@ -483,7 +483,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -493,7 +493,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """))
@@ -511,7 +511,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -521,7 +521,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """))
@@ -548,7 +548,7 @@ class StripTest(unittest.TestCase):
         pyproject.toml[define-unknown]: unknown setting found
         ERROR:strip:can not decode --pyi-version 35
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 1
         NOTE:strip:define-callable = 0
@@ -558,7 +558,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """)))
@@ -611,7 +611,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 6)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -621,7 +621,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
         """))
@@ -638,7 +638,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -648,7 +648,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """))
@@ -666,7 +666,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.assertEqual(run.stderr, text4("""
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 0
         NOTE:strip:define-callable = 0
@@ -676,7 +676,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """))
@@ -700,7 +700,7 @@ class StripTest(unittest.TestCase):
         setup.cfg[define-basestring]: expecting int but found unknown
         setup.cfg[define-unknown]: unknown setting found
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 1
         NOTE:strip:define-callable = 0
@@ -710,7 +710,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """)))
@@ -734,7 +734,7 @@ class StripTest(unittest.TestCase):
         mysetup.cfg[define-basestring]: expecting int but found unknown
         mysetup.cfg[define-unknown]: unknown setting found
         NOTE:strip:python-version-int = (3, 5)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 0
         NOTE:strip:define-range = 1
         NOTE:strip:define-callable = 0
@@ -744,7 +744,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """)))
@@ -767,7 +767,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(lines4(run.stderr), lines4(text4("""
         unknown configfile type found = mysetup.conf
         NOTE:strip:python-version-int = (2, 7)
-        NOTE:strip:pyi-version-int = (3, 6)
+        NOTE:strip:pyi-version-int = (3, 8)
         NOTE:strip:define-basestring = 1
         NOTE:strip:define-range = 1
         NOTE:strip:define-callable = 1
@@ -777,7 +777,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 1
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-positional-pyi = 1
+        NOTE:strip:remove-positional-pyi = 0
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1 
         """)))
@@ -1821,7 +1821,7 @@ class StripTest(unittest.TestCase):
                 def __add__(self, y: List[str], /, a: int = 0, *, b: int = 0) -> List[str]:
                     return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -1875,7 +1875,7 @@ class StripTest(unittest.TestCase):
                 def __add__(self, y: list[str], /, a: int = 0, *, b: int = 0) -> list[str]:
                     return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -1931,7 +1931,7 @@ class StripTest(unittest.TestCase):
             def __add__(self, y: list[str], /, a: Annotated[int, Field(gt=0)] = 0, *, b: int = 0) -> list[str]:
               return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -1991,7 +1991,7 @@ class StripTest(unittest.TestCase):
                  x = int(b)
                  return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2053,7 +2053,7 @@ class StripTest(unittest.TestCase):
                  x = int(b)
                  return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2114,7 +2114,7 @@ class StripTest(unittest.TestCase):
                  x = int(b)
                  return self
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2177,7 +2177,7 @@ class StripTest(unittest.TestCase):
                  x = int(b)
                  return a
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2230,7 +2230,7 @@ class StripTest(unittest.TestCase):
             x = int(b)
             return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2264,7 +2264,7 @@ class StripTest(unittest.TestCase):
             x = int(b)
             return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2298,7 +2298,7 @@ class StripTest(unittest.TestCase):
             x = int(b)
             return [self.c] + y
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --py36 {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --py36 {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2660,7 +2660,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2697,7 +2697,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2734,7 +2734,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2771,7 +2771,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2808,7 +2808,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2845,7 +2845,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2882,7 +2882,7 @@ class StripTest(unittest.TestCase):
                 return [self.c] + y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2934,7 +2934,7 @@ class StripTest(unittest.TestCase):
                     pass
                 return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -2990,7 +2990,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -3030,7 +3030,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -3070,7 +3070,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -3110,7 +3110,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -3150,7 +3150,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -3190,7 +3190,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -3230,7 +3230,7 @@ class StripTest(unittest.TestCase):
                 b += y
             return 0
         """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py --pyi {vv}")
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -4049,7 +4049,7 @@ class StripTest(unittest.TestCase):
                 z: str
             return X(x=1, y=2)["y"]
         """)
-        run = sh(F"{strip} -38 {tmp}/test3.py {vv} -VVV")
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
@@ -4090,7 +4090,7 @@ class StripTest(unittest.TestCase):
                 z: str
             return X(x=1, y=2)["y"]
         """)
-        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         # self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/test.py"))
