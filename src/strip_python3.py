@@ -351,7 +351,7 @@ def main() -> int:
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
     make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
-    return transform(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not no_make_pyi, minversion=back_version)
+    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not no_make_pyi, minversion=back_version)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
     defnames: Dict[str, str] = OrderedDict()
@@ -1326,6 +1326,66 @@ class FStringToFormat(NodeTransformer):
     def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.AST:  # pylint: disable=invalid-name
         return self.string_format(cast(List[Union[ast.Constant, ast.FormattedValue]], node.values))
 
+class ReplaceResult(NamedTuple):
+    tree: ast.AST
+    requires: List[str]
+    removed: List[str]
+
+def replace_subprocess_run(tree: ast.AST, calls: DetectImportedFunctionCalls, minversion: Tuple[int, int] = (2, 7)) -> ReplaceResult:
+                subprocess_module = calls.imported["subprocess"]
+                defname = subprocess_module + "_run"
+                # there is a timeout value available since Python 3.3
+                subprocessrundef33 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), or_else=[text4(F"""
+                class CompletedProcess:
+                    def __init__(self, args, returncode, outs, errs):
+                        self.args = args
+                        self.returncode = returncode
+                        self.stdout = outs
+                        self.stderr = errs
+                    def check_returncode(self):
+                        if self.returncode:
+                            raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
+                def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
+                    proc = {subprocess_module}.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
+                    try:
+                        outs, errs = proc.communicate(input=input, timeout=timeout)
+                    except {subprocess_module}.TimeoutExpired:
+                        proc.kill()
+                        outs, errs = proc.communicate()
+                    completed = CompletedProcess(args, proc.returncode, outs, errs)
+                    if check:
+                        completed.check_returncode()
+                    return completed
+                """)])
+                subprocessrundef27 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), or_else=[text4(F"""
+                class CompletedProcess:
+                    def __init__(self, args, returncode, outs, errs):
+                        self.args = args
+                        self.returncode = returncode
+                        self.stdout = outs
+                        self.stderr = errs
+                    def check_returncode(self):
+                        if self.returncode:
+                            raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
+                def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
+                    proc = {subprocess_module}.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
+                    outs, errs = proc.communicate(input=input)
+                    completed = CompletedProcess(args, proc.returncode, outs, errs)
+                    if check:
+                        completed.check_returncode()
+                    return completed
+                """)])
+                subprocessrundef = subprocessrundef33 if minversion >= (3,3) else subprocessrundef27
+                subprocessrunfunc = DetectImportedFunctionCalls({"subprocess.run": defname})
+                tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
+                # importrequires.append(subprocessrundef.requires)
+                # importrequiresfrom.remove(["subprocess.run"])
+                requires = subprocessrundef.requires
+                removed = ["subprocess.run"]
+                return ReplaceResult(tree, requires, removed)
+
+# ...................................................................................
+
 class DetectAnnotation(NodeVisitor):
     names: Dict[str, str]
     def __init__(self) -> None:
@@ -2013,15 +2073,78 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
-def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0, minversion: Tuple[int, int] = (2,7)) -> int:
+def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0, minversion: Tuple[int, int] = (2,7)) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
             text = f.read()
-        typingrequires = RequireImportFrom()
         tree1 = ast.parse(text)
-        typedefs: List[ast.stmt] = []
-        tree = tree1
+        try:
+            tree, typedefs = transform(tree1, minversion)
+        except TransformerSyntaxError as e:
+            if e.filename is None:
+                e.filename = arg
+            raise
+        if want.show_dump:
+            logg.log(NOTE, "%s: (before transformations)\n%s", arg, _beautify_dump(ast.dump(tree1)))
+        if want.show_dump > 1:
+            logg.log(NOTE, "%s: (after transformations)\n%s", arg, _beautify_dump(ast.dump(tree)))
+        done = ast.unparse(tree)
+        if want.show_dump > 2:
+            logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
+        if outfile:
+            out = outfile
+        elif arg.endswith("3.py") and eachfile & EACH_REMOVE3:
+            out = arg[:-len("3.py")]+".py"
+        elif arg.endswith(".py") and eachfile & EACH_APPEND2:
+            out = arg[:-len(".py")]+"_2.py"
+        elif eachfile & EACH_INPLACE:
+            out = arg
+        else:
+            out = "-"
+        if out not in written:
+            if out in ["", "."]:
+                pass
+            elif out in ["-"]:
+                if done:
+                    print(done)
+            else:
+                with open(out, "w", encoding="utf-8") as w:
+                    w.write(done)
+                    if done and not done.endswith("\n"):
+                        w.write("\n")
+                logg.info("written %s", out)
+                written.append(out)
+            if pyi:
+                typehintsfile = out+"i"
+                logg.debug("--pyi => %s", typehintsfile)
+                type_ignores: List[TypeIgnore] = []
+                if isinstance(tree1, ast.Module):
+                    type_ignores = tree1.type_ignores
+                typehints = pyi_module(typedefs, type_ignores=type_ignores)
+                typehints = pyi_copy_imports(typehints, tree1, tree)
+                done = ast.unparse(typehints)
+                if out in ["", ".", "-"]:
+                    print("## typehints:")
+                    print(done)
+                else:
+                    with open(typehintsfile, "w", encoding="utf-8") as w:
+                        w.write(done)
+                        if done and not done.endswith("\n"):
+                            w.write("\n")
+    return 0
+
+def _beautify_dump(x: str) -> str:
+    return x.replace("body=[", "\n body=[").replace("FunctionDef(", "\n FunctionDef(").replace(", ctx=Load()",",.")
+
+class TransformResult(NamedTuple):
+    tree: ast.AST
+    typedefs: List[ast.stmt]
+
+def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformResult:
+    typedefs: List[ast.stmt] = []
+    if OK:
+        typingrequires = RequireImportFrom()
         importrequires = RequireImport()
         importrequiresfrom = RequireImportFrom()
         if want.replace_fstring:
@@ -2075,54 +2198,10 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 importrequiresfrom.remove(["datetime.datetime.fromisoformat"])
         if want.subprocess_run:
             if "subprocess.run" in calls.found:
-                subprocess_module = calls.imported["subprocess"]
-                defname = subprocess_module + "_run"
-                # there is a timeout value available since Python 3.3
-                subprocessrundef33 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), or_else=[text4(F"""
-                class CompletedProcess:
-                    def __init__(self, args, returncode, outs, errs):
-                        self.args = args
-                        self.returncode = returncode
-                        self.stdout = outs
-                        self.stderr = errs
-                    def check_returncode(self):
-                        if self.returncode:
-                            raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
-                def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
-                    proc = {subprocess_module}.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
-                    try:
-                        outs, errs = proc.communicate(input=input, timeout=timeout)
-                    except {subprocess_module}.TimeoutExpired:
-                        proc.kill()
-                        outs, errs = proc.communicate()
-                    completed = CompletedProcess(args, proc.returncode, outs, errs)
-                    if check:
-                        completed.check_returncode()
-                    return completed
-                """)])
-                subprocessrundef27 = DefineIfPython3([F"{defname} = {subprocess_module}.run"], atleast=(3,5), or_else=[text4(F"""
-                class CompletedProcess:
-                    def __init__(self, args, returncode, outs, errs):
-                        self.args = args
-                        self.returncode = returncode
-                        self.stdout = outs
-                        self.stderr = errs
-                    def check_returncode(self):
-                        if self.returncode:
-                            raise {subprocess_module}.CalledProcessError(self.returncode, self.args)
-                def {defname}(args, stdin=None, input=None, stdout=None, stderr=None, shell=False, cwd=None, timeout=None, check=False, env=None):
-                    proc = {subprocess_module}.Popen(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, cwd=cwd, env=env)
-                    outs, errs = proc.communicate(input=input)
-                    completed = CompletedProcess(args, proc.returncode, outs, errs)
-                    if check:
-                        completed.check_returncode()
-                    return completed
-                """)])
-                subprocessrundef = subprocessrundef33 if minversion >= (3,3) else subprocessrundef27
-                subprocessrunfunc = DetectImportedFunctionCalls({"subprocess.run": defname})
-                tree = subprocessrundef.visit(subprocessrunfunc.visit(tree))
+                subprocessrundef = replace_subprocess_run(tree, calls, minversion)
+                tree = subprocessrundef.tree
                 importrequires.append(subprocessrundef.requires)
-                importrequiresfrom.remove(["subprocess.run"])
+                importrequiresfrom.remove(subprocessrundef.removed)
         if want.time_monotonic:
             if "time.monotonic" in calls.found:
                 time_module = calls.imported["time"]
@@ -2211,58 +2290,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
         tree = typingrequires.visit(tree)
         tree = futurerequires.visit(tree)
         # the __future__ imports must be first, so we add them last (if any)
-        if want.show_dump:
-            logg.log(NOTE, "%s: (before transformations)\n%s", arg, beautify_dump(ast.dump(tree1)))
-        if want.show_dump > 1:
-            logg.log(NOTE, "%s: (after transformations)\n%s", arg, beautify_dump(ast.dump(tree)))
-        done = ast.unparse(tree)
-        if want.show_dump > 2:
-            logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
-        if outfile:
-            out = outfile
-        elif arg.endswith("3.py") and eachfile & EACH_REMOVE3:
-            out = arg[:-len("3.py")]+".py"
-        elif arg.endswith(".py") and eachfile & EACH_APPEND2:
-            out = arg[:-len(".py")]+"_2.py"
-        elif eachfile & EACH_INPLACE:
-            out = arg
-        else:
-            out = "-"
-        if out not in written:
-            if out in ["", "."]:
-                pass
-            elif out in ["-"]:
-                if done:
-                    print(done)
-            else:
-                with open(out, "w", encoding="utf-8") as w:
-                    w.write(done)
-                    if done and not done.endswith("\n"):
-                        w.write("\n")
-                logg.info("written %s", out)
-                written.append(out)
-            if pyi:
-                typehintsfile = out+"i"
-                logg.debug("--pyi => %s", typehintsfile)
-                type_ignores: List[TypeIgnore] = []
-                if isinstance(tree1, ast.Module):
-                    type_ignores = tree1.type_ignores
-                typehints = pyi_module(typedefs, type_ignores=type_ignores)
-                typehints = pyi_copy_imports(typehints, tree1, tree)
-                done = ast.unparse(typehints)
-                if out in ["", ".", "-"]:
-                    print("## typehints:")
-                    print(done)
-                else:
-                    with open(typehintsfile, "w", encoding="utf-8") as w:
-                        w.write(done)
-                        if done and not done.endswith("\n"):
-                            w.write("\n")
-    return 0
-
-def beautify_dump(x: str) -> str:
-    return x.replace("body=[", "\n body=[").replace("FunctionDef(", "\n FunctionDef(").replace(", ctx=Load()",",.")
-
+    return TransformResult(tree, typedefs)
 
 if __name__ == "__main__":
     sys.exit(main())
