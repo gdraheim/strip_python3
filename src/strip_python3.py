@@ -1495,6 +1495,89 @@ class DetectAnnotation(NodeVisitor):
         self.names[name] = NIX
         return node
 
+def get_simple_typehint(node: ast.expr) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        if isinstance(node.value, ast.Name):
+            name = node.value.id
+            if node.attr:
+                name += "." + node.attr
+            return name
+    return NIX
+
+class ReplaceSelfByTypevar(BlockTransformer):
+    def visit2_ClassDef(self, node: ast.ClassDef, block: Deque[ast.stmt]) -> List[ast.stmt]:  # pylint: disable=invalid-name
+        classname = node.name
+        selfcount = 0
+        if OK:
+            for stmt in node.body:
+                if isinstance(stmt, ast.FunctionDef):
+                    func = cast(ast.FunctionDef, stmt) # type: ignore[redundant-cast]
+                    if func.returns:
+                        if get_simple_typehint(func.returns) == "Self":
+                            selfcount += 1
+                    for arg in func.args.posonlyargs:
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                selfcount += 1
+                    for arg in func.args.args:
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                selfcount += 1
+                    for arg in func.args.kwonlyargs:
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                selfcount += 1
+                    if func.args.vararg is not None:
+                        arg = func.args.vararg
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                selfcount += 1
+                    if func.args.kwarg is not None:
+                        arg = func.args.kwarg
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                selfcount += 1
+        if selfcount:
+            selfclass = F"Self{classname}"
+            newann = ast.Name(selfclass)
+            typevar = ast.Call(ast.Name("TypeVar"), [ast.Constant(selfclass)], [ast.keyword("bound", ast.Constant(classname))])
+            typevar = copy_location(typevar, node)
+            typestmt = ast.Assign([ast.Name(selfclass)], typevar)
+            typestmt = copy_location(typestmt, node)
+            preclass: List[ast.stmt] = [typestmt]
+            for stmt in node.body:
+                if isinstance(stmt, ast.FunctionDef):
+                    func = cast(ast.FunctionDef, stmt) # type: ignore[redundant-cast]
+                    if func.returns:
+                        if get_simple_typehint(func.returns) == "Self":
+                            func.returns = ast.Name(selfclass)
+                    for arg in func.args.posonlyargs:
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                arg.annotation = ast.Name(selfclass)
+                    for arg in func.args.args:
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                arg.annotation = ast.Name(selfclass)
+                    for arg in func.args.kwonlyargs:
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                arg.annotation = ast.Name(selfclass)
+                    if func.args.vararg is not None:
+                        arg = func.args.vararg
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                arg.annotation = ast.Name(selfclass)
+                    if func.args.kwarg is not None:
+                        arg = func.args.kwarg
+                        if arg.annotation:
+                            if get_simple_typehint(arg.annotation) == "Self":
+                                arg.annotation = ast.Name(selfclass)
+            return preclass+[node]
+        return [node]
+
 def types_in_annotation(annotation: ast.expr) -> Dict[str, str]:
     detect = DetectAnnotation()
     detect.visit(annotation)
