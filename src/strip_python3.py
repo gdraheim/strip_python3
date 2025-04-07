@@ -88,13 +88,14 @@ class TransformerSyntaxError(SyntaxError):
 # PEP 498 (python3.6) formatted string literals
 # PEP 515 (python 3.6) underscores in numeric literals
 # PEP 526 (python 3.6) syntax for variable annotations (variable typehints)
-#         (python 3.6) NamedTuple with variables annotations (3.5 had call-syntax)
+#         (python 3.6) NamedTuple classes with member annotations (3.5 had call-syntax)
 # PEP 563 (python 3.7) delayed typehints for "SelfClass" (from __future__ 3.10)
 # ....... (Pyhton 3.7) Generics
 # PEP 572 (python 3.8) walrus operator
 # PEP 570 (python 3.8) positional-only params
 # ....... (python 3.8) f-strings "{varname=}"
 # PEP 591 (python 3.8) @final decorator
+# PEP 589 (python 3.8) TypeDict classes with member annotations (extended in 3.11 PEP 655)
 # PEP 593 (python 3.9) typing.Annotated
 # PEP 585 (python 3.9) builtins as types (e.g "list", "dict")
 # PEP 604 (python 3.10) a|b union operator
@@ -140,6 +141,7 @@ class Want:
     remove_pyi_positional = to_int(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
     replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
     replace_namedtuple_class = to_int(os.environ.get("PYTHON3_REPLACE_NAMEDTUPLE_CLASS", NIX))
+    replace_typeddict_class = to_int(os.environ.get("PYTHON3_REPLACE_TYPEDDICT_CLASS", NIX))
     replace_walrus_operator = to_int(os.environ.get("PYTHON3_REPLACE_WALRUS_OPERATOR", NIX))
     replace_annotated_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_builtin_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
@@ -187,6 +189,7 @@ def main() -> int:
     cmdline.add_option("--no-import-toml", action="count", default=0, help="3.11 tomllib to external toml")
     cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
     cmdline.add_option("--no-replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple class")
+    cmdline.add_option("--no-replace-typeddict-class", action="count", default=0, help="3.8 TypeDict class")
     cmdline.add_option("--no-replace-walrus-operator", action="count", default=0, help="3.8 walrus-operator")
     cmdline.add_option("--no-replace-annotated-typing", action="count", default=0, help="3.9 Annotated[int, x] (in pyi)")
     cmdline.add_option("--no-replace-builtin-typing", action="count", default=0, help="3.9 list[int] (in pyi)")
@@ -210,6 +213,7 @@ def main() -> int:
     cmdline.add_option("--import-toml", action="count", default=0, help="3.11 import toml as tomllib")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
+    cmdline.add_option("--replace-typeddict-class", action="count", default=0, help="3.8 TypedDict to builtin dict")
     cmdline.add_option("--replace-walrus-operator", action="count", default=0, help="3.8 walrus 'if x := ():' to 'if x:'")
     cmdline.add_option("--replace-annotated-typing", action="count", default=0, help="3.9 Annotated[int, x] converted to int")
     cmdline.add_option("--replace-builtin-typing", action="count", default=0, help="3.9 list[int] converted to List[int]")
@@ -288,6 +292,9 @@ def main() -> int:
     if back_version < (3,6) or opt.replace_namedtuple_class:
         if not opt.no_replace_namedtuple_class:
             want.replace_namedtuple_class = max(1, opt.replace_namedtuple_class)
+    if back_version < (3,8) or opt.replace_typeddict_class:
+        if not opt.no_replace_typeddict_class:
+            want.replace_typeddict_class = max(1, opt.replace_typeddict_class)
     if back_version < (3,8) or opt.replace_walrus_operator:
         if not opt.no_replace_walrus_operator:
             want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
@@ -1267,6 +1274,55 @@ class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
                         return replaced
         return node
 
+class TypedDictToDictTransformer(DetectImportsTransformer):
+    typedefs: List[ast.stmt]
+    requiresfrom: Set[str]
+    only: Set[str]
+    def __init__(self) -> None:
+        DetectImportsTransformer.__init__(self)
+        self.typedefs = []
+        self.requiresfrom = set()
+        self.only = set()
+    def visit(self, node: ast.AST) -> ast.AST:
+        if isinstance(node, ast.Module):
+            module = cast(ast.Module, node)  # type: ignore[redundant-cast]
+            for stmt in module.body:
+                if isinstance(stmt, ast.ClassDef):
+                    self.only.add(stmt.name) # only top-level class names
+        return cast(ast.AST, DetectImportsTransformer.visit(self, node))
+    def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST: # pylint: disable=invalid-name
+        for base in node.bases:
+            classname = node.name
+            if isinstance(base, ast.Name):
+                basename = cast(ast.Name, base)  # type: ignore[redundant-cast]
+                basetype = basename.id
+                if basetype in self.importas:
+                    if self.importas[basetype] == "typing.TypedDict":
+                        body: List[ast.stmt] = []
+                        fields: List[ast.expr] = []
+                        for stmt in node.body:
+                            if isinstance(stmt, ast.AnnAssign):
+                                assign = cast(ast.AnnAssign, stmt)   # type: ignore[redundant-cast]
+                                fieldname = cast(ast.Name, assign.target).id
+                                annotation = assign.annotation
+                                body.append(ast.AnnAssign(ast.Name(fieldname), annotation, None, assign.simple))
+                                fields.append(ast.Constant(fieldname))
+                            else: # pragma: nocover
+                                raise TransformerSyntaxError(F"TypedDict {classname} - must only have variable declarations", #  ..
+                                    (None, stmt.lineno, stmt.col_offset, str(type(stmt)), stmt.end_lineno, stmt.end_col_offset))
+                        typebase = ast.Name("TypedDict")
+                        copy_location(typebase, node)
+                        typebases: List[ast.expr] = [typebase]
+                        typeclass = ast.ClassDef(classname, typebases, body=body, keywords=[], decorator_list=[])
+                        copy_location(typeclass, node)
+                        if not self.only or classname in self.only:
+                            self.typedefs.append(typeclass)
+                        replaced = ast.Assign([ast.Name(classname)], ast.Name("dict"))
+                        copy_location(replaced, node)
+                        return replaced
+        return node
+
+
 
 class FStringToFormatTransformer(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
@@ -2237,6 +2293,11 @@ class StripPythonTransformer:
             tree = namedtuples.visit(tree)
             importrequiresfrom.append(namedtuples.requiresfrom)
             self.typedefs.extend(namedtuples.typedefs)
+        if want.replace_typeddict_class:
+            typeddict = TypedDictToDictTransformer()
+            tree = typeddict.visit(tree)
+            importrequiresfrom.append(typeddict.requiresfrom)
+            self.typedefs.extend(typeddict.typedefs)
         extracted = ExtractTypeHints()
         tree = extracted.visit(tree)
         self.typedefs.extend(extracted.typedefs)
