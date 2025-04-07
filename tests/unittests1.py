@@ -1207,7 +1207,7 @@ class StripUnitTest(unittest.TestCase):
         s = F""
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1221,7 +1221,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"{y}"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1235,7 +1235,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"{y}"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1249,7 +1249,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1263,7 +1263,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y=}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1277,7 +1277,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y!r}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1291,7 +1291,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y!s}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1305,7 +1305,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y!a}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1331,7 +1331,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"{y:n}"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1345,7 +1345,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y:n}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1359,7 +1359,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y:3.2n}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1373,7 +1373,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"x{y=:3.2n}z"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1387,7 +1387,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"{y!a:n}"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1402,7 +1402,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"{y:n}{z=}"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1418,7 +1418,7 @@ class StripUnitTest(unittest.TestCase):
         s = F"{y:n}{z:s}"
         print(s)""")
         tree1 = ast.parse(text1)
-        defs1 = app.FStringToFormat()
+        defs1 = app.FStringToFormatTransformer()
         tree2 = defs1.visit(tree1)
         have = ast.unparse(tree2) + "\n"
         want = app.text4("""
@@ -1437,7 +1437,7 @@ class StripUnitTest(unittest.TestCase):
             s = F"{y:n}{z=}"
             print(s)""")
             tree1 = ast.parse(text1)
-            defs1 = app.FStringToFormat()
+            defs1 = app.FStringToFormatTransformer()
             tree2 = defs1.visit(tree1)
             have = ast.unparse(tree2) + "\n"
             want = app.text4("""
@@ -1458,7 +1458,7 @@ class StripUnitTest(unittest.TestCase):
             s = F"{y:n}{z:s}"
             print(s)""")
             tree1 = ast.parse(text1)
-            defs1 = app.FStringToFormat()
+            defs1 = app.FStringToFormatTransformer()
             tree2 = defs1.visit(tree1)
             have = ast.unparse(tree2) + "\n"
             want = app.text4("""

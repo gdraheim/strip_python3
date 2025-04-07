@@ -1268,7 +1268,7 @@ class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
         return node
 
 
-class FStringToFormat(NodeTransformer):
+class FStringToFormatTransformer(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
     def string_format(self, values: List[Union[ast.Constant, ast.FormattedValue]]) -> ast.AST:
         num: int = 1
@@ -2243,7 +2243,7 @@ class StripPythonTransformer:
         importrequires = RequireImport()
         importrequiresfrom = RequireImportFrom()
         if want.replace_fstring:
-            fstring = FStringToFormat()
+            fstring = FStringToFormatTransformer()
             tree = fstring.visit(tree)
         if want.replace_namedtuple_class:
             namedtuples = NamedTupleToCollectionsTransformer()
