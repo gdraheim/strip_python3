@@ -139,6 +139,7 @@ class Want:
     remove_positional = to_int(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
     remove_pyi_positional = to_int(os.environ.get("PYTHON3_REMOVE_PYI_POSITIONAL", NIX))
     replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
+    replace_namedtuple_class = to_int(os.environ.get("PYTHON3_REPLACE_NAMEDTUPLE_CLASS", NIX))
     replace_walrus_operator = to_int(os.environ.get("PYTHON3_REPLACE_WALRUS_OPERATOR", NIX))
     replace_annotated_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
     replace_builtin_typing = to_int(os.environ.get("PYTHON3_REPLACE_ANNOTATED_TYPING", NIX))
@@ -185,6 +186,7 @@ def main() -> int:
     cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=0, help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=0, help="3.11 tomllib to external toml")
     cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
+    cmdline.add_option("--no-replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple class")
     cmdline.add_option("--no-replace-walrus-operator", action="count", default=0, help="3.8 walrus-operator")
     cmdline.add_option("--no-replace-annotated-typing", action="count", default=0, help="3.9 Annotated[int, x] (in pyi)")
     cmdline.add_option("--no-replace-builtin-typing", action="count", default=0, help="3.9 list[int] (in pyi)")
@@ -207,6 +209,7 @@ def main() -> int:
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=0, help="3.9 import zoneinfo from backports")
     cmdline.add_option("--import-toml", action="count", default=0, help="3.11 import toml as tomllib")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
+    cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
     cmdline.add_option("--replace-walrus-operator", action="count", default=0, help="3.8 walrus 'if x := ():' to 'if x:'")
     cmdline.add_option("--replace-annotated-typing", action="count", default=0, help="3.9 Annotated[int, x] converted to int")
     cmdline.add_option("--replace-builtin-typing", action="count", default=0, help="3.9 list[int] converted to List[int]")
@@ -282,6 +285,9 @@ def main() -> int:
             want.replace_fstring = max(1, opt.replace_fstring)
             if want.replace_fstring > 1:
                 want.fstring_numbered = 1
+    if back_version < (3,6) or opt.replace_namedtuple_class:
+        if not opt.no_replace_namedtuple_class:
+            want.replace_namedtuple_class = max(1, opt.replace_namedtuple_class)
     if back_version < (3,8) or opt.replace_walrus_operator:
         if not opt.no_replace_walrus_operator:
             want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
@@ -737,7 +743,7 @@ class WhileWalrusTransformer(BlockTransformer):
             logg.log(DEBUG_TYPING, "whwalrus-if?: %s", ast.dump(node))
             return [node]
 
-class DetectImports(NodeTransformer):
+class DetectImportsTransformer(NodeTransformer):
     importfrom: Dict[str, Dict[str, str]]
     imported: Dict[str, str]
     importas: Dict[str, str]
@@ -796,7 +802,7 @@ class RequireImportFrom:
             return node
         logg.debug("-- import require: %s", self.require)
         logg.debug("-- import removes: %s", self.removes)
-        imports = DetectImports()
+        imports = DetectImportsTransformer()
         imports.visit(node)
         newimport: List[str] = []
         anyremove: List[str] = []
@@ -897,7 +903,7 @@ class RequireImport:
     def visit(self, node: ast.AST) -> ast.AST:
         if not self.require:
             return node
-        imports = DetectImports()
+        imports = DetectImportsTransformer()
         imports.visit(node)
         newimport: Dict[str, Optional[str]] = {}
         for require, asname in self.require.items():
@@ -992,9 +998,9 @@ class ReplaceIsinstanceBaseType(NodeTransformer):
                 self.defines.append(F"{basename} = {origname}")
         return self.generic_visit(node)
 
-class DetectImportedFunctionCalls(DetectImports):
+class DetectImportedFunctionCalls(DetectImportsTransformer):
     def __init__(self, replace: Optional[Dict[str, str]] = None, noimport: Optional[List[str]] = None) -> None:
-        DetectImports.__init__(self)
+        DetectImportsTransformer.__init__(self)
         self.found: Dict[str, str] = {} # funcname to callname
         self.calls: Dict[str, str] = {} # callname to funcname
         self.divs: int = 0
@@ -1003,7 +1009,7 @@ class DetectImportedFunctionCalls(DetectImports):
     def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
         if node.names and node.names[0].name in self.noimport:
             return None # to remove the node
-        return DetectImports.visit_Import(self, node)
+        return DetectImportsTransformer.visit_Import(self, node)
     def visit_Div(self, node: ast.Div) -> ast.AST:  # pylint: disable=invalid-name
         self.divs += 1
         return self.generic_visit(node)
@@ -1209,6 +1215,55 @@ class DefineIfPython3:
             return module2
         else:
             return node
+
+class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
+    typedefs: List[ast.stmt]
+    requiresfrom: Set[str]
+    only: Set[str]
+    def __init__(self) -> None:
+        DetectImportsTransformer.__init__(self)
+        self.typedefs = []
+        self.requiresfrom = set()
+        self.only = set()
+    def visit(self, node: ast.AST) -> ast.AST:
+        if isinstance(node, ast.Module):
+            module = cast(ast.Module, node)  # type: ignore[redundant-cast]
+            for stmt in module.body:
+                if isinstance(stmt, ast.ClassDef):
+                    self.only.add(stmt.name) # only top-level class names
+        return cast(ast.AST, DetectImportsTransformer.visit(self, node))
+    def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST: # pylint: disable=invalid-name
+        for base in node.bases:
+            classname = node.name
+            if isinstance(base, ast.Name):
+                basename = cast(ast.Name, base)  # type: ignore[redundant-cast]
+                basetype = basename.id
+                if basetype in self.importas:
+                    if self.importas[basetype] == "typing.NamedTuple":
+                        body: List[ast.stmt] = []
+                        fields: List[ast.expr] = []
+                        for stmt in node.body:
+                            if isinstance(stmt, ast.AnnAssign):
+                                assign = cast(ast.AnnAssign, stmt)   # type: ignore[redundant-cast]
+                                fieldname = cast(ast.Name, assign.target).id
+                                annotation = assign.annotation
+                                body.append(ast.AnnAssign(ast.Name(fieldname), annotation, None, assign.simple))
+                                fields.append(ast.Constant(fieldname))
+                        typebase = ast.Name("NamedTuple")
+                        copy_location(typebase, node)
+                        typebases: List[ast.expr] = [typebase]
+                        typeclass = ast.ClassDef(classname, typebases, body=body, keywords=[], decorator_list=[])
+                        copy_location(typeclass, node)
+                        if not self.only or classname in self.only:
+                            self.typedefs.append(typeclass)
+                        args: List[ast.expr] = [ast.Constant(classname)]
+                        args.append(ast.List(fields))
+                        replaced = ast.Assign([ast.Name(classname)], ast.Call(ast.Name("namedtuple"), args, []))
+                        copy_location(replaced, node)
+                        self.requiresfrom.add("collections.namedtuple")
+                        return replaced
+        return node
+
 
 class FStringToFormat(NodeTransformer):
     """ The 3.8 F="{a=}" syntax is resolved before ast nodes are generated. """
@@ -1476,11 +1531,11 @@ class StripHints(NodeTransformer):
 
 class StripTypeHints:
     """ modify only the outer interface - global def, global class with methods """
-    pyi: List[ast.stmt]
+    typedefs: List[ast.stmt]
     typing: Set[str]
     removed: Set[str]
     def __init__(self) -> None:
-        self.pyi = []
+        self.typedefs = []
         self.typing = set()
         self.removed = set()
     def visit(self, node: ast.AST) -> ast.AST:
@@ -1493,7 +1548,7 @@ class StripTypeHints:
                     if imports.module == "typing":
                         imports3 = ast.ImportFrom(imports.module, imports.names, imports.level)
                         imports3 = copy_location(imports3, imports)
-                        self.pyi.append(imports3)
+                        self.typedefs.append(imports3)
                 elif isinstance(child, ast.AnnAssign):
                     assign1: ast.AnnAssign = child
                     logg.debug("assign: %s", ast.dump(assign1))
@@ -1507,7 +1562,7 @@ class StripTypeHints:
                     else:
                         body.append(assign1)
                     assign3 = ast.AnnAssign(target=assign1.target, annotation=assign1.annotation, value=None, simple=assign1.simple)
-                    self.pyi.append(assign3)
+                    self.typedefs.append(assign3)
                 elif isinstance(child, ast.FunctionDef):
                     funcdef1: ast.FunctionDef = child
                     logg.debug("funcdef: %s", ast.dump(funcdef1))
@@ -1581,7 +1636,7 @@ class StripTypeHints:
                                            funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
                                 funcdef3 = ast.FunctionDef(funcdef1.name, funcargs3, [ast.Pass()], funcdef1.decorator_list, funcdef1.returns)
                                 funcdef3 = copy_location(funcdef3, funcdef1)
-                                self.pyi.append(funcdef3)
+                                self.typedefs.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
                     logg.debug("class: %s", ast.dump(child))
                     classname = child.name
@@ -1693,7 +1748,7 @@ class StripTypeHints:
                     body.append(class2)
                     if decl:
                         class3 = ast.ClassDef(child.name, child.bases, child.keywords, decl, child.decorator_list)
-                        self.pyi.append(class3)
+                        self.typedefs.append(class3)
                 else:
                     logg.debug("found: %s", ast.dump(child))
                     body.append(child)
@@ -1900,11 +1955,11 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
     return typehints
 
 def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
-    pyi_imports = DetectImports()
+    pyi_imports = DetectImportsTransformer()
     pyi_imports.visit(pyi)
-    py1_imports = DetectImports()
+    py1_imports = DetectImportsTransformer()
     py1_imports.visit(py1)
-    py2_imports = DetectImports()
+    py2_imports = DetectImportsTransformer()
     py2_imports.visit(py2)
     pyi_hints = DetectHints()
     pyi_hints.visit(pyi)
@@ -1962,19 +2017,27 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             text = f.read()
         typingrequires = RequireImportFrom()
         tree1 = ast.parse(text)
+        typedefs: List[ast.stmt] = []
+        tree = tree1
+        importrequires = RequireImport()
+        importrequiresfrom = RequireImportFrom()
+        if want.replace_fstring:
+            fstring = FStringToFormat()
+            tree = fstring.visit(tree)
+        if want.replace_namedtuple_class:
+            namedtuples = NamedTupleToCollectionsTransformer()
+            tree = namedtuples.visit(tree)
+            importrequiresfrom.append(namedtuples.requiresfrom)
+            typedefs.extend(namedtuples.typedefs)
         striptypes = StripTypeHints()
-        tree = striptypes.visit(tree1)
+        tree = striptypes.visit(tree)
+        typedefs.extend(striptypes.typedefs)
         striphints = StripHints()
         tree = striphints.visit(tree)
         typingrequires.importfrom("typing", *striptypes.typing)
         typingrequires.removefrom("typing", *striptypes.removed)
         typingrequires.importfrom("typing", *striphints.typing)
         typingrequires.removefrom("typing", *striphints.removed)
-        if want.replace_fstring:
-            fstring = FStringToFormat()
-            tree = fstring.visit(tree)
-        importrequires = RequireImport()
-        importrequiresfrom = RequireImportFrom()
         calls = DetectImportedFunctionCalls()
         calls.visit(tree)
         if want.show_dump:
@@ -2135,7 +2198,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
             if calls.divs and want.define_float_division:
                 futurerequires.add("__future__.division")
         if want.define_absolute_import:
-            imps = DetectImports()
+            imps = DetectImportsTransformer()
             imps.visit(tree)
             relative = [imp for imp in imps.importfrom if imp.startswith(".")]
             if relative:
@@ -2181,7 +2244,7 @@ def transform(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 
                 type_ignores: List[TypeIgnore] = []
                 if isinstance(tree1, ast.Module):
                     type_ignores = tree1.type_ignores
-                typehints = pyi_module(striptypes.pyi, type_ignores=type_ignores)
+                typehints = pyi_module(typedefs, type_ignores=type_ignores)
                 typehints = pyi_copy_imports(typehints, tree1, tree)
                 done = ast.unparse(typehints)
                 if out in ["", ".", "-"]:

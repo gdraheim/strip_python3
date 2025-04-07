@@ -796,6 +796,41 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
+    def test_3501(self) -> None:
+        """ check NamedTuple classes are replaced by collections.namedtuple"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        from typing import NamedTuple
+        class A(NamedTuple):
+            b: int = 4
+            c: str
+        def func1() -> int:
+            class X(NamedTuple):
+                y: int = 5
+                z: str
+            return X(1, 2).y
+        print(func1())
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "from collections import namedtuple"))
+        self.assertFalse(greps(script, "from typing"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out, "1"))
+        if MYPY:
+            text_file(F"{tmp}/test4.py", """
+            import test""")
+            x2 = X(F"{MYPY} --strict {tmp}/test4.py")
+            logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
+            self.assertEqual(x2.out, "Success: no issues found in 1 source file")
+        self.rm_testdir()
+        self.end()
 
 
 if __name__ == "__main__":
