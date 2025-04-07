@@ -2130,7 +2130,8 @@ class StripTest(unittest.TestCase):
                     return self
         """))
         self.assertEqual(pyi, text4("""
-        from typing import List, Optional, TypeVar
+        from typing import TypeVar
+        from typing import List, Optional
         a: int
         SelfB = TypeVar('SelfB', bound='B')
         
@@ -2192,7 +2193,8 @@ class StripTest(unittest.TestCase):
                     return a
         """))
         self.assertEqual(pyi, text4("""
-        from typing import List, Optional, TypeVar
+        from typing import TypeVar
+        from typing import List, Optional
         a: int
         SelfB = TypeVar('SelfB', bound='B')
         
@@ -2333,7 +2335,7 @@ class StripTest(unittest.TestCase):
         self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.pyi"))
         py = file_text4(F"{tmp}/tmp1_2.py")
         logg.debug("--- py:\n%s\n", py)
-        self.assertEqual(py, text4("""
+        self.assertEqual(lines4(py), lines4(text4("""
         from typing import List, Optional
         from pydantic import Field
 
@@ -2352,7 +2354,7 @@ class StripTest(unittest.TestCase):
                 def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> List[str]:
                     x = int(b)
                     return [self.c] + y
-        """))
+        """)))
         self.coverage()
         self.rm_testdir()
     def test_2198(self) -> None:
@@ -2396,11 +2398,12 @@ class StripTest(unittest.TestCase):
                 return self
 
         def foo() -> None:
+            SelfZ = TypeVar('SelfZ', bound='Z')
 
             class Z:
                 a: int
 
-                def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> Self:
+                def adds(self, y: List[str], a: int=0, *, b: Optional[int]=0) -> SelfZ:
                     x = int(b)
                     return self
         """))
@@ -2451,11 +2454,12 @@ class StripTest(unittest.TestCase):
                 return self
 
         def foo() -> None:
+            SelfZ = TypeVar('SelfZ', bound='Z')
 
             class Z:
                 a: int
 
-                def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)]=0, *, b: Optional[int]=0) -> Self:
+                def adds(self, y: list[str], /, a: Annotated[int, Field(gt=0)]=0, *, b: Optional[int]=0) -> SelfZ:
                     x = int(b)
                     return self
         """)))

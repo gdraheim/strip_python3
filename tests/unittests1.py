@@ -1469,6 +1469,348 @@ class StripUnitTest(unittest.TestCase):
             self.assertEqual(want, have)
         finally:
             app.want.fstring_numbered = old
+    def test_1600(self) -> None:
+        text1 = app.text4("""
+        class A:
+            def func1(self) -> int:
+                return 0
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        class A:
+
+            def func1(self) -> int:
+                return 0
+        """)
+        self.assertEqual(want, have)
+    def test_1601(self) -> None:
+        text1 = app.text4("""
+        class A:
+            def func1(self) -> Self:
+                return self
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+
+            def func1(self) -> SelfA:
+                return self
+        """)
+        self.assertEqual(want, have)
+    def test_1602(self) -> None:
+        text1 = app.text4("""
+        class A:
+            b: int
+            def func1(self, other: Self) -> int:
+                return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+            b: int
+
+            def func1(self, other: SelfA) -> int:
+                return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1603(self) -> None:
+        text1 = app.text4("""
+        class A:
+            b: int
+            def func1(self, other: Self, /, c: int) -> int:
+                return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+            b: int
+
+            def func1(self, other: SelfA, /, c: int) -> int:
+                return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1604(self) -> None:
+        text1 = app.text4("""
+        class A:
+            b: int
+            def func1(self, c: int, /, other: Self) -> int:
+                return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+            b: int
+
+            def func1(self, c: int, /, other: SelfA) -> int:
+                return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1605(self) -> None:
+        text1 = app.text4("""
+        class A:
+            b: int
+            def func1(self, c: int, *, other: Self) -> int:
+                return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+            b: int
+
+            def func1(self, c: int, *, other: SelfA) -> int:
+                return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1606(self) -> None:
+        text1 = app.text4("""
+        class A:
+            b: int
+            def func1(self, c: int, *other: Self) -> int:
+                return a.b + other[0].b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+            b: int
+
+            def func1(self, c: int, *other: SelfA) -> int:
+                return a.b + other[0].b
+        """)
+        self.assertEqual(want, have)
+    def test_1607(self) -> None:
+        text1 = app.text4("""
+        class A:
+            b: int
+            def func1(self, c: int, **other: Self) -> int:
+                return a.b + other[0].b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        SelfA = TypeVar('SelfA', bound='A')
+
+        class A:
+            b: int
+
+            def func1(self, c: int, **other: SelfA) -> int:
+                return a.b + other[0].b
+        """)
+        self.assertEqual(want, have)
+    def test_1610(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                def func1(self) -> int:
+                    return 0
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+
+            class A:
+
+                def func1(self) -> int:
+                    return 0
+        """)
+        self.assertEqual(want, have)
+    def test_1611(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                def func1(self) -> Self:
+                    return self
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+
+                def func1(self) -> SelfA:
+                    return self
+        """)
+        self.assertEqual(want, have)
+    def test_1612(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                b: int
+                def func1(self, other: Self) -> int:
+                    return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+                b: int
+
+                def func1(self, other: SelfA) -> int:
+                    return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1613(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                b: int
+                def func1(self, other: Self, /, c: int) -> int:
+                    return a.b + other.b
+            """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+                b: int
+
+                def func1(self, other: SelfA, /, c: int) -> int:
+                    return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1614(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                b: int
+                def func1(self, c: int, /, other: Self) -> int:
+                    return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+                b: int
+
+                def func1(self, c: int, /, other: SelfA) -> int:
+                    return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1615(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                b: int
+                def func1(self, c: int, *, other: Self) -> int:
+                    return a.b + other.b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+                b: int
+
+                def func1(self, c: int, *, other: SelfA) -> int:
+                    return a.b + other.b
+        """)
+        self.assertEqual(want, have)
+    def test_1616(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                b: int
+                def func1(self, c: int, *other: Self) -> int:
+                    return a.b + other[0].b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+                b: int
+
+                def func1(self, c: int, *other: SelfA) -> int:
+                    return a.b + other[0].b
+        """)
+        self.assertEqual(want, have)
+    def test_1617(self) -> None:
+        text1 = app.text4("""
+        def foo1() -> None:
+            class A:
+                b: int
+                def func1(self, c: int, **other: Self) -> int:
+                    return a.b + other[0].b
+        """)
+        tree1 = ast.parse(text1)
+        defs1 = app.ReplaceSelfByTypevar()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        def foo1() -> None:
+            SelfA = TypeVar('SelfA', bound='A')
+
+            class A:
+                b: int
+
+                def func1(self, c: int, **other: SelfA) -> int:
+                    return a.b + other[0].b
+        """)
+        self.assertEqual(want, have)
+
 
 
 if __name__ == "__main__":

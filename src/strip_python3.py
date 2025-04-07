@@ -1507,7 +1507,13 @@ def get_simple_typehint(node: ast.expr) -> str:
     return NIX
 
 class ReplaceSelfByTypevar(BlockTransformer):
-    def visit2_ClassDef(self, node: ast.ClassDef, block: Deque[ast.stmt]) -> List[ast.stmt]:  # pylint: disable=invalid-name
+    typing: List[str]
+    newclasses: List[str]
+    def __init__(self) -> None:
+        BlockTransformer.__init__(self)
+        self.typing = []
+        self.newclasses = []
+    def visit2_ClassDef(self, node: ast.ClassDef, block: Deque[ast.stmt]) -> List[ast.stmt]:  # pylint: disable=invalid-name,unused-argument
         classname = node.name
         selfcount = 0
         if OK:
@@ -1541,40 +1547,50 @@ class ReplaceSelfByTypevar(BlockTransformer):
                                 selfcount += 1
         if selfcount:
             selfclass = F"Self{classname}"
-            newann = ast.Name(selfclass)
+            self.newclasses.append(selfclass)
+            self.typing.append("TypeVar")
             typevar = ast.Call(ast.Name("TypeVar"), [ast.Constant(selfclass)], [ast.keyword("bound", ast.Constant(classname))])
             typevar = copy_location(typevar, node)
-            typestmt = ast.Assign([ast.Name(selfclass)], typevar)
-            typestmt = copy_location(typestmt, node)
-            preclass: List[ast.stmt] = [typestmt]
+            newtype = ast.Assign([ast.Name(selfclass)], typevar)
+            newtype = copy_location(newtype, node)
+            if not hasattr(newtype, "lineno"):
+                logg.fatal(" lineno for %s", ast.dump(node))
+            print(newtype.lineno)
+            preclass: List[ast.stmt] = [newtype]
             for stmt in node.body:
                 if isinstance(stmt, ast.FunctionDef):
                     func = cast(ast.FunctionDef, stmt) # type: ignore[redundant-cast]
                     if func.returns:
                         if get_simple_typehint(func.returns) == "Self":
                             func.returns = ast.Name(selfclass)
+                            copy_location(func.returns, stmt)
                     for arg in func.args.posonlyargs:
                         if arg.annotation:
                             if get_simple_typehint(arg.annotation) == "Self":
                                 arg.annotation = ast.Name(selfclass)
+                                copy_location(arg.annotation, stmt)
                     for arg in func.args.args:
                         if arg.annotation:
                             if get_simple_typehint(arg.annotation) == "Self":
                                 arg.annotation = ast.Name(selfclass)
+                                copy_location(arg.annotation, stmt)
                     for arg in func.args.kwonlyargs:
                         if arg.annotation:
                             if get_simple_typehint(arg.annotation) == "Self":
                                 arg.annotation = ast.Name(selfclass)
+                                copy_location(arg.annotation, stmt)
                     if func.args.vararg is not None:
                         arg = func.args.vararg
                         if arg.annotation:
                             if get_simple_typehint(arg.annotation) == "Self":
                                 arg.annotation = ast.Name(selfclass)
+                                copy_location(arg.annotation, stmt)
                     if func.args.kwarg is not None:
                         arg = func.args.kwarg
                         if arg.annotation:
                             if get_simple_typehint(arg.annotation) == "Self":
                                 arg.annotation = ast.Name(selfclass)
+                                copy_location(arg.annotation, stmt)
             return preclass+[node]
         return [node]
 
@@ -1582,6 +1598,15 @@ def types_in_annotation(annotation: ast.expr) -> Dict[str, str]:
     detect = DetectAnnotation()
     detect.visit(annotation)
     return detect.names
+
+class RemovePosonlyArgs(NodeTransformer):
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        func: ast.FunctionDef = node
+        if not func.args.posonlyargs:
+            return node
+        func.args.args = func.args.posonlyargs + func.args.args
+        func.args.posonlyargs = []
+        return func
 
 class DetectHints(NodeTransformer):
     """ only check all ClassDef, Function and AnnAssign in the source tree """
@@ -1877,7 +1902,6 @@ class StripTypeHints:
                                 self.typedefs.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
                     logg.debug("class: %s", ast.dump(child))
-                    classname = child.name
                     preclass: Dict[str, ast.stmt] = {}
                     stmt: List[ast.stmt] = []
                     decl: List[ast.stmt] = []
@@ -1910,7 +1934,7 @@ class StripTypeHints:
                                     logg.debug("pos arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation, classname)
+                                    new1 = types36_remove_typehints(arg.annotation)
                                     posonlyargs.append(ast.arg(arg.arg, new1.annotation))
                                     self.typing.update(new1.typing)
                                     self.removed.update(new1.removed)
@@ -1920,7 +1944,7 @@ class StripTypeHints:
                                     logg.debug("fun arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation, classname)
+                                    new1 = types36_remove_typehints(arg.annotation)
                                     functionargs.append(ast.arg(arg.arg, new1.annotation))
                                     self.typing.update(new1.typing)
                                     self.removed.update(new1.removed)
@@ -1930,7 +1954,7 @@ class StripTypeHints:
                                     logg.debug("fun arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation, classname)
+                                    new1 = types36_remove_typehints(arg.annotation)
                                     kwonlyargs.append(ast.arg(arg.arg, new1.annotation))
                                     self.typing.update(new1.typing)
                                     self.removed.update(new1.removed)
@@ -1938,7 +1962,7 @@ class StripTypeHints:
                             if vargarg is not None:
                                 if vargarg.annotation:
                                     annos += 1
-                                new1 = types36_remove_typehints(vargarg.annotation, classname)
+                                new1 = types36_remove_typehints(vargarg.annotation)
                                 vargarg = ast.arg(vargarg.arg, new1.annotation)
                                 self.typing.update(new1.typing)
                                 self.removed.update(new1.removed)
@@ -1946,7 +1970,7 @@ class StripTypeHints:
                             if kwarg is not None:
                                 if kwarg.annotation:
                                     annos += 1
-                                new1 = types36_remove_typehints(kwarg.annotation, classname)
+                                new1 = types36_remove_typehints(kwarg.annotation)
                                 kwarg = ast.arg(kwarg.arg, new1.annotation)
                                 self.typing.update(new1.typing)
                                 self.removed.update(new1.removed)
@@ -1955,7 +1979,7 @@ class StripTypeHints:
                                 stmt.append(func)
                             else:
                                 logg.debug("args: %s", ast.dump(func.args))
-                                newret = types36_remove_typehints(func.returns, classname)
+                                newret = types36_remove_typehints(func.returns)
                                 self.typing.update(newret.typing)
                                 self.removed.update(newret.removed)
                                 preclass.update(newret.preclass)
@@ -1983,9 +2007,11 @@ class StripTypeHints:
                         logg.log(DEBUG_TYPING, "preclass: %s", ast.dump(preclassdef))
                         body.append(preclassdef)
                     class2 = ast.ClassDef(child.name, child.bases, child.keywords, stmt, child.decorator_list)
+                    class2 = copy_location(class2, child)
                     body.append(class2)
                     if decl:
                         class3 = ast.ClassDef(child.name, child.bases, child.keywords, decl, child.decorator_list)
+                        class3 = copy_location(class3, child)
                         self.typedefs.append(class3)
                 else:
                     logg.debug("found: %s", ast.dump(child))
@@ -2044,25 +2070,11 @@ class Types36(NamedTuple):
     typing: Set[str]
     removed: Set[str]
     preclass: Dict[str, ast.stmt]
-def types36(ann: ast.expr, classname: Optional[str] = None) -> Types36:
+def types36(ann: ast.expr) -> Types36:
     logg.log(DEBUG_TYPING, "types36: %s", ast.dump(ann))
-    if isinstance(ann, ast.Name) and ann.id == "Self" and classname and want.replace_self_typing:
-        selfclass = F"Self{classname}"
-        newann = ast.Name(selfclass)
-        decl: Dict[str, ast.stmt] = {}
-        typevar = ast.Call(ast.Name("TypeVar"), [ast.Constant(selfclass)], [ast.keyword("bound", ast.Constant(classname))])
-        typevar = copy_location(typevar, ann)
-        stmt = ast.Assign([ast.Name(selfclass)], typevar)
-        stmt = copy_location(stmt, ann)
-        decl[selfclass] = stmt
-        typing = set()
-        typing.add("TypeVar")
-        logg.log(DEBUG_TYPING, "self decl: %s", ast.dump(stmt))
-        return Types36(newann, typing, set(), decl)
-    else:
-        types = TypesTransformer()
-        annotation = types.visit(ann)
-        return Types36(annotation, types.typing, types.removed, {})
+    types = TypesTransformer()
+    annotation = types.visit(ann)
+    return Types36(annotation, types.typing, types.removed, {})
 
 class OptionalTypes36(NamedTuple):
     annotation: Optional[ast.expr]
@@ -2070,9 +2082,9 @@ class OptionalTypes36(NamedTuple):
     removed: Set[str]
     preclass: Dict[str, ast.stmt]
 
-def types36_remove_typehints(ann: Optional[ast.expr], classname: Optional[str] = None) -> OptionalTypes36:
+def types36_remove_typehints(ann: Optional[ast.expr]) -> OptionalTypes36:
     if ann and not want.remove_typehints:
-        new1 = types36(ann, classname)
+        new1 = types36(ann)
         return OptionalTypes36(new1.annotation, new1.typing, new1.removed, new1.preclass)
     return OptionalTypes36(None, set(), set(), {})
 
@@ -2130,14 +2142,13 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
             body.append(stmt)
         elif isinstance(stmt, ast.ClassDef):
             classdef: ast.ClassDef = stmt
-            classname = classdef.name
             preclass: Dict[str, ast.stmt] = {}
             for part in classdef.body:
                 if isinstance(part, ast.AnnAssign):
                     assign: ast.AnnAssign = part
                     annv = assign.annotation
                     logg.log(DEBUG_TYPING, "annv %s", ast.dump(annv))
-                    newv = types36(annv, classname)
+                    newv = types36(annv)
                     assign.annotation = newv.annotation
                     typing_require.update(newv.typing)
                     typing_removed.update(newv.removed)
@@ -2149,7 +2160,7 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
                         annp = arg.annotation
                         if annp:
                             logg.log(DEBUG_TYPING, "annp[%i] %s", n, ast.dump(annp))
-                            newp = types36(annp, classname)
+                            newp = types36(annp)
                             arg.annotation = newp.annotation
                             typing_require.update(newp.typing)
                             typing_removed.update(newp.removed)
@@ -2161,14 +2172,14 @@ def pyi_module(pyi: List[ast.stmt], type_ignores: Optional[List[TypeIgnore]] = N
                             annk = argk.annotation
                             if annk:
                                 logg.log(DEBUG_TYPING, "annk[%i] %s", k, ast.dump(annk))
-                                newk = types36(annk, classname)
+                                newk = types36(annk)
                                 argk.annotation = newk.annotation
                                 typing_require.update(newk.typing)
                                 typing_removed.update(newk.removed)
                                 preclass.update(newk.preclass)
                     annr = funcdef.returns
                     if annr:
-                        newr = types36(annr, classname)
+                        newr = types36(annr)
                         funcdef.returns = newr.annotation
                         typing_require.update(newr.typing)
                         typing_removed.update(newr.removed)
@@ -2241,7 +2252,17 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
             logg.debug("name not found as import: %s", " ".join(notfound))
             logg.debug("py1 imports: %s", py1_imports.importas)
             logg.debug("py2 imports: %s", py2_imports.importas)
-    return cast(ast.Module, requiredimport.visit(pyi))
+    tree = cast(ast.Module, requiredimport.visit(pyi))
+    if want.replace_self_typing:
+        selftypes = ReplaceSelfByTypevar()
+        tree = selftypes.visit(tree)
+        typingrequires = RequireImportFrom()
+        typingrequires.importfrom("typing", *selftypes.typing)
+        tree = cast(ast.Module, typingrequires.visit(tree))
+    if want.remove_pyi_positional:
+        posonly = RemovePosonlyArgs()
+        tree = posonly.visit(tree)
+    return tree
 
 # ............................................................................... MAIN
 
@@ -2336,12 +2357,16 @@ class StripPythonTransformer:
         striptypes = StripTypeHints()
         tree = striptypes.visit(tree)
         self.typedefs.extend(striptypes.typedefs)
-        striphints = StripHints()
-        tree = striphints.visit(tree)
         typingrequires.importfrom("typing", *striptypes.typing)
         typingrequires.removefrom("typing", *striptypes.removed)
+        striphints = StripHints()
+        tree = striphints.visit(tree)
         typingrequires.importfrom("typing", *striphints.typing)
         typingrequires.removefrom("typing", *striphints.removed)
+        if want.replace_self_typing:
+            selftypes = ReplaceSelfByTypevar()
+            tree = selftypes.visit(tree)
+            typingrequires.importfrom("typing", *selftypes.typing)
         calls = DetectImportedFunctionCalls()
         calls.visit(tree)
         if want.show_dump:
