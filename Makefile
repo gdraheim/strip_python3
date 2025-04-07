@@ -212,12 +212,13 @@ fix-metadata-version:
 # .....................
 
 copy:
-	cp -v ../docker-mirror-packages-repo/docker_mirror.py .
-	cp -v ../docker-mirror-packages-repo/docker_mirror.pyi .
-	cp -v ../docker-mirror-packages-repo/docker_image.py .
+	cp -v ../docker-mirror-packages-repo/docker_mirror.py tools/
+	cp -v ../docker-mirror-packages-repo/docker_mirror.pyi tools/
+	cp -v ../docker-mirror-packages-repo/docker_image.py tools/
 
 LOCAL=--local
-DOCKER_IMAGE = ./docker_image.py $(LOCAL)
+DOCKER_IMAGE_PY = ./tools/docker_image.py
+DOCKER_IMAGE = $(PYTHON3) $(DOCKER_IMAGE_PY) $(LOCAL)
 
 python27: $(CONTAINER)/test27
 python36: $(CONTAINER)/test36

@@ -43,9 +43,6 @@ MYPY=""
 STRIP="src/strip_python3.py"
 VV="-vv"
 
-_maindir = os.path.dirname(sys.argv[0])
-_mirror = os.path.join(_maindir, "docker_mirror.py")
-
 def decodes(text: Union[str, bytes, None]) -> str:
     if text is None: return ""
     if isinstance(text, bytes):
@@ -172,15 +169,6 @@ def get_caller_caller_name() -> str:
     if not currentframe: return "global"
     frame = currentframe.f_back.f_back.f_back # type: ignore[union-attr]
     return frame.f_code.co_name  # type: ignore[union-attr]
-
-def detect_local_system() -> str:
-    """ checks the controller host (a real machine / your laptop)
-        and returns a matching image name for it (docker style) """
-    docker = DOCKER
-    mirror = _mirror
-    cmd = F"{mirror} detect"
-    run = X(cmd)
-    return decodes(run.stdout).strip()
 
 def packages_refresh_tool() -> str:
     return "apt-get -o Acquire::AllowInsecureRepositories=true update"
