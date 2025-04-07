@@ -1332,7 +1332,7 @@ class ReplaceCallResult(NamedTuple):
     removed: List[str]
 
 def replace_datetime_fromisoformat(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
-    if calls is None:
+    if calls is None:   # pragma: nocover
         calls = DetectImportedFunctionCalls()
         calls.visit(tree)
     assert calls is not None
@@ -1367,7 +1367,7 @@ def replace_datetime_fromisoformat(tree: ast.AST, calls: Optional[DetectImported
     return ReplaceCallResult(tree, requires, removed)
 
 def replace_subprocess_run(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None, minversion: Tuple[int, int] = (2, 7)) -> ReplaceCallResult:
-    if calls is None:
+    if calls is None:   # pragma: nocover
         calls = DetectImportedFunctionCalls()
         calls.visit(tree)
     assert calls is not None
@@ -1429,7 +1429,7 @@ def replace_subprocess_run(tree: ast.AST, calls: Optional[DetectImportedFunction
     return ReplaceCallResult(tree, requires, removed)
 
 def replace_time_monotonic(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
-    if calls is None:
+    if calls is None:   # pragma: nocover
         calls = DetectImportedFunctionCalls()
         calls.visit(tree)
     assert calls is not None
@@ -1451,7 +1451,7 @@ def replace_time_monotonic(tree: ast.AST, calls: Optional[DetectImportedFunction
     return ReplaceCallResult(tree, requires, removed)
 
 def replace_time_monotonic_ns(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
-    if calls is None:
+    if calls is None:   # pragma: nocover
         calls = DetectImportedFunctionCalls()
         calls.visit(tree)
     assert calls is not None
@@ -2162,6 +2162,7 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
 
 # ............................................................................... MAIN
 
+
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
@@ -2172,8 +2173,10 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: i
             text = f.read()
         tree1 = ast.parse(text)
         try:
-            tree, typedefs = transform(tree1, minversion)
-        except TransformerSyntaxError as e:
+            transformers = StripPythonTransformer(minversion)
+            tree = transformers.visit(tree1)
+            typedefs = transformers.typedefs
+        except TransformerSyntaxError as e:  # pragma: nocover
             if e.filename is None:
                 e.filename = arg
             raise
@@ -2229,13 +2232,13 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: i
 def _beautify_dump(x: str) -> str:
     return x.replace("body=[", "\n body=[").replace("FunctionDef(", "\n FunctionDef(").replace(", ctx=Load()",",.")
 
-class TransformResult(NamedTuple):
-    tree: ast.AST
+class StripPythonTransformer:
+    minversion: Tuple[int, int]
     typedefs: List[ast.stmt]
-
-def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformResult:
-    typedefs: List[ast.stmt] = []
-    if OK:
+    def __init__(self, minversion: Tuple[int, int] = (2,7)):
+        self.minversion = minversion
+        self.typedefs = []
+    def visit(self, tree: ast.AST) -> ast.AST:
         typingrequires = RequireImportFrom()
         importrequires = RequireImport()
         importrequiresfrom = RequireImportFrom()
@@ -2246,10 +2249,10 @@ def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformRe
             namedtuples = NamedTupleToCollectionsTransformer()
             tree = namedtuples.visit(tree)
             importrequiresfrom.append(namedtuples.requiresfrom)
-            typedefs.extend(namedtuples.typedefs)
+            self.typedefs.extend(namedtuples.typedefs)
         striptypes = StripTypeHints()
         tree = striptypes.visit(tree)
-        typedefs.extend(striptypes.typedefs)
+        self.typedefs.extend(striptypes.typedefs)
         striphints = StripHints()
         tree = striphints.visit(tree)
         typingrequires.importfrom("typing", *striptypes.typing)
@@ -2273,7 +2276,7 @@ def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformRe
                 importrequiresfrom.remove(isoformatdef.removed)
         if want.subprocess_run:
             if "subprocess.run" in calls.found:
-                subprocessrundef = replace_subprocess_run(tree, calls, minversion)
+                subprocessrundef = replace_subprocess_run(tree, calls, self.minversion)
                 tree = subprocessrundef.tree
                 importrequires.append(subprocessrundef.requires)
                 importrequiresfrom.remove(subprocessrundef.removed)
@@ -2353,7 +2356,7 @@ def transform(tree: ast.AST, minversion: Tuple[int, int] = (2,7)) -> TransformRe
         tree = typingrequires.visit(tree)
         tree = futurerequires.visit(tree)
         # the __future__ imports must be first, so we add them last (if any)
-    return TransformResult(tree, typedefs)
+        return tree
 
 if __name__ == "__main__":
     sys.exit(main())
