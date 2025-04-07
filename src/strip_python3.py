@@ -1827,71 +1827,49 @@ class ExtractTypeHints:
                         self.typedefs.append(imports3)
                 elif isinstance(child, ast.AnnAssign):
                     assign1: ast.AnnAssign = child
-                    logg.debug("assign: %s", ast.dump(assign1))
                     assign3 = ast.AnnAssign(target=assign1.target, annotation=assign1.annotation, value=None, simple=assign1.simple)
                     self.typedefs.append(assign3)
                 elif isinstance(child, ast.FunctionDef):
                     funcdef1: ast.FunctionDef = child
-                    logg.debug("funcdef: %s", ast.dump(funcdef1))
                     if OK:
                         if OK:
                             annos = 0
-                            posonlyargs1: List[ast.arg] = []
-                            functionargs1: List[ast.arg] = []
-                            kwonlyargs1: List[ast.arg] = []
-                            vararg1 = funcdef1.args.vararg
-                            kwarg1 = funcdef1.args.kwarg
                             if OK:
                                 for arg in funcdef1.args.posonlyargs:
-                                    logg.debug("pos arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation)
-                                    posonlyargs1.append(ast.arg(arg.arg, new1.annotation))
                             if OK:
                                 for arg in funcdef1.args.args:
-                                    logg.debug("fun arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation)
-                                    functionargs1.append(ast.arg(arg.arg, new1.annotation))
                             if OK:
                                 for arg in funcdef1.args.kwonlyargs:
-                                    logg.debug("fun arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation)
-                                    kwonlyargs1.append(ast.arg(arg.arg, new1.annotation))
-                            if vararg1 is not None:
-                                if vararg1.annotation:
+                            if funcdef1.args.vararg is not None:
+                                arg = funcdef1.args.vararg
+                                if arg.annotation:
                                     annos += 1
-                                new1 = types36_remove_typehints(vararg1.annotation)
-                                vararg1 = ast.arg(vararg1.arg, new1.annotation)
-                            if kwarg1 is not None:
-                                if kwarg1.annotation:
+                            if funcdef1.args.kwarg is not None:
+                                arg = funcdef1.args.kwarg
+                                if arg.annotation:
                                     annos += 1
-                                new1 = types36_remove_typehints(kwarg1.annotation)
-                                kwarg1 = ast.arg(kwarg1.arg, new1.annotation)
                             if annos or funcdef1.returns:
-                                logg.debug("args: %s", ast.dump(funcdef1.args))
-                                newret = types36_remove_typehints(funcdef1.returns)
                                 funcargs3 = funcdef1.args
-                                if posonlyargs1 and want.remove_pyi_positional:
+                                if want.remove_pyi_positional:
                                     posonly3: List[ast.arg] = funcdef1.args.posonlyargs if not want.remove_pyi_positional else []
                                     functionargs3 = funcdef1.args.args if not want.remove_pyi_positional else funcdef1.args.posonlyargs + funcdef1.args.args
-                                    funcargs3 = ast.arguments(posonly3, functionargs3, vararg1, funcdef1.args.kwonlyargs, # ..
-                                           funcdef1.args.kw_defaults, kwarg1, funcdef1.args.defaults)
+                                    funcargs3 = ast.arguments(posonly3, functionargs3, funcdef1.args.vararg, funcdef1.args.kwonlyargs, # ..
+                                           funcdef1.args.kw_defaults, funcdef1.args.kwarg, funcdef1.args.defaults)
                                 funcdef3 = ast.FunctionDef(funcdef1.name, funcargs3, [ast.Pass()], funcdef1.decorator_list, funcdef1.returns)
                                 funcdef3 = copy_location(funcdef3, funcdef1)
                                 self.typedefs.append(funcdef3)
                 elif isinstance(child, ast.ClassDef):
-                    logg.debug("class: %s", ast.dump(child))
                     stmt: List[ast.stmt] = []
                     decl: List[ast.stmt] = []
                     for part in child.body:
                         if isinstance(part, ast.AnnAssign):
                             assign: ast.AnnAssign = part
-                            logg.debug("assign: %s", ast.dump(assign))
                             if want.remove_typehints or want.remove_var_typehints:
                                 if assign.value is not None:
                                     assign2 = ast.Assign(targets=[assign.target], value=assign.value)
@@ -1905,53 +1883,34 @@ class ExtractTypeHints:
                             decl.append(assign3)
                         elif isinstance(part, ast.FunctionDef):
                             func: ast.FunctionDef = part
-                            logg.debug("func: %s", ast.dump(func))
                             annos = 0
-                            posonlyargs: List[ast.arg] = []
-                            functionargs: List[ast.arg] = []
-                            kwonlyargs: List[ast.arg] = []
-                            vargarg = func.args.vararg
-                            kwarg = func.args.kwarg
                             if OK:
                                 for arg in func.args.posonlyargs:
-                                    logg.debug("pos arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation)
-                                    posonlyargs.append(ast.arg(arg.arg, new1.annotation))
                             if OK:
                                 for arg in func.args.args:
-                                    logg.debug("fun arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation)
-                                    functionargs.append(ast.arg(arg.arg, new1.annotation))
                             if OK:
                                 for arg in func.args.kwonlyargs:
-                                    logg.debug("fun arg: %s", ast.dump(arg))
                                     if arg.annotation:
                                         annos += 1
-                                    new1 = types36_remove_typehints(arg.annotation)
-                                    kwonlyargs.append(ast.arg(arg.arg, new1.annotation))
-                            if vargarg is not None:
-                                if vargarg.annotation:
+                            if func.args.vararg is not None:
+                                arg = func.args.vararg
+                                if arg.annotation:
                                     annos += 1
-                                new1 = types36_remove_typehints(vargarg.annotation)
-                                vargarg = ast.arg(vargarg.arg, new1.annotation)
-                            if kwarg is not None:
-                                if kwarg.annotation:
+                            if func.args.kwarg is not None:
+                                arg = func.args.kwarg
+                                if arg.annotation:
                                     annos += 1
-                                new1 = types36_remove_typehints(kwarg.annotation)
-                                kwarg = ast.arg(kwarg.arg, new1.annotation)
                             if annos or func.returns:
-                                logg.debug("args: %s", ast.dump(func.args))
-                                newret = types36_remove_typehints(func.returns)
                                 args3 = func.args
-                                if posonlyargs and want.remove_pyi_positional:
+                                if want.remove_pyi_positional:
                                     posonlyargs3: List[ast.arg] = func.args.posonlyargs if not want.remove_pyi_positional else []
                                     functionargs3 = func.args.args if not want.remove_pyi_positional else func.args.posonlyargs + func.args.args
-                                    args3 = ast.arguments(posonlyargs3, functionargs3, vargarg, func.args.kwonlyargs, # ..
-                                           func.args.kw_defaults, kwarg, func.args.defaults)
+                                    args3 = ast.arguments(posonlyargs3, functionargs3, func.args.vararg, func.args.kwonlyargs, # ..
+                                           func.args.kw_defaults, func.args.kwarg, func.args.defaults)
                                 func3 = ast.FunctionDef(func.name, args3, [ast.Pass()], func.decorator_list, func.returns)
                                 func3 = copy_location(func3, func)
                                 decl.append(func3)
