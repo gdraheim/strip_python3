@@ -389,7 +389,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 1
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """)))
@@ -411,7 +411,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
         """))
@@ -438,7 +438,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
         """)))
@@ -465,7 +465,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """))
@@ -493,7 +493,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """))
@@ -521,7 +521,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """))
@@ -558,7 +558,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """)))
@@ -594,7 +594,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 1
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """)))
@@ -621,7 +621,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 0
         NOTE:strip:remove-typehints = 0
         """))
@@ -648,7 +648,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """))
@@ -676,7 +676,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1
         """))
@@ -710,7 +710,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """)))
@@ -744,7 +744,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 0
         NOTE:strip:remove-keywordsonly = 0
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 0
         """)))
@@ -777,7 +777,7 @@ class StripTest(unittest.TestCase):
         NOTE:strip:replace-fstring = 1
         NOTE:strip:remove-keywordsonly = 1
         NOTE:strip:remove-positionalonly = 1
-        NOTE:strip:remove-pyi-positionalonly = 1
+        NOTE:strip:remove-positionalonly-pyi = 1
         NOTE:strip:remove-var-typehints = 1
         NOTE:strip:remove-typehints = 1 
         """)))
