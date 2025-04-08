@@ -40,6 +40,23 @@ check3: ; $(MAKE) test11 || $(MAKE) test27 || $(MAKE) test36
 check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
+tests3.9:  ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
+tests3.10: ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
+tests3.11: ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
+tests3.12: ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
+test3.9:  ; test ! -f /usr/bin/python$(subst test,,$@) || python$(subst test,,$@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(subst test,,$@) $V $(TODO) --failfast
+test3.10: ; test ! -f /usr/bin/python$(subst test,,$@) || python$(subst test,,$@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(subst test,,$@) $V $(TODO) --failfast
+test3.11: ; test ! -f /usr/bin/python$(subst test,,$@) || python$(subst test,,$@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(subst test,,$@) $V $(TODO) --failfast
+test3.12: ; test ! -f /usr/bin/python$(subst test,,$@) || python$(subst test,,$@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(subst test,,$@) $V $(TODO) --failfast
+test_2%/3.9:  ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_2%/3.10: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_2%/3.11: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_2%/3.12: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_3%/3.9:  ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_3%/3.10: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_3%/3.11: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_3%/3.12: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+
 todos: ; $(MAKE) checks TODO=--todo
 todo1: ; $(MAKE) check1 TODO=--todo
 todo2: ; $(MAKE) check2 TODO=--todo
