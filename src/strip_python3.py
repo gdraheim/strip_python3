@@ -1249,8 +1249,8 @@ class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
                     self.only.add(stmt.name) # only top-level class names
         return cast(ast.AST, DetectImportsTransformer.visit(self, node))
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST: # pylint: disable=invalid-name
+        classname = node.name
         for base in node.bases:
-            classname = node.name
             if isinstance(base, ast.Name):
                 basename = cast(ast.Name, base)  # type: ignore[redundant-cast]
                 basetype = basename.id
@@ -1280,8 +1280,9 @@ class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
                         replaced = ast.Assign([ast.Name(classname)], ast.Call(ast.Name("namedtuple"), args, []))
                         copy_location(replaced, node)
                         self.requiresfrom.add("collections.namedtuple")
+                        logg.debug("replaced NamedTuple %s = %s", classname, ast.dump(replaced))
                         return replaced
-        return node
+        return self.generic_visit(node)
 
 class TypedDictToDictTransformer(DetectImportsTransformer):
     typedefs: List[ast.stmt]
