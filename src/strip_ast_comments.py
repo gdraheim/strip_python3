@@ -25,7 +25,7 @@ if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 11:
     from ast import IntEnum, FunctionType, TryStar
 if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 12:
-    from ast import TypeAlias, TypedVar, ParamSpec, TypedVarTuple, TypeIgnore
+    from ast import TypeAlias, TypeVar, ParamSpec, TypeVarTuple, TypeIgnore
 from ast import dump, stmt, expr, alias, arg, arguments, keyword
 from collections.abc import Iterable
 
