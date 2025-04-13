@@ -376,7 +376,7 @@ def main() -> int:
     eachfile |= EACH_INPLACE if opt.inplace else 0
     make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
     return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, minversion=back_version, run_python=want.run_python,
-        pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__py" if opt.make_stubs and not no_make_pyi else NIX)
+        pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__.pyi" if opt.make_stubs and not no_make_pyi else NIX)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
     defnames: Dict[str, str] = OrderedDict()
