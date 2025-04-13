@@ -164,6 +164,7 @@ class Want:
     setup_cfg =  os.environ.get("PYTHON3_CONFIGFILE", "setup.cfg")
     pyproject_toml = "pyproject.toml"
     toolsection = "strip-python3"
+    run_python = os.environ.get("PYTHON3_RUN_PYTHON", NIX)
 
 want = Want()
 
@@ -230,6 +231,8 @@ def main() -> int:
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
     cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
     cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set python features by version")
+    cmdline.add_option("--run-python", metavar="exe", default=NIX, help="replace shebang with #! /usr/bin/env exe")
+    cmdline.add_option("-O", "--old-python", action="count", default=0, help="replace with #! /usr/bin/env python")
     cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
@@ -244,6 +247,10 @@ def main() -> int:
     cmdline_set_defaults_from(cmdline, want.toolsection, want.pyproject_toml, want.setup_cfg)
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
+    if opt.run_python:
+        want.run_python = opt.run_python
+    elif opt.old_python:
+        want.run_python = "python"
     no_make_pyi = opt.no_make_pyi
     pyi_version = (3,8)
     if opt.pyi37:
@@ -367,8 +374,8 @@ def main() -> int:
     eachfile = EACH_REMOVE3 if opt.remove3 else 0
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
-    make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace 
-    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, minversion=back_version,
+    make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
+    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, minversion=back_version, run_python=want.run_python,
         pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__py" if opt.make_stubs and not no_make_pyi else NIX)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
@@ -2227,7 +2234,7 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
-def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: str = NIX, stubs: str = NIX, minversion: Tuple[int, int] = (2,7)) -> int:
+def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: str = NIX, stubs: str = NIX, run_python: str = NIX, minversion: Tuple[int, int] = (2,7)) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
@@ -2248,6 +2255,13 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
         done = ast.unparse(tree)
         if want.show_dump > 2:
             logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
+        if run_python:
+            running = F"#! {run_python}" if "/" in run_python else F"#! /usr/bin/env {run_python}"
+            if done.startswith("#!"):
+                _, done2 = done.split("\n", 1)
+            else:
+                done2 = done
+            done = F"#! {running}\n" + done2
         if outfile:
             out = outfile
         elif arg.endswith("3.py") and eachfile & EACH_REMOVE3:
@@ -2282,20 +2296,21 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
                     print("## typehints:")
                     print(done)
                 else:
+                    logg.fatal(" %s | %s", pyi, stubs)
                     for suffix in [pyi, stubs]:
-                        if not suffix: continue
+                        if not suffix:
+                            continue
                         out_name, _ = os.path.splitext(out)
                         typehintsfile = suffix.replace("*", out_name) if "*" in suffix else out+suffix
                         logg.debug("typehints: %s", typehintsfile)
                         typehintsfiledir = os.path.dirname(typehintsfile)
                         if not os.path.isdir(typehintsfiledir):
                             os.makedirs(typehintsfiledir)
-                        else:
-                            with open(typehintsfile, "w", encoding="utf-8") as w:
-                                w.write(done)
-                                if done and not done.endswith("\n"):
-                                    w.write("\n")
-                            logg.log(DONE, "written %s", typehintsfile)
+                        with open(typehintsfile, "w", encoding="utf-8") as w:
+                            w.write(done)
+                            if done and not done.endswith("\n"):
+                                w.write("\n")
+                        logg.log(DONE, "written %s", typehintsfile)
 
     return 0
 
