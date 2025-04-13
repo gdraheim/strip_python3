@@ -32,10 +32,8 @@ DEBUG_COPY = logging.INFO
 NIX = ""
 OK = True
 
-DONE = (logging.ERROR + logging.WARNING) // 2
 NOTE = (logging.INFO + logging.WARNING) // 2
 HINT = (logging.INFO + logging.DEBUG) // 2
-logging.addLevelName(DONE, "DONE")
 logging.addLevelName(NOTE, "NOTE")
 logging.addLevelName(HINT, "HINT")
 logg = logging.getLogger("strip" if __name__ == "__main__" else __name__.replace("/", "."))
@@ -175,7 +173,8 @@ def main() -> int:
     # defs = read_defaults("pyproject.toml", "setup.cfg")
     cmdline = OptionParser("%prog [options] file3.py", description=__doc__.strip(), epilog=": -o - : default is to print the type-stripped and back-transformed py code")
     cmdline.formatter.max_help_position = 37
-    cmdline.add_option("-v", "--verbose", action="count", default=0, help="increase logging level")
+    cmdline.add_option("-v", "--verbose", action="count", default=0, help="more logging")
+    cmdline.add_option("-^", "--quiet", action="count", default=0, help="less logging")
     cmdline.add_option("--no-define-range", action="count", default=00, help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=0, help="3.0 isinstance(str)")
     cmdline.add_option("--no-define-callable", "--noc", action="count", default=0, help="3.2 callable(x)")
@@ -234,6 +233,7 @@ def main() -> int:
     cmdline.add_option("--run-python", metavar="exe", default=NIX, help="replace shebang with #! /usr/bin/env exe")
     cmdline.add_option("-O", "--old-python", action="count", default=0, help="replace with #! /usr/bin/env python")
     cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
+    cmdline.add_option("-0", "--nowrite", action="store_true", default=False, help="suppress writing the transformed file.py")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
     cmdline.add_option("-2", "--append2", action="count", default=0, help="file.py into file_2.py + file_2.pyi")
     cmdline.add_option("-3", "--remove3", action="count", default=0, help="file3.py into file.py + file.pyi")
@@ -246,7 +246,7 @@ def main() -> int:
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     cmdline_set_defaults_from(cmdline, want.toolsection, want.pyproject_toml, want.setup_cfg)
     opt, cmdline_args = cmdline.parse_args()
-    logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose))
+    logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose + 10 * opt.quiet))
     if opt.run_python:
         want.run_python = opt.run_python
     elif opt.old_python:
@@ -375,8 +375,9 @@ def main() -> int:
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
     make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
-    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, minversion=back_version, run_python=want.run_python,
-        pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__.pyi" if opt.make_stubs and not no_make_pyi else NIX)
+    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, nowrite=opt.nowrite,
+        pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__.pyi" if opt.make_stubs and not no_make_pyi else NIX,
+        minversion=back_version, run_python=want.run_python)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
     defnames: Dict[str, str] = OrderedDict()
@@ -1628,9 +1629,6 @@ class ReplaceSelfByTypevar(BlockTransformer):
             typevar = copy_location(typevar, node)
             newtype = ast.Assign([ast.Name(selfclass)], typevar)
             newtype = copy_location(newtype, node)
-            if not hasattr(newtype, "lineno"):
-                logg.fatal(" lineno for %s", ast.dump(node))
-            print(newtype.lineno)
             preclass: List[ast.stmt] = [newtype]
             for stmt in node.body:
                 if isinstance(stmt, ast.FunctionDef):
@@ -2234,7 +2232,7 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
-def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: str = NIX, stubs: str = NIX, run_python: str = NIX, minversion: Tuple[int, int] = (2,7)) -> int:
+def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: str = NIX, stubs: str = NIX, run_python: str = NIX, minversion: Tuple[int, int] = (2,7), nowrite: bool = False) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
@@ -2278,12 +2276,12 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
             elif out in ["-"]:
                 if done:
                     print(done)
-            else:
+            elif not nowrite:
                 with open(out, "w", encoding="utf-8") as w:
                     w.write(done)
                     if done and not done.endswith("\n"):
                         w.write("\n")
-                logg.log(DONE, "written %s", out)
+                logg.log(NOTE, "written %s", out)
                 written.append(out)
             if pyi or stubs:
                 type_ignores: List[TypeIgnore] = []
@@ -2296,7 +2294,6 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
                     print("## typehints:")
                     print(done)
                 else:
-                    logg.fatal(" %s | %s", pyi, stubs)
                     for suffix in [pyi, stubs]:
                         if not suffix:
                             continue
@@ -2310,7 +2307,7 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
                             w.write(done)
                             if done and not done.endswith("\n"):
                                 w.write("\n")
-                        logg.log(DONE, "written %s", typehintsfile)
+                        logg.log(NOTE, "written %s", typehintsfile)
 
     return 0
 

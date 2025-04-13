@@ -786,7 +786,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1""")
-        run = sh(F"{strip} -1 {tmp}/tmp1.py")
+        run = sh(F"{strip} -1 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1.py"))
@@ -800,7 +800,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1""")
-        run = sh(F"{strip} -2 {tmp}/tmp1.py")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -814,7 +814,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1 # foo""")
-        run = sh(F"{strip} -2 {tmp}/tmp1.py")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -828,7 +828,7 @@ class StripTest(unittest.TestCase):
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int""")
-        run = sh(F"{strip} -2 {tmp}/tmp1.py")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py  -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -844,7 +844,7 @@ class StripTest(unittest.TestCase):
         text_file(F"{tmp}/tmp1.py", """
         a: int
         b: int = 2""")
-        run = sh(F"{strip} -2 {tmp}/tmp1.py")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -861,7 +861,7 @@ class StripTest(unittest.TestCase):
         a: int # foo
         b: int = 2
         c: str """)
-        run = sh(F"{strip} -2 {tmp}/tmp1.py")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
@@ -879,7 +879,7 @@ class StripTest(unittest.TestCase):
         # foo
         b: int = 2
         c: str # bar""")
-        run = sh(F"{strip} -2 {tmp}/tmp1.py")
+        run = sh(F"{strip} -2 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
         self.assertFalse(run.err)
         self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
