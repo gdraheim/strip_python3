@@ -237,8 +237,9 @@ def main() -> int:
     cmdline.add_option("-6", "--py36", action="count", default=0, help="alias --no-make-pyi --python-version=3.6")
     cmdline.add_option("-7", "--pyi37", action="count", default=0, help="alias --pyi-version=3.7")
     cmdline.add_option("-9", "--py39", action="count", default=0, help="alias --no-make-pyi --python-version=3.9")
-    cmdline.add_option("-n", "--no-make-pyi", "--no-pyi", action="count", default=0, help="do not generate file.pyi includes")
+    cmdline.add_option("-Y", "--make-stubs", "--stubs", action="count", default=0, help="generate file-stubs/__init__.pyi for mypy")
     cmdline.add_option("-y", "--make-pyi", "--pyi", action="count", default=0, help="generate file.pyi includes as well")
+    cmdline.add_option("-n", "--no-make-pyi", "--no-pyi", action="count", default=0, help="do not generate any pyi includes")
     cmdline.add_option("-o", "--outfile", metavar="FILE", default=NIX, help="explicit instead of file3_2.py")
     cmdline_set_defaults_from(cmdline, want.toolsection, want.pyproject_toml, want.setup_cfg)
     opt, cmdline_args = cmdline.parse_args()
@@ -366,8 +367,9 @@ def main() -> int:
     eachfile = EACH_REMOVE3 if opt.remove3 else 0
     eachfile |= EACH_APPEND2 if opt.append2 else 0
     eachfile |= EACH_INPLACE if opt.inplace else 0
-    make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
-    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, pyi=make_pyi and not no_make_pyi, minversion=back_version)
+    make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace 
+    return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, minversion=back_version,
+        pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__py" if opt.make_stubs and not no_make_pyi else NIX)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
     defnames: Dict[str, str] = OrderedDict()
@@ -2225,7 +2227,7 @@ def pyi_copy_imports(pyi: ast.Module, py1: ast.AST, py2: ast.AST) -> ast.Module:
 EACH_REMOVE3 = 1
 EACH_APPEND2 = 2
 EACH_INPLACE = 4
-def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: int = 0, minversion: Tuple[int, int] = (2,7)) -> int:
+def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: str = NIX, stubs: str = NIX, minversion: Tuple[int, int] = (2,7)) -> int:
     written: List[str] = []
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
@@ -2267,11 +2269,9 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: i
                     w.write(done)
                     if done and not done.endswith("\n"):
                         w.write("\n")
-                logg.info("written %s", out)
+                logg.log(DONE, "written %s", out)
                 written.append(out)
-            if pyi:
-                typehintsfile = out+"i"
-                logg.debug("--pyi => %s", typehintsfile)
+            if pyi or stubs:
                 type_ignores: List[TypeIgnore] = []
                 if isinstance(tree1, ast.Module):
                     type_ignores = tree1.type_ignores
@@ -2282,10 +2282,21 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: i
                     print("## typehints:")
                     print(done)
                 else:
-                    with open(typehintsfile, "w", encoding="utf-8") as w:
-                        w.write(done)
-                        if done and not done.endswith("\n"):
-                            w.write("\n")
+                    for suffix in [pyi, stubs]:
+                        if not suffix: continue
+                        out_name, _ = os.path.splitext(out)
+                        typehintsfile = suffix.replace("*", out_name) if "*" in suffix else out+suffix
+                        logg.debug("typehints: %s", typehintsfile)
+                        typehintsfiledir = os.path.dirname(typehintsfile)
+                        if not os.path.isdir(typehintsfiledir):
+                            os.makedirs(typehintsfiledir)
+                        else:
+                            with open(typehintsfile, "w", encoding="utf-8") as w:
+                                w.write(done)
+                                if done and not done.endswith("\n"):
+                                    w.write("\n")
+                            logg.log(DONE, "written %s", typehintsfile)
+
     return 0
 
 def _beautify_dump(x: str) -> str:
