@@ -826,6 +826,22 @@ class StripTest(unittest.TestCase):
     def test_2103(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """a: int = 1""")
+        run = sh(F"{strip} -20 --stubs {tmp}/tmp1.py -^")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.assertFalse(run.err)
+        self.assertFalse(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2-stubs/__init__.pyi"))
+        pyi = file_text(F"{tmp}/tmp1_2.pyi")
+        self.assertEqual(pyi, "a: int^")
+        pyi = file_text(F"{tmp}/tmp1_2-stubs/__init__.pyi")
+        self.assertEqual(pyi, "a: int^")
+        self.coverage()
+        self.rm_testdir()
+    def test_2104(self) -> None:
+        strip = coverage(STRIP)
+        tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int = 1 # foo""")
         run = sh(F"{strip} -2 {tmp}/tmp1.py -^")
         logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
@@ -837,7 +853,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^")
         self.coverage()
         self.rm_testdir()
-    def test_2104(self) -> None:
+    def test_2105(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """a: int""")
@@ -851,7 +867,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^")
         self.coverage()
         self.rm_testdir()
-    def test_2105(self) -> None:
+    def test_2106(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
@@ -867,7 +883,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^b: int^")
         self.coverage()
         self.rm_testdir()
-    def test_2106(self) -> None:
+    def test_2107(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
@@ -884,7 +900,7 @@ class StripTest(unittest.TestCase):
         self.assertEqual(pyi, "a: int^b: int^c: str^")
         self.coverage()
         self.rm_testdir()
-    def test_2107(self) -> None:
+    def test_2108(self) -> None:
         strip = coverage(STRIP)
         tmp = self.testdir()
         text_file(F"{tmp}/tmp1.py", """
