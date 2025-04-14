@@ -9,6 +9,7 @@ __author__ = "Guido U. Draheim"
 __version__ = "1.3.1151"
 
 from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque, Iterable, TYPE_CHECKING
+from types import ModuleType
 import sys
 import re
 import os
@@ -51,7 +52,10 @@ try:
 except ImportError:
     # required for unittest.py
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-    import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+    try:
+        import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+    except ImportError:
+        ast: ModuleType = python_ast # type: ignore[no-redef]
 
 if TYPE_CHECKING: # pragma: nocover
     NodeTransformer = python_ast.NodeTransformer
@@ -175,6 +179,7 @@ def main() -> int:
     cmdline.formatter.max_help_position = 37
     cmdline.add_option("-v", "--verbose", action="count", default=0, help="more logging")
     cmdline.add_option("-^", "--quiet", action="count", default=0, help="less logging")
+    cmdline.add_option("-?", "--version", action="count", default=0, help="show version info")
     cmdline.add_option("--no-define-range", action="count", default=00, help="3.0 define range()")
     cmdline.add_option("--no-define-basestring", action="count", default=0, help="3.0 isinstance(str)")
     cmdline.add_option("--no-define-callable", "--noc", action="count", default=0, help="3.2 callable(x)")
@@ -231,7 +236,7 @@ def main() -> int:
     cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
     cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set python features by version")
     cmdline.add_option("--run-python", metavar="exe", default=NIX, help="replace shebang with #! /usr/bin/env exe")
-    cmdline.add_option("-O", "--old-python", action="count", default=0, help="replace with #! /usr/bin/env python")
+    cmdline.add_option("-O", "--old-python", action="count", default=0, help="replace shebang with /bin/env python")
     cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
     cmdline.add_option("-0", "--nowrite", action="store_true", default=False, help="suppress writing the transformed file.py")
     cmdline.add_option("-1", "--inplace", action="count", default=0, help="file.py gets overwritten (+ file.pyi)")
@@ -247,6 +252,12 @@ def main() -> int:
     cmdline_set_defaults_from(cmdline, want.toolsection, want.pyproject_toml, want.setup_cfg)
     opt, cmdline_args = cmdline.parse_args()
     logging.basicConfig(level = max(0, NOTE - 5 * opt.verbose + 10 * opt.quiet))
+    if opt.version:
+        print(F"version: {__version__}")
+        print(F"author: {__author__}")
+        if opt.version > 1:
+            print(F"copyright: {__copyright__}")
+            print("module: "+ os.path.basename(__file__))
     if opt.run_python:
         want.run_python = opt.run_python
     elif opt.old_python:

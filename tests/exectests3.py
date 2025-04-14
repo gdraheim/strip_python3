@@ -904,6 +904,7 @@ if __name__ == "__main__":
     cmdline.add_option("-p", "--python", metavar="EXE", default=PYTHON,
                   help="use another python engine [%default]")
     cmdline.add_option("--mypy", metavar="EXE", default=MYPY, help="mypy tool is available")
+    cmdline.add_option("--with", metavar="EXE", default=STRIP, dest="exe", help="using [%default]")
     cmdline.add_option("-a", "--coverage", action="count", default=0,
                   help="gather coverage.py data (use -aa for new set) [%default]")
     cmdline.add_option("-l", "--logfile", metavar="FILE", default="",
@@ -931,6 +932,7 @@ if __name__ == "__main__":
     PYTHON = opt.python
     PYTHON3 = opt.python3
     MYPY = opt.mypy
+    STRIP = opt.exe
     VV = "-v" + ("v" * opt.verbose)
     #
     if opt.chdir:

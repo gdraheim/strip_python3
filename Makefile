@@ -37,6 +37,7 @@ check12: ; test ! -f /usr/bin/python3.12 || $(MAKE) test PYTHON=python3.12
 check1: ; $(MAKE) check39 || $(MAKE) check10 || $(MAKE) check11 || $(MAKE) check12
 check2: ; $(MAKE) tests11 || $(MAKE) tests27 || $(MAKE) tests36
 check3: ; $(MAKE) test11 || $(MAKE) test27 || $(MAKE) test36
+check5: ; $(MAKE) test_5*/3.11 || $(MAKE) test_5*/3.12
 check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
@@ -56,6 +57,8 @@ test_3%/3.9:  ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EX
 test_3%/3.10: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
 test_3%/3.11: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
 test_3%/3.12: ; test ! -f /usr/bin/python$(notdir $@) || python$(notdir $@) $(EXECS_PY) $(EXECS_OPTIONS) --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_5%/3.11: ; $(PYTHON3) tests/setuptests5.py -C tests --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
+test_5%/3.12: ; $(PYTHON3) tests/setuptests5.py -C tests --python=/usr/bin/python$(notdir $@) $V $(TODO) --failfast $(dir $@)
 
 todos: ; $(MAKE) checks TODO=--todo
 todo1: ; $(MAKE) check1 TODO=--todo
@@ -265,7 +268,6 @@ stop:
 	$(DOCKER) ps -q -f name=-repo- | xargs --no-run-if-empty $(DOCKER) rm -f
 
 # .....................
-
 MYPY = mypy-3.11
 MYPY_EXCLUDES = --exclude /$(notdir $(AST4_PY)) --exclude /$(notdir $(QTOML_PY))
 MYPY_WITH = --strict --show-error-codes --show-error-context 
