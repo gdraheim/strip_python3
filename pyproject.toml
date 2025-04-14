@@ -30,7 +30,11 @@ repository = "https://github.com/gdraheim/strip_python3.git"
 issues = "https://github.com/gdraheim/strip_python3/issues"
 
 [project.scripts]
-strip-python3 = "strip_python3:main"
+strip-python3 = "strip3.strip_python3:main"
+
+[tool.setuptools]
+package-dir = {"strip3" = "strip3"}
+
 
 [tool.pycodestyle]
 max-line-length = 188 
