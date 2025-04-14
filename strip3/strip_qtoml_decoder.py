@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # https://github.com/alethiophile/qtoml/blob/master/qtoml/decoder.py
 # mypy: ignore-errors
+# pylint: skip-file
 
 __author__ = "Tom Hunt (alethiophile@github)"
 __license__ = "MIT License"
