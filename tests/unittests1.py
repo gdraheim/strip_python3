@@ -1483,6 +1483,65 @@ class StripUnitTest(unittest.TestCase):
         s = f'{y:n}'
         print(s)""")
         self.assertEqual(want, have)
+    def test_1585(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        x = "{y:n}"
+        print(x.format(**locals()))""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringFromVarLocalsFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        print(f'{y:n}')""")
+        self.assertEqual(want, have)
+    def test_1586(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        x = "{y:n}"
+        logg.debug(x.format(**locals()))""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringFromVarLocalsFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        logg.debug(f'{y:n}')""")
+        self.assertEqual(want, have)
+    def test_1587(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        x = "{y:n}"
+        s = foo(x.format(**locals()))
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringFromVarLocalsFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = foo(f'{y:n}')
+        print(s)""")
+        self.assertEqual(want, have)
+    def test_1589(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        x = "{y:n}"
+        logg.warning("running %s", x)
+        s = foo(x.format(**locals()))
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringFromVarLocalsFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        x = '{y:n}'
+        logg.warning('running %s', x)
+        s = foo(f'{y:n}')
+        print(s)""")
+        self.assertEqual(want, have)
 
     def test_1600(self) -> None:
         text1 = app.text4("""

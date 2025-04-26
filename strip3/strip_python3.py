@@ -503,116 +503,120 @@ class BlockTransformer:
     def visit2(self, node: TypeAST, block: Deque[ast.AST]) -> Iterable[TypeAST]:
         """Visit a node in a block"""
         return self.generic_visit2(node, block)
+    def next_body(self, body: List[ast.stmt], block: Deque[ast.AST], part: str = NIX) -> List[ast.stmt]: # pylint: disable=unused-argument
+        return body
+    def done_body(self, body: List[ast.stmt], block: Deque[ast.AST], part: str = NIX) -> List[ast.stmt]: # pylint: disable=unused-argument
+        return body
     def generic_visit2(self, node: TypeAST, block: Deque[ast.AST]) -> Iterable[TypeAST]:
         if isinstance(node, ast.Module):
             block.appendleft(node)
             modulebody: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 logg.log(DEBUG_TYPING, "stmt Module %s", ast.dump(stmt))
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     modulebody.append(copy_location(elem, stmt))
-            node.body = modulebody
+            node.body = self.done_body(modulebody, block)
             block.popleft()
         elif isinstance(node, ast.ClassDef):
             block.appendleft(node)
             classbody: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 logg.log(DEBUG_TYPING, "stmt ClassDef %s", ast.dump(stmt))
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     classbody.append(copy_location(elem, stmt))
-            node.body = classbody
+            node.body = self.done_body(classbody, block)
             block.popleft()
         elif isinstance(node, ast.FunctionDef):
             block.appendleft(node)
             funcbody: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 logg.log(DEBUG_TYPING, "stmt FunctionDef %s", ast.dump(stmt))
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     funcbody.append(copy_location(elem, stmt))
-            node.body = funcbody
+            node.body = self.done_body(funcbody, block)
             block.popleft()
         elif isinstance(node, ast.With):
             block.appendleft(node)
             withbody: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     withbody.append(copy_location(elem, stmt))
-            node.body = withbody
+            node.body = self.done_body(withbody, block)
             block.popleft()
         elif isinstance(node, ast.If):
             block.appendleft(node)
             ifbody: List[ast.stmt] = []
             ifelse: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     ifbody.append(copy_location(elem, stmt))
-            for stmt in node.orelse:
+            for stmt in self.next_body(node.orelse, block, "else"):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     ifelse.append(copy_location(elem, stmt))
-            node.body = ifbody
-            node.orelse = ifelse
+            node.body = self.done_body(ifbody, block)
+            node.orelse = self.done_body(ifelse, block, "else")
             block.popleft()
         elif isinstance(node, ast.While):
             block.appendleft(node)
             whilebody: List[ast.stmt] = []
             whileelse: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     whilebody.append(copy_location(elem, stmt))
-            for stmt in node.orelse:
+            for stmt in self.next_body(node.orelse, block, "else"):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     whileelse.append(copy_location(elem, stmt))
-            node.body = whilebody
-            node.orelse = whileelse
+            node.body = self.done_body(whilebody, block)
+            node.orelse = self.done_body(whileelse, block, "else")
             block.popleft()
         elif isinstance(node, ast.For):
             block.appendleft(node)
             forbody: List[ast.stmt] = []
             forelse: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 for elem in visitor(stmt, block):
                     forbody.append(copy_location(elem, stmt))
-            for stmt in node.orelse:
+            for stmt in self.next_body(node.orelse, block, "else"):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     forelse.append(copy_location(elem, stmt))
-            node.body = forbody
-            node.orelse = forelse
+            node.body = self.done_body(forbody, block)
+            node.orelse = self.done_body(forelse, block, "else")
             block.popleft()
         elif isinstance(node, ast.Try):
             block.appendleft(node)
             trybody: List[ast.stmt] = []
             tryelse: List[ast.stmt] = []
             tryfinal: List[ast.stmt] = []
-            for stmt in node.body:
+            for stmt in self.next_body(node.body, block):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
@@ -620,28 +624,28 @@ class BlockTransformer:
                     trybody.append(copy_location(elem, stmt))
             for excpt in node.handlers:
                 excptbody: List[ast.stmt] = []
-                for stmt in excpt.body:
+                for stmt in self.next_body(excpt.body, block, "except"):
                     method = 'visit2_' + stmt.__class__.__name__
                     visitor = getattr(self, method, self.generic_visit2)
                     result = visitor(stmt, block)
                     for elem in result:
                         excptbody.append(copy_location(elem, stmt))
-                    excpt.body = excptbody
-            for stmt in node.orelse:
+                    excpt.body = self.done_body(excptbody, block, "except")
+            for stmt in self.next_body(node.orelse, block, "else"):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     tryelse.append(copy_location(elem, stmt))
-            for stmt in node.finalbody:
+            for stmt in self.next_body(node.finalbody, block, "finally"):
                 method = 'visit2_' + stmt.__class__.__name__
                 visitor = getattr(self, method, self.generic_visit2)
                 result = visitor(stmt, block)
                 for elem in result:
                     tryfinal.append(copy_location(elem, stmt))
-            node.body = trybody
-            node.orelse = tryelse
-            node.finalbody = tryfinal
+            node.body = self.done_body(trybody, block)
+            node.orelse = self.done_body(tryelse, block, "else")
+            node.finalbody = self.done_body(tryfinal, block, "finally")
             block.popleft()
         else:
             pass
@@ -1435,6 +1439,75 @@ class FStringFromLocalsFormat(NodeTransformer):
                                     expr = cast(ast.Expr, module.body[0]) # type: ignore[redundant-cast]
                                     return expr.value
         return node
+
+class FStringFromVarLocalsFormat(BlockTransformer):
+    """ the portable idiom `x = "{y}+"; print(x.format(**locals()))` should be replaced by f-string. """
+    def next_body(self, body: List[ast.stmt], block: Deque[ast.AST], part: str = NIX) -> List[ast.stmt]:
+        varvalue: Dict[str, str] = {}
+        varused: Dict[str, int] = {}
+        replaced: Dict[str, int] = {}
+        for node in body:
+            runs: Optional[ast.Call] = None
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                runs = cast(ast.Call, node.value) # type: ignore[redundant-cast]
+                logg.debug("runs %s", ast.dump(runs))
+            elif isinstance(node, ast.Assign):
+                sets = cast(ast.Assign, node) # type: ignore[redundant-cast]
+                logg.debug("sets %s", ast.dump(sets))
+                if isinstance(sets.value, ast.Constant) and isinstance(sets.value.value, str):
+                    if len(sets.targets) == 1 and isinstance(sets.targets[0], ast.Name):
+                        targetname = cast(ast.Name, sets.targets[0]) # type: ignore[redundant-cast]
+                        varvalue[targetname.id] = sets.value.value
+                        varused[targetname.id] = 0
+                        replaced[targetname.id] = 0
+                elif isinstance(sets.value, ast.Call):
+                    runs = cast(ast.Call, sets.value) # type: ignore[redundant-cast]
+                    logg.debug("run2 %s", ast.dump(runs))
+            else:
+                logg.debug("? %s", ast.dump(node))
+            if runs is not None:
+                for n, arg in enumerate(runs.args):
+                    if isinstance(arg, ast.Name):
+                        use1 = cast(ast.Name, arg) # type: ignore[redundant-cast]
+                        if use1.id in varused:
+                            varused[use1.id] += 1
+                    elif isinstance(arg, ast.Call):
+                        call = cast(ast.Call, arg) # type: ignore[redundant-cast]
+                        logg.debug("call %s", ast.dump(call))
+                        if isinstance(call.func, ast.Attribute):
+                            calls = cast(ast.Attribute, call.func) # type: ignore[redundant-cast]
+                            logg.debug("calls %s", ast.dump(calls))
+                            if isinstance(calls.value, ast.Name) and calls.attr == 'format':
+                                name = cast(ast.Name, calls.value) # type: ignore[redundant-cast]
+                                logg.debug("%s == ... %s", name.id, varvalue)
+                                if name.id in varvalue:
+                                    text = varvalue[name.id]
+                                    logg.debug("%s == '%s'", name.id, text)
+                                    if not call.args and call.keywords and len(call.keywords) == 1:
+                                        keywords = ast.unparse(call.keywords[0])
+                                        if keywords == '**locals()':
+                                            module = ast.parse(F'F"{text}"')
+                                            logg.debug("created %s", ast.dump(module))
+                                            if isinstance(module, ast.Module):
+                                                if module.body and isinstance(module.body[0], ast.Expr):
+                                                    expr = cast(ast.Expr, module.body[0]) # type: ignore[redundant-cast]
+                                                    logg.debug("expr %s", ast.dump(expr))
+                                                    runs.args[n] = expr.value
+                                                    replaced[name.id] += 1
+        newbody: list[ast.stmt] = []
+        for node in body:
+            if isinstance(node, ast.Assign):
+                sets = cast(ast.Assign, node) # type: ignore[redundant-cast]
+                logg.debug("sets %s", ast.dump(sets))
+                if isinstance(sets.value, ast.Constant) and isinstance(sets.value.value, str):
+                    if len(sets.targets) == 1 and isinstance(sets.targets[0], ast.Name):
+                        targetname = cast(ast.Name, sets.targets[0]) # type: ignore[redundant-cast]
+                        if replaced[targetname.id]:
+                            if not varused[targetname.id]:
+                               continue # remove assign stmt
+                            logg.warning("line:%i: can not remove format-var '%s' as it is also used without format()", node.lineno, targetname.id)
+            newbody.append(node)
+        return newbody
 
 
 
