@@ -1469,7 +1469,7 @@ class StripUnitTest(unittest.TestCase):
             self.assertEqual(want, have)
         finally:
             app.want.fstring_numbered = old
-    def test_1580(self) -> None:
+    def test_1581(self) -> None:
         text1 = app.text4("""
         y = 1
         s = "{y:n}".format(**locals())

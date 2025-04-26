@@ -372,6 +372,28 @@ class StripTest(unittest.TestCase):
         self.assertFalse(run.err)
         self.assertTrue(greps(run.out, "this help message"))
         self.rm_testdir()
+    def test_2020(self) -> None:
+        strip = coverage(STRIP)
+        run = sh(F"{strip} --show --pretty")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        self.coverage()
+        self.assertEqual(lines4(run.stderr), lines4(text4("""
+        NOTE:strip:python-version-int = (2, 7)
+        NOTE:strip:pyi-version-int = (3, 8)
+        NOTE:strip:define-basestring = 0
+        NOTE:strip:define-range = 0
+        NOTE:strip:define-callable = 0
+        NOTE:strip:define-print-function = 0
+        NOTE:strip:define-float-division = 0
+        NOTE:strip:define-absolute-import = 0
+        NOTE:strip:replace-fstring = 0
+        NOTE:strip:remove-keywordsonly = 0
+        NOTE:strip:remove-positionalonly = 0
+        NOTE:strip:remove-positional-pyi = 0
+        NOTE:strip:remove-var-typehints = 0
+        NOTE:strip:remove-typehints = 0
+        """)))
+        self.rm_testdir()
     def test_2021(self) -> None:
         strip = coverage(STRIP)
         run = sh(F"{strip} --show")
@@ -2673,6 +2695,135 @@ class StripTest(unittest.TestCase):
         b = 'x'
         y = f'za={a!r}'
         """))
+        self.coverage()
+        self.rm_testdir()
+    def test_2230(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        s = "{y:n}".format(**locals())
+        print(s)""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --pretty")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        s = '{y:n}'.format(**locals())
+        print(s)"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2231(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        s = "{y:n}".format(**locals())
+        print(s)""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --pretty --fstring-from-locals")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        s = f'{y:n}'
+        print(s)"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2235(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        x = "{y:n}"
+        print(x.format(**locals()))""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --pretty --fstring-from-var-locals")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        print(f'{y:n}')"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2236(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        x = "{y:n}"
+        logg.debug(x.format(**locals()))""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --pretty --fstring-from-var-locals")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        logg.debug(f'{y:n}')"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2237(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        x = "{y:n}"
+        s = foo(x.format(**locals()))
+        print(s)""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --pretty --fstring-from-var-locals")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        s = foo(f'{y:n}')
+        print(s)"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2239(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        x = "{y:n}"
+        logg.warning("running %s", x)
+        s = foo(x.format(**locals()))
+        print(s)""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --pretty --fstring-from-var-locals")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        x = '{y:n}'
+        logg.warning('running %s', x)
+        s = foo(f'{y:n}')
+        print(s)"""))
         self.coverage()
         self.rm_testdir()
 

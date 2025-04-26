@@ -141,6 +141,8 @@ class Want:
     remove_keywordonly = to_int(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
     remove_positional = to_int(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
     remove_positional_pyi = to_int(os.environ.get("PYTHON3_REMOVE_POSITIONAL_PYI", NIX))
+    fstring_from_locals_format = to_int(os.environ.get("PYTHON3_FSTRING_FROM_LOCALS_FORMAT", NIX))
+    fstring_from_var_locals_format = to_int(os.environ.get("PYTHON3_FSTRING_FROM_VAR_LOCALS_FORMAT", NIX))
     replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
     replace_namedtuple_class = to_int(os.environ.get("PYTHON3_REPLACE_NAMEDTUPLE_CLASS", NIX))
     replace_typeddict_class = to_int(os.environ.get("PYTHON3_REPLACE_TYPEDDICT_CLASS", NIX))
@@ -218,6 +220,8 @@ def main() -> int:
     cmdline.add_option("--import-pathlib2", action="count", default=0, help="3.3 import pathlib2 as pathlib")
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=0, help="3.9 import zoneinfo from backports")
     cmdline.add_option("--import-toml", action="count", default=0, help="3.11 import toml as tomllib")
+    cmdline.add_option("--fstring-from-locals-format", action="count", default=0, help="replace idiom '{name}'.format(**locals())")
+    cmdline.add_option("--fstring-from-var-locals-format", action="count", default=0, help="and for x='{name}'; x.format(**locals())")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
     cmdline.add_option("--replace-typeddict-class", action="count", default=0, help="3.8 TypedDict to builtin dict")
@@ -233,6 +237,7 @@ def main() -> int:
     cmdline.add_option("--remove-positional-pyi", action="count", default=0, help="3.8 positional parameters in *.pyi")
     cmdline.add_option("--remove-var-typehints", action="count", default=0, help="only 3.6 variable annotations (typehints)")
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
+    cmdline.add_option("--pretty", action="count", default=0, help="do not enable transformers based on python-version")
     cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
     cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set python features by version")
     cmdline.add_option("--run-python", metavar="exe", default=NIX, help="replace shebang with #! /usr/bin/env exe")
@@ -271,19 +276,22 @@ def main() -> int:
             pyi_version = int(opt.pyi_version[0]), int(opt.pyi_version[2:])
         else:
             logg.error("can not decode --pyi-version %s", opt.pyi_version)
-    back_version = (2,7)
+    py_version = (2,7)
     if opt.py36:
-        back_version = (3,6)
+        py_version = (3,6)
         no_make_pyi = True
     elif opt.py39:
-        back_version = (3,9)
+        py_version = (3,9)
         no_make_pyi = True
     elif opt.python_version:
         if len(opt.python_version) >= 3 and opt.python_version[1] == ".":
-            back_version = int(opt.python_version[0]), int(opt.python_version[2:])
+            py_version = int(opt.python_version[0]), int(opt.python_version[2:])
         else:
             logg.error("can not decode --python-version %s", opt.python_version)
-    logg.debug("back_version %s pyi_version %s", back_version, pyi_version)
+    back_version = py_version if not opt.pretty else (8,8)
+    logg.debug("back %s py_version %s pyi_version %s", back_version, py_version, pyi_version)
+    if opt.pretty:
+        back_version = (9,9)
     if pyi_version < (3,8) or opt.remove_positional_pyi:
         if not opt.no_remove_positional_pyi:
             want.remove_positional_pyi = max(1, opt.remove_positional_pyi)
@@ -365,8 +373,12 @@ def main() -> int:
     if back_version < (3,11) or opt.import_toml:
         if not opt.no_import_toml:
             want.import_toml = max(1, opt.import_toml)
+    if opt.fstring_from_locals_format:
+        want.fstring_from_locals_format = opt.fstring_from_locals_format
+    if opt.fstring_from_var_locals_format:
+        want.fstring_from_var_locals_format = opt.fstring_from_var_locals_format
     if opt.show:
-        logg.log(NOTE, "%s = %s", "python-version-int", back_version)
+        logg.log(NOTE, "%s = %s", "python-version-int", py_version)
         logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
         logg.log(NOTE, "%s = %s", "define-basestring", want.define_basestring)
         logg.log(NOTE, "%s = %s", "define-range", want.define_range)
@@ -388,7 +400,7 @@ def main() -> int:
     make_pyi = opt.make_pyi or opt.append2 or opt.remove3 or opt.inplace
     return transformfiles(cmdline_args, eachfile=eachfile, outfile=opt.outfile, nowrite=opt.nowrite,
         pyi = "i" if make_pyi and not no_make_pyi else NIX, stubs = "*-stubs/__init__.pyi" if opt.make_stubs and not no_make_pyi else NIX,
-        minversion=back_version, run_python=want.run_python)
+        minversion=py_version, run_python=want.run_python)
 
 def cmdline_set_defaults_from(cmdline: OptionParser, toolsection: str, *files: str) -> Dict[str, Union[str, int]]:
     defnames: Dict[str, str] = OrderedDict()
@@ -2435,6 +2447,12 @@ class StripPythonTransformer:
         typingrequires = RequireImportFrom()
         importrequires = RequireImport()
         importrequiresfrom = RequireImportFrom()
+        if want.fstring_from_var_locals_format:
+            formatvarlocals = FStringFromVarLocalsFormat()
+            tree = formatvarlocals.visit(tree)
+        if want.fstring_from_locals_format:
+            formatlocals = FStringFromLocalsFormat()
+            tree = formatlocals.visit(tree)
         if want.replace_fstring:
             fstring = FStringToFormatTransformer()
             tree = fstring.visit(tree)
