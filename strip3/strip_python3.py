@@ -1430,6 +1430,7 @@ class FStringToFormatTransformer(NodeTransformer):
         return self.string_format(cast(List[Union[ast.Constant, ast.FormattedValue]], node.values))
 
 class FStringFromLocalsFormat(NodeTransformer):
+    filename: str
     """ the portable idiom `x = "{y}+".format(**locals())` should be replaced by f-string. """
     def visit_Call(self, node: ast.Call) -> ast.AST: # pylint: disable=invalid-name
         call = cast(ast.Call, node) # type: ignore[redundant-cast]
@@ -1453,6 +1454,7 @@ class FStringFromLocalsFormat(NodeTransformer):
         return node
 
 class FStringFromVarLocalsFormat(BlockTransformer):
+    filename: str
     """ the portable idiom `x = "{y}+"; print(x.format(**locals()))` should be replaced by f-string. """
     def next_body(self, body: List[ast.stmt], block: Deque[ast.AST], part: str = NIX) -> List[ast.stmt]:
         varvalue: Dict[str, str] = {}
@@ -1517,7 +1519,8 @@ class FStringFromVarLocalsFormat(BlockTransformer):
                         if replaced[targetname.id]:
                             if not varused[targetname.id]:
                                 continue # remove assign stmt
-                            logg.warning("line:%i: can not remove format-var '%s' as it is also used without format()", node.lineno, targetname.id)
+                            filename = getattr(self, "filename", NIX) or "line"
+                            logg.warning("%s:%i: can not remove format-var '%s' as it is also used without format()", filename, node.lineno, targetname.id)
             newbody.append(node)
         return newbody
 
@@ -2362,7 +2365,7 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
             text = f.read()
         tree1 = ast.parse(text)
         try:
-            transformers = StripPythonTransformer(minversion)
+            transformers = StripPythonTransformer(minversion, filename=arg)
             tree = transformers.visit(tree1)
             typedefs = transformers.typedefs
         except TransformerSyntaxError as e:  # pragma: nocover
@@ -2440,8 +2443,9 @@ def _beautify_dump(x: str) -> str:
 class StripPythonTransformer:
     minversion: Tuple[int, int]
     typedefs: List[ast.stmt]
-    def __init__(self, minversion: Tuple[int, int] = (2,7)):
+    def __init__(self, minversion: Tuple[int, int] = (2,7), filename: str = NIX):
         self.minversion = minversion
+        self.filename = filename
         self.typedefs = []
     def visit(self, tree: ast.AST) -> ast.AST:
         typingrequires = RequireImportFrom()
@@ -2449,9 +2453,11 @@ class StripPythonTransformer:
         importrequiresfrom = RequireImportFrom()
         if want.fstring_from_var_locals_format:
             formatvarlocals = FStringFromVarLocalsFormat()
+            formatvarlocals.filename = self.filename
             tree = formatvarlocals.visit(tree)
         if want.fstring_from_locals_format:
             formatlocals = FStringFromLocalsFormat()
+            formatlocals.filename = self.filename
             tree = formatlocals.visit(tree)
         if want.replace_fstring:
             fstring = FStringToFormatTransformer()
