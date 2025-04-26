@@ -1413,6 +1413,33 @@ class FStringToFormatTransformer(NodeTransformer):
     def visit_JoinedStr(self, node: ast.JoinedStr) -> ast.AST:  # pylint: disable=invalid-name
         return self.string_format(cast(List[Union[ast.Constant, ast.FormattedValue]], node.values))
 
+class FStringFromLocalsFormat(NodeTransformer):
+    """ the portable idiom `x = "{y}+".format(**locals())` should be replaced by f-string. """
+    def visit_Call(self, node: ast.Call) -> ast.AST: # pylint: disable=invalid-name
+        call = cast(ast.Call, node) # type: ignore[redundant-cast]
+        logg.debug("call %s", ast.dump(call))
+        if isinstance(call.func, ast.Attribute):
+            calls = cast(ast.Attribute, call.func) # type: ignore[redundant-cast]
+            logg.debug("calls %s", ast.dump(calls))
+            if isinstance(calls.value, ast.Constant):
+                value = cast(ast.Constant, calls.value) # type: ignore[redundant-cast]
+                if isinstance(value.value, str) and calls.attr == 'format':
+                    text = cast(str, value.value) # type: ignore[redundant-cast]
+                    if not call.args and call.keywords and len(call.keywords) == 1:
+                        keywords = ast.unparse(call.keywords[0])
+                        if keywords == '**locals()':
+                            module = ast.parse(F'F"{text}"')
+                            logg.debug("created %s", ast.dump(module))
+                            if isinstance(module, ast.Module):
+                                if module.body and isinstance(module.body[0], ast.Expr):
+                                    expr = cast(ast.Expr, module.body[0]) # type: ignore[redundant-cast]
+                                    return expr.value
+        return node
+
+
+
+# ......................................................................................
+
 class ReplaceCallResult(NamedTuple):
     tree: ast.AST
     requires: List[str]

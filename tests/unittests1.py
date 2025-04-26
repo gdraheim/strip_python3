@@ -1469,6 +1469,21 @@ class StripUnitTest(unittest.TestCase):
             self.assertEqual(want, have)
         finally:
             app.want.fstring_numbered = old
+    def test_1580(self) -> None:
+        text1 = app.text4("""
+        y = 1
+        s = "{y:n}".format(**locals())
+        print(s)""")
+        tree1 = ast.parse(text1)
+        defs1 = app.FStringFromLocalsFormat()
+        tree2 = defs1.visit(tree1)
+        have = ast.unparse(tree2) + "\n"
+        want = app.text4("""
+        y = 1
+        s = f'{y:n}'
+        print(s)""")
+        self.assertEqual(want, have)
+
     def test_1600(self) -> None:
         text1 = app.text4("""
         class A:
