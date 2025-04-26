@@ -1516,7 +1516,7 @@ class FStringFromVarLocalsFormat(BlockTransformer):
                         targetname = cast(ast.Name, sets.targets[0]) # type: ignore[redundant-cast]
                         if replaced[targetname.id]:
                             if not varused[targetname.id]:
-                               continue # remove assign stmt
+                                continue # remove assign stmt
                             logg.warning("line:%i: can not remove format-var '%s' as it is also used without format()", node.lineno, targetname.id)
             newbody.append(node)
         return newbody
