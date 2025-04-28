@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "strip_python3"
-version = "1.3.1151"
+version = "1.3.1167"
 description = "easy way to remove python3 typehints and to transform sources to older python compatibility"
 readme = { "file" = "tmp/README.MD", content-type = "text/markdown" }
 license = "MIT"
