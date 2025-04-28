@@ -163,8 +163,22 @@ class Want:
     pyproject_toml = "pyproject.toml"
     toolsection = "strip-python3"
     run_python = os.environ.get("PYTHON3_RUN_PYTHON", NIX)
+    remove_comments = to_int(os.environ.get("PYTHON3_REMOVE_COMMENTS", NIX))
+    remove_unparser = 0
 
 want = Want()
+
+def ast_parse(text: str) -> ast.Module:
+    if want.remove_comments:
+        return ast.parse(text)
+    else:
+        return parse(text)
+
+def ast_unparse(tree: ast.AST) -> str:
+    if want.remove_unparser:
+        return ast.unparse(tree)
+    else:
+        return unparse(tree)
 
 from optparse import OptionParser # pylint: disable=deprecated-module
 
@@ -230,6 +244,8 @@ def main() -> int:
     cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
     cmdline.add_option("--remove-positional-pyi", action="count", default=0, help="3.8 positional parameters in *.pyi")
     cmdline.add_option("--remove-var-typehints", action="count", default=0, help="only 3.6 variable annotations (typehints)")
+    cmdline.add_option("--remove-comments", action="count", default=0, help="do not use ast_comments to parse")
+    cmdline.add_option("--bare", action="count", default=0, help="do not use ast_comments to parse or unparse")
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
     cmdline.add_option("--pretty", action="count", default=0, help="do not enable transformers based on python-version")
     cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
@@ -371,6 +387,11 @@ def main() -> int:
         want.fstring_from_locals_format = opt.fstring_from_locals_format
     if opt.fstring_from_var_locals_format:
         want.fstring_from_var_locals_format = opt.fstring_from_var_locals_format
+    if opt.remove_comments:
+        want.remove_comments = opt.remove_comments
+    if opt.bare:
+        want.remove_comments = opt.remove_comments
+        want.remove_unparser = opt.remove_unparser
     if opt.show:
         logg.log(NOTE, "%s = %s", "python-version-int", py_version)
         logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
@@ -999,12 +1020,12 @@ class DefineIfPython2:
         self.body = []
         self.orelse = []
         if or_else:
-            for elselist in [cast(ast.Module, parse(part)).body for part in or_else]: # type: ignore[redundant-cast]
+            for elselist in [cast(ast.Module, ast_parse(part)).body for part in or_else]: # type: ignore[redundant-cast]
                 self.orelse += elselist
         if orelse:
             for stmt in orelse:
                 self.orelse.append(stmt)
-        for stmtlist in [cast(ast.Module, parse(e)).body for e in expr]: # type: ignore[redundant-cast]
+        for stmtlist in [cast(ast.Module, ast_parse(e)).body for e in expr]: # type: ignore[redundant-cast]
             self.body += stmtlist
         if body:
             for stmt in body:
@@ -1031,20 +1052,20 @@ class DefineIfPython2:
                     body.append(stmt)
                 else:
                     testcode = "sys.version_info < (3, 0)"
-                    testparsed: ast.Module = cast(ast.Module, parse(testcode)) # type: ignore[redundant-cast]
+                    testparsed: ast.Module = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
                     assert isinstance(testparsed.body[0], ast.Expr)
                     testbody: ast.Expr = testparsed.body[0]
                     assert isinstance(testbody.value, ast.Compare)
                     testcompare: ast.expr = testbody.value
                     if self.before:
                         testcode = "sys.version_info < ({}, {})".format(self.before[0], self.before[1])
-                        testparsed = cast(ast.Module, parse(testcode)) # type: ignore[redundant-cast]
+                        testparsed = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
                         assert isinstance(testparsed.body[0], ast.Expr)
                         testbody = testparsed.body[0]
                         testcompare = testbody.value
                     if self.atleast:
                         testcode = "sys.version_info >= ({}, {})".format(self.atleast[0], self.atleast[1])
-                        testparsed = cast(ast.Module, parse(testcode)) # type: ignore[redundant-cast]
+                        testparsed = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
                         assert isinstance(testparsed.body[0], ast.Expr)
                         testbody = testparsed.body[0]
                         testatleast = testbody.value
@@ -1074,12 +1095,12 @@ class DefineIfPython3:
         self.body = []
         self.orelse = []
         if or_else:
-            for elselist in [cast(ast.Module, parse(part)).body for part in or_else]: # type: ignore[redundant-cast]
+            for elselist in [cast(ast.Module, ast_parse(part)).body for part in or_else]: # type: ignore[redundant-cast]
                 self.orelse += elselist
         if orelse:
             for stmt in orelse:
                 self.orelse.append(stmt)
-        for stmtlist in [cast(ast.Module, parse(e)).body for e in expr]: # type: ignore[redundant-cast]
+        for stmtlist in [cast(ast.Module, ast_parse(e)).body for e in expr]: # type: ignore[redundant-cast]
             self.body += stmtlist
         if body:
             for stmt in body:
@@ -1106,20 +1127,20 @@ class DefineIfPython3:
                     body.append(stmt)
                 else:
                     testcode = "sys.version_info >= (3, 0)"
-                    testparsed: ast.Module = cast(ast.Module, parse(testcode)) # type: ignore[redundant-cast]
+                    testparsed: ast.Module = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
                     assert isinstance(testparsed.body[0], ast.Expr)
                     testbody: ast.Expr = testparsed.body[0]
                     assert isinstance(testbody.value, ast.Compare)
                     testcompare: ast.expr = testbody.value
                     if self.atleast:
                         testcode = "sys.version_info >= ({}, {})".format(self.atleast[0], self.atleast[1])
-                        testparsed = cast(ast.Module, parse(testcode)) # type: ignore[redundant-cast]
+                        testparsed = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
                         assert isinstance(testparsed.body[0], ast.Expr)
                         testbody = testparsed.body[0]
                         testcompare = testbody.value
                     if self.before:
                         testcode = "sys.version_info < ({}, {})".format(self.before[0], self.before[1])
-                        testparsed = cast(ast.Module, parse(testcode)) # type: ignore[redundant-cast]
+                        testparsed = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
                         assert isinstance(testparsed.body[0], ast.Expr)
                         testbody = testparsed.body[0]
                         testbefore = testbody.value
@@ -1311,9 +1332,9 @@ class FStringFromLocalsFormat(ast.NodeTransformer):
                 if isinstance(value.value, str) and calls.attr == 'format':
                     text = cast(str, value.value) # type: ignore[redundant-cast]
                     if not call.args and call.keywords and len(call.keywords) == 1:
-                        keywords = unparse(call.keywords[0])
+                        keywords = ast_unparse(call.keywords[0])
                         if keywords == '**locals()':
-                            module = parse(F'F"{text}"')
+                            module = ast_parse(F'F"{text}"')
                             logg.debug("created %s", ast.dump(module))
                             if isinstance(module, ast.Module):
                                 if module.body and isinstance(module.body[0], ast.Expr):
@@ -1366,9 +1387,9 @@ class FStringFromVarLocalsFormat(BlockTransformer):
                                     text = varvalue[name.id]
                                     logg.debug("%s == '%s'", name.id, text)
                                     if not call.args and call.keywords and len(call.keywords) == 1:
-                                        keywords = unparse(call.keywords[0])
+                                        keywords = ast_unparse(call.keywords[0])
                                         if keywords == '**locals()':
-                                            module = parse(F'F"{text}"')
+                                            module = ast_parse(F'F"{text}"')
                                             logg.debug("created %s", ast.dump(module))
                                             if isinstance(module, ast.Module):
                                                 if module.body and isinstance(module.body[0], ast.Expr):
@@ -2231,7 +2252,7 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
     for arg in args:
         with open(arg, "r", encoding="utf-8") as f:
             text = f.read()
-        tree1 = parse(text)
+        tree1 = ast_parse(text)
         try:
             transformers = StripPythonTransformer(minversion, filename=arg)
             tree = transformers.visit(tree1)
@@ -2244,7 +2265,7 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
             logg.log(NOTE, "%s: (before transformations)\n%s", arg, _beautify_dump(ast.dump(tree1)))
         if want.show_dump > 1:
             logg.log(NOTE, "%s: (after transformations)\n%s", arg, _beautify_dump(ast.dump(tree)))
-        done = unparse(tree)
+        done = ast_unparse(tree)
         if want.show_dump > 2:
             logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
         if run_python:
@@ -2283,7 +2304,7 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
                     type_ignores = tree1.type_ignores
                 typehints = pyi_module(typedefs, type_ignores=type_ignores)
                 typehints = pyi_copy_imports(typehints, tree1, tree)
-                done = unparse(typehints)
+                done = ast_unparse(typehints)
                 if out in ["", ".", "-"]:
                     print("## typehints:")
                     print(done)
