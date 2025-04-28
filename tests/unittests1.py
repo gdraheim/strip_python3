@@ -93,7 +93,7 @@ class StripUnitTest(unittest.TestCase):
         self.assertEqual(d, "a\n        b\n")
         self.assertEqual(e, "a\n b\n")
     def test_1201(self) -> None:
-        other = ast.Constant(1) # unknown script element
+        other = ast.Expr(ast.Constant(1)) # unknown script element
         have: ast.Module = app.pyi_module([other])
         have0 = cast(ast.Constant, have.body[0])
         self.assertEqual(other.value, have0.value)
