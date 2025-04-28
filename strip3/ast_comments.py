@@ -1,6 +1,6 @@
-# pylint: disable=unused-import,unused-argument,missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long,trailing-whitespace,protected-access,invalid-name,wrong-import-position,redefined-builtin,no-name-in-module
 # https://github.com/t3rn0/ast-comments/blob/master/ast_comments.py
 # mypy: ignore-errors
+# pylint: skip-file
 __author__ = "Dmitry Makarov (t3rn0@github)"
 __license__ = "MIT License"
 __version__ = "1.2.2"
@@ -10,27 +10,8 @@ import re
 import sys
 import tokenize
 import typing as _t
-# from ast import *  # noqa: F401,F403
-from ast import AST, Add, And, AnnAssign, Assign, AsyncFor, AsyncFunctionDef, AsyncWith, Attribute, AugAssign, AugLoad, AugStore, Await, BinOp, BitAnd, BitOr, BitXor, BoolOp, Break, Call, ClassDef, Compare, Constant, Continue,Del, Delete, Dict, DictComp, Div, Ellipsis, Eq, ExceptHandler, Expr, Expression, ExtSlice, FloorDiv, For, FormattedValue, FunctionDef, GeneratorExp, Global, Gt, GtE, If, IfExp, Import, ImportFrom, In, Index, Interactive, Invert, Is, IsNot, JoinedStr, LShift, Lambda, List, ListComp, Load, Lt, LtE, MatMult, Mod, Module, Mult, Name, NodeTransformer, NodeVisitor, Nonlocal, Not, NotEq, NotIn, Or, Param, Pass, Pow, RShift, Raise, Return, Set, SetComp,Slice, Starred, Store, Sub, Subscript, Suite, Try, Tuple, UAdd, USub, UnaryOp, While, With, Yield, YieldFrom  
-if sys.version_info[0] == 3 and sys.version_info[1] < 8:
-    from ast import Num, Str, Bytes, NameConstant # replaced by ast.Constant
-else:
-    Num, Str, Bytes = Constant, Constant, Constant
-if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-    from ast import FunctionType, NamedExpr
-if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 9:
-    pass # from ast import Walrus
-if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 10:
-    from ast import Match, MatchValue, MatchSingleton, MatchSequence, MatchStar, MatchMapping, MatchClass, MatchAs, MatchOr
-if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 11:
-    from ast import IntEnum, FunctionType, TryStar
-if sys.version_info[0] > 3 or sys.version_info[0] == 3 and sys.version_info[1] >= 12:
-    from ast import TypeAlias, TypeVar, ParamSpec, TypeVarTuple, TypeIgnore
-from ast import dump, stmt, expr, alias, arg, arguments, keyword
+from ast import *  # noqa: F401,F403
 from collections.abc import Iterable
-
-if hasattr(ast, "copy_location"):
-    from ast import copy_location # pylint: disable=ungrouped-imports
 
 
 class Comment(ast.AST):
