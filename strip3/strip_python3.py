@@ -24,7 +24,7 @@ else:  # pragma: nocover
         import tomli as tomllib # type: ignore[no-redef,import-untyped]
     except ImportError:
         try:
-            import strip_qtoml_decoder as tomllib # type: ignore[no-redef,import-untyped]
+            import qtoml_decoder as tomllib # type: ignore[no-redef,import-untyped]
         except ImportError:
             tomllib = None # type: ignore[assignment]
 DEBUG_TOML = logging.DEBUG
