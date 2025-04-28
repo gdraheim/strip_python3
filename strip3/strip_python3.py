@@ -48,12 +48,12 @@ if sys.version_info < (3,9,0): # pragma: nocover
 import ast as python_ast
 # import ast_comments as ast
 try:
-    import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+    import ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
 except ImportError:
     # required for unittest.py
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
     try:
-        import strip_ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
+        import ast_comments as ast # type: ignore[import-untyped] # pylint: disable=wrong-import-position
     except ImportError:
         ast: ModuleType = python_ast # type: ignore[no-redef]
 
