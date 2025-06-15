@@ -3569,6 +3569,30 @@ class StripTest(unittest.TestCase):
         """))
         self.coverage()
         self.rm_testdir()
+    def test_2333(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        #! /usr/bin/env python
+        def func1(x: Any):
+            print(x())
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} --run-python=python3")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py = file_text4(F"{tmp}/test.py")
+        self.assertEqual(py, text4("""
+        #! /usr/bin/env python3
+        from __future__ import print_function
+        
+        def func1(x):
+            print(x())
+        """))
+        self.coverage()
+        self.rm_testdir()
     def test_2341(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)

@@ -2269,7 +2269,7 @@ def transformfiles(args: List[str], eachfile: int = 0, outfile: str = "", pyi: s
         if want.show_dump > 2:
             logg.log(NOTE, "%s: (after transformations) ---------------- \n%s", arg, done)
         if run_python:
-            running = F"#! {run_python}" if "/" in run_python else F"#! /usr/bin/env {run_python}"
+            running = run_python if "/" in run_python else F"/usr/bin/env {run_python}"
             if done.startswith("#!"):
                 _, done2 = done.split("\n", 1)
             else:
