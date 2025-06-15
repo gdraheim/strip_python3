@@ -889,6 +889,26 @@ class StripPythonExecTest(unittest.TestCase):
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
         self.rm_testdir()
         self.end()
+    def test_3911(self) -> None:
+        """ try to check docker-systemctl-replacement"""
+        orig = "../docker-systemctl-replacement/systemctl2/systemctl3.py"
+        if not os.path.isfile(orig):
+            self.skipTest("orig systemctl3.py not found")
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        sh____(F"{PYTHON3} {STRIP} -3 {orig} -o {tmp}/systemctl.py {vv}")
+        self.assertTrue(os.path.exists(F"{tmp}/systemctl.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/systemctl.pyi"))
+        script = lines4(open(F"{tmp}/systemctl.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "dict"))
+        self.assertFalse(greps(script, "from typing"))
+        sh____(F"cat {orig} | sed -e \"s/\\\"/\'/g\" > {tmp}/systemctl3.py")
+        sh____(F"cat {tmp}/systemctl.py | sed -e \"s/\\\"/\'/g\" > {tmp}/systemctl2.py")
+        sh____(F"diff -bU0 {tmp}/systemctl3.py {tmp}/systemctl2.py")
+        self.rm_testdir()
+        self.end()
 
 
 if __name__ == "__main__":
