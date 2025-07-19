@@ -9,20 +9,25 @@
 
 This project has been inspired by `'strip-hints'` and `'py-backwards'` but it is
 now based on the Python 3.9+ standard library's `'ast.unparse()'`. More specifically
-it is using `'ast_comments'` to keep the comments. The implementation wants to make
-it very easy so that you can add your own source code transformations to support
+it is optionally using `'ast_comments'` to keep the comments. The implementation wants to 
+make it very easy so that you can add your own source code transformations to support
 compatibility with older python versions.
 
 The `'strip-python3'` tool can extract typehints to `'*.pyi'` file containing only
 the outer object-oriented interface. That allows you to ship modern typed python3
 code to older systems, possibly even having only python2 preinstalled. The extra
-pyi however will allow to run it on older systems with a python3.6 installed.
+pyi however will allow to run it on older systems with a python3.6+ installed.
 
 The default configuration is to strip the `*.py` file to python2 syntax that can 
 also work in python3 (using `__print_function__`), and (when using `-2` or `-3`)
 to put a `*.pyi` file next to it containing the typehints in a syntax compatible 
-with python3.6. When not using `-2` or `-3` it just prints the type-stripped and
-backward-transformed python script to stdout.
+with python3. When not using `-2` or `-3` it just prints the type-stripped and
+backward-transformed python script to stdout. 
+
+The transformed script has not only typhints removed but a lot of library calls get replaced by python2 equivalents. Using if-def in the import section, the same code 
+runs under python2 and python3. Optionally you can define a later python version
+(probably for python3.6) which reduced the number of if-def parts to ensure
+compatibility across python versions. 
 
 # references
 
@@ -131,7 +136,7 @@ if python2 compatibility is requested.
 
 If `isinstance(x, str)` is used then each is replaced by `isinstance(x, basestring)`
 if python2 compatibility is requested. It does also import `basestring = str` for
-python3 versions.
+python3 versions. (see [doc](doc/define-basestring.md))
 
 ## define-range
 
