@@ -156,7 +156,7 @@ with boilerplate code if python2 or python3 older than 3.7. (see [doc](doc/datet
 ## subprocess-run
 
 If `subprocess.run` is used then it is replaced by `subprocess_run`
-with boilerplate code if python2 or python3 older than 3.5.
+with boilerplate code if python2 or python3 older than 3.5. (see [doc](doc/subprocess-run.md)) 
 
 ## time-monotonic
 
