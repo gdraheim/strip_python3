@@ -125,7 +125,7 @@ if python2 compatibility is requested. (see [doc](doc/define-print-function.md))
 ## define-float-division
 
 If `/` is used then `from __future__ import division` is added
-if python2 compatibility is requested.
+if python2 compatibility is requested. (see [doc](doc/define-float-division.md))
 
 ## define-absolute-import
 
