@@ -130,7 +130,7 @@ if python2 compatibility is requested. (see [doc](doc/define-float-division.md))
 ## define-absolute-import
 
 If `.localtypes` is used then `from __future__ import absolute_import` is added
-if python2 compatibility is requested.
+if python2 compatibility is requested. (see [doc](doc/define-absolute-import.md))
 
 ## define-basestring
 
