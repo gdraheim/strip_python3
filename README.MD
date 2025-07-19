@@ -151,7 +151,7 @@ versions where it was not predefined, which only in 3.0 and 3.1 (see [doc](doc/d
 ## datetime-fromisoformat
 
 If `datetime.datetime.fromisoformat` is used then it is replaced by `datetime_fromisodate`
-with boilerplate code if python2 or python3 older than 3.7.
+with boilerplate code if python2 or python3 older than 3.7. (see [doc](doc/datetime-fromisoformat.md)) 
 
 ## subprocess-run
 
