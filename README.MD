@@ -141,7 +141,7 @@ python3 versions. (see [doc](doc/define-basestring.md))
 ## define-range
 
 If `range(x)` is used then `range = xrange` is defined for python2 versions
-if python2 compatibility is required.
+if python2 compatibility is required. (see [doc](doc/define-range.md))
 
 ## define-callable
 

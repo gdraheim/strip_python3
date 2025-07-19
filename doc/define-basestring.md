@@ -7,7 +7,7 @@ if that is a real base class for the two types or if it is just
 a union-type or prototype decleration as you only ever use it in 
 isinstance() calls - you do never create an instance of "basestring".
 
-Since the "basestring" type is missing pin ython3, the transformer will 
+Since the "basestring" type is missing in python3, the transformer will 
 check every isinstance() call in the script. If there is a check for "str"
 then it gets replaced by "basestring" and the import-block gets an
 equals-definition for "basestring" is-a "str".
@@ -27,4 +27,6 @@ equals-definition for "basestring" is-a "str".
             if isinstance(x, basestring):
                 print(x)
 
+Note that if a `--python-version` of 3.0 or later is selected then
+this transformer will not be executed at all.
 
