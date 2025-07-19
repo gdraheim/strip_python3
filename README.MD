@@ -120,7 +120,7 @@ The names are the same as the commandline options, just without a leading "--".
 ## define-print-function
 
 If `print()` is used then `from __future__ import print_function` is added
-if python2 compatibility is requested.
+if python2 compatibility is requested. (see [doc](doc/define-print-function.md))
 
 ## define-float-division
 
