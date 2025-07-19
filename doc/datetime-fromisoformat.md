@@ -16,10 +16,8 @@ as the prefix.
         import datetime.datetime as Time
         def func1(x: x) -> Time:
             return Time.fromisoformat(x)
-        """)
 
         # transformed
-        
         import sys
         import datetime.datetime as Time
         if sys.version_info >= (3, 7):
