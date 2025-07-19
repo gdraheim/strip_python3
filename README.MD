@@ -146,7 +146,7 @@ if python2 compatibility is required. (see [doc](doc/define-range.md))
 ## define-callable
 
 If `callable(x)` is used then a `def callable` boilerplate is added for python3
-versions where it was not predefined (3.0 and 3.1)
+versions where it was not predefined, which only in 3.0 and 3.1 (see [doc](doc/define-callable.md))
 
 ## datetime-fromisoformat
 
