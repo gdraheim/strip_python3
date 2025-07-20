@@ -229,12 +229,14 @@ if python2 compatibility requested, as well as python3 older than 3.9.
 
 If `var: list[int]` is used then it is replaced by `var: List[int]`
 if python2 compatibility requested, as well as python3 older than 3.9.
+(see [doc for details](doc/replace-builtin-typing.md)) 
 
 ## replace-union-typing
 
 If `var: int|str` is used then it is replaced by `var: Union[int, str]`
 if python2 compatibility requested, as well as python3 older than 3.10.
 It does also replace `var: int|None` by `var: Optional[int]`
+(see [doc for details](doc/replace-builtin-typing.md)) 
 
 ## replace-self-typing
 
