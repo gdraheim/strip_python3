@@ -249,12 +249,13 @@ in PEP 673, and it works for the return type of a class method as well.
 ## remove-keywordsonly
 
 The keywordsonly syntax became available in python 3.0, so it need to be
-removed for python2
+removed for python2 (see [doc](doc/remove-positionalonly.md)) 
+
 
 ## remove-positionalonly
 
 The postionalonly syntax became available in python 3.8, so it need to be
-removed for python2 and python3 older than 3.8
+removed for python2 and python3 older than 3.8 (see [doc](doc/remove-positionalonly.md)) 
 
 ## remove-var-typehints
 
