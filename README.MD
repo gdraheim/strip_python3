@@ -244,6 +244,7 @@ If `param: Self` is used then it is replaced by `param: SelfB`
 if python2 compatibility requested, as well as python3 older than 3.11.
 It does declare a `SelfB = TypeVar("SelfB", bound="B")` as suggested 
 in PEP 673, and it works for the return type of a class method as well.
+(see [doc for details](doc/replace-self-typing.md)) 
 
 ## remove-keywordsonly
 
