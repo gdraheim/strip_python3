@@ -223,6 +223,7 @@ assignment or compare/binop is supported. See [doc for details](doc/replace-walr
 
 If `var: Annotated[int, Field(gt=0)]` is used then it is replaced by `var: int`
 if python2 compatibility requested, as well as python3 older than 3.9.
+(see [doc for details](doc/replace-annotated-typing.md)) 
 
 ## replace-builtin-typing
 
