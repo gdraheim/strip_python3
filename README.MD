@@ -7,6 +7,26 @@
 
 # remove python3 typehints and transform source code to older python compatibility
 
+## executive summary
+
+Developers can use any python version, with the best and latest type checker. With static 
+type checking the code gets better and it is easier to maintain, including the syntactic 
+sugar of the latest python versions. Before test-and-deployment the source code gets 
+transformed to be compatible with older python versions - including python2.
+
+When shipping a python module it is possible to split the original typed source code into
+two files - one containing only the executable part and the other the type hints. This allows
+fast loading on all python versions while allowing third party libraries to use the module
+with full type hint checking enabled. That is why the tool was named "strip-python".
+
+The provided transformers do work without splitting the typehints away. Instead any late
+feature of python can be downgraded to a compatible implementation of an older python
+version. In a few cases, even upgrade of older code can be done to use newer features
+of python. The framework allows to implement your own transformers. Transformers are
+a standard feature of python stdlib 'ast' ([NodeTransformer](https://docs.python.org/3/library/ast.html#ast.NodeTransformer)). This tool provides useful examples to get started.
+
+# project description
+
 This project has been inspired by `'strip-hints'` and `'py-backwards'` but it is
 now based on the Python 3.9+ standard library's `'ast.unparse()'`. More specifically
 it is optionally using `'ast_comments'` to keep the comments. The implementation wants to 
