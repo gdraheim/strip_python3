@@ -2760,6 +2760,27 @@ class StripTest(unittest.TestCase):
         print(s)"""))
         self.coverage()
         self.rm_testdir()
+    def test_2233(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        y = 1
+        s = "{y:n}".format(**locals())
+        print(s)""")
+        run = sh(F"{strip} {tmp}/tmp3.py -o {tmp}/tmp.py {vv} --upgrade --python-version 3.3")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        self.assertFalse(os.path.exists(F"{tmp}/tmp.pyi"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.debug("--- py:\n%s", py)
+        self.assertEqual(py, text4("""
+        y = 1
+        s = '{y:n}'.format(**locals())
+        print(s)"""))
+        self.coverage()
+        self.rm_testdir()
     def test_2234(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
