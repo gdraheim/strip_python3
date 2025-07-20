@@ -162,7 +162,7 @@ with boilerplate code if python2 or python3 older than 3.5. (see [doc](doc/subpr
 
 If `time.monotonic` is used then it is replaced by `time_monotonic`
 with boilerplate code based on `time.time`. This is needed for 
-python2 or python3 older than 3.3.
+python2 or python3 older than 3.3. (see [doc](doc/time-monotonic.md)) 
 
 ## import-pathlib2
 
@@ -192,10 +192,12 @@ you can write `F"string {len(part):4n}: {part}"` which gets expanded to:
 
     "string {:4n}: {}".format(len(part), part)
 
+See [doc for details](doc/replace-fstring.md) and `--fstring-from-var-locals`.
+
 ## replace-namedtuple-class
 
 If `class Result(NamedTuple)` is used then it is replaced by `Result = namedtuple("Result",[])`
-if python2 compatibility requested, as well as python3 older than 3.6.
+if python2 compatibility requested, as well as python3 older than 3.6. (see [doc](doc/replace-namedtuple-class.md)) 
 
 They pyi typehints file retains the NamedTuple definition. An exception is thrown if
 the NamedTuple class contains non-variable definitions (like method functions).
@@ -205,16 +207,17 @@ the NamedTuple class contains non-variable definitions (like method functions).
 If `if x := fu(): pass` is used then it is replaced by `x = fu()` followed
 by `if x: pass` if python2 compatibility requested, as well as python3 older than 3.8.
 
-Currently only if-walrus and while-walrus are supported. Only a direct
-assignment or compare/binop is supported, i.e `if (x:= fu()) > 0` works
-as well as `while (x:= fu()) != "end": print(x)`. That one gets expanded to:
+When using `while (x:= fu()) != "end": print(x)` it gets expanded to
 
-    while True:
-        x = fu()
-        if x != 'end':
-            print(x)
-        else:
-            break
+        while True:
+            x = fu()
+            if x != 'end':
+                print(x)
+            else:
+                break
+
+Currently only if-walrus and while-walrus are supported. Only a direct
+assignment or compare/binop is supported. See [doc for details](doc/replace-walrus-operator.md).
 
 ## replace-annotated-typing
 
