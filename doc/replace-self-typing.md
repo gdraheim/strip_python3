@@ -32,7 +32,7 @@ a generic `TypeVar` binding it to the base type. Let's call it a workaround.
            def foo(self, x: int) -> SelfA:
                return self
         class B:
-           def foo(self, x: int) -> SelfA:
+           def foo(self, x: int) -> B:
                return self
 
 Then in python 3.11 we finally got a `Self` class.
