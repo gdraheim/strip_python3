@@ -1028,7 +1028,7 @@ class DefineIfPython2:
         if orelse:
             for stmt in orelse:
                 self.orelse.append(stmt)
-        for stmtlist in [cast(ast.Module, ast_parse(e)).body for e in expr]: # type: ignore[redundant-cast]
+        for stmtlist in [cast(ast.Module, ast_parse(e)).body for e in set(expr)]: # type: ignore[redundant-cast]
             self.body += stmtlist
         if body:
             for stmt in body:
@@ -1103,7 +1103,7 @@ class DefineIfPython3:
         if orelse:
             for stmt in orelse:
                 self.orelse.append(stmt)
-        for stmtlist in [cast(ast.Module, ast_parse(e)).body for e in expr]: # type: ignore[redundant-cast]
+        for stmtlist in [cast(ast.Module, ast_parse(e)).body for e in set(expr)]: # type: ignore[redundant-cast]
             self.body += stmtlist
         if body:
             for stmt in body:
