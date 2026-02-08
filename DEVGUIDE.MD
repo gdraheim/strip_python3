@@ -41,5 +41,5 @@ There is a shorthand `make checks` to do the deep analysis with containers.
   * for release:
      * make version (and run github actions)
      * make coverage (and update README.MD)
-     * make build (and push to pyi)
+     * make package (and push to pyi)
      * git tag and git push --tags (for github)

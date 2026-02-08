@@ -192,8 +192,7 @@ version:
 
 PIP3 = pip3
 
-.PHONY: build
-build:
+pkg package:
 	- rm -rf build dist *.egg-info
 	$(MAKE) tmp/README.MD
 	# $(PIP3) install --root=~/local . -v --no-compile
