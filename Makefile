@@ -228,6 +228,16 @@ fix-metadata-version:
 	; ( find . -name PKG-INFO ; find . -name METADATA ) | while read f; do echo FOUND $$f; sed -i -e "s/Metadata-Version: 2.4/Metadata-Version: 2.2/" $$f; done \
 	; case "$$z" in *.whl) zip -r $$z * ;; *) tar czvf $$z *;; esac ; ls -l $$z; done
 
+tag:
+	@ ver=`sed -e '/^version *=/!d' -e 's/version *= *"//' -e 's/".*//' pyproject.toml` \
+        ; rev=`$(GIT) rev-parse --short HEAD` \
+        ; if test -f tmp.changes.txt \
+        ; then echo ": ${GIT} tag -F tmp.changes.txt v$$ver $$rev" \
+        ; elif test -f tmp.releasenotes.md \
+        ; then echo ": ${GIT} tag -F tmp.releasenotes.md v$$ver $$rev" \
+        ; elif test -f RELEASENOTES.md \
+        ; then echo ": ${GIT} tag -F RELEASENOTES.md v$$ver $$rev" \
+        ; else echo ": ${GIT} tag v$$ver $$rev"; fi 
 
 # .....................
 
