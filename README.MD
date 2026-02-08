@@ -202,6 +202,14 @@ if compatiblity with python older than 3.11 is requested. The
 external toml package (to be installed seperately) did exist 
 before and was integrated into the standard lib.
 
+## catch-ioerror and catch-select-error
+
+if `except OSError` is used then it gets extended to `except (OSError, IOError)`.
+if python3 compatibility is requested before python 3.3 (having PEP3151)
+
+On `import select` it gets extended to `except (OSError, select.error)`.
+So for python 3.3 that results in `except (OSError, IOError, select.error)`.
+
 ## replace-fstring
 
 If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`

@@ -4521,6 +4521,196 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_2601(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        badfile = F"{tmp}/nonexistant.txt"
+        text_file(F"{tmp}/test3.py", F"""
+        def func1() -> int:
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError,ValueError) as e:
+                print(badfile, e.errno)
+            return 0
+        """)
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4(F"""
+        from __future__ import print_function
+
+        def func1():
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError, ValueError, IOError) as e:
+                print(badfile, e.errno)
+            return 0
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2602(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        badfile = F"{tmp}/nonexistant.txt"
+        text_file(F"{tmp}/test3.py", F"""
+        def func1() -> int:
+            try:
+                x = open('{badfile}', 'r')
+            except OSError as e:
+                print(badfile, e.errno)
+            return 0
+        """)
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4(F"""
+        from __future__ import print_function
+
+        def func1():
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError, IOError) as e:
+                print(badfile, e.errno)
+            return 0
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
+
+    def test_2611(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        badfile = F"{tmp}/nonexistant.txt"
+        text_file(F"{tmp}/test3.py", F"""
+        import select
+
+        def func1() -> int:
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError,ValueError) as e:
+                print(badfile, e.errno)
+            return 0
+        """)
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4(F"""
+        from __future__ import print_function
+        import select
+
+        def func1():
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError, ValueError, IOError, select.error) as e:
+                print(badfile, e.errno)
+            return 0
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2612(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        badfile = F"{tmp}/nonexistant.txt"
+        text_file(F"{tmp}/test3.py", F"""
+        import select
+
+        def func1() -> int:
+            try:
+                x = open('{badfile}', 'r')
+            except OSError as e:
+                print(badfile, e.errno)
+            return 0
+        """)
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4(F"""
+        from __future__ import print_function
+        import select
+
+        def func1():
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError, IOError, select.error) as e:
+                print(badfile, e.errno)
+            return 0
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2613(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        badfile = F"{tmp}/nonexistant.txt"
+        text_file(F"{tmp}/test3.py", F"""
+        import select as select_io
+
+        def func1() -> int:
+            try:
+                x = open('{badfile}', 'r')
+            except OSError as e:
+                print(badfile, e.errno)
+            return 0
+        """)
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4(F"""
+        from __future__ import print_function
+        import select as select_io
+
+        def func1():
+            try:
+                x = open('{badfile}', 'r')
+            except (OSError, IOError, select_io.error) as e:
+                print(badfile, e.errno)
+            return 0
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
 
 
 def summary() -> None:

@@ -79,6 +79,8 @@ class TransformerSyntaxError(SyntaxError):
 # (python3.11) = assert_type
 # PEP3102 (python 3.0) keyword-only params
 # PEP3107 (python3.0) function annotations
+# PEP3151 (python 3.3) IOError (and lib.error) become alias to OSError being a catch-all errno
+# PEP3151 (python 3.3) declare subtypes of OSError for specific errno
 # PEP 484 (python 3.5) typehints and "typing" module (and tpying.TYPE_CHECKING)
 #          including "cast", "NewType", "overload", "no_type_check", "ClassVar", AnyStr = str|bytes
 # PEP 498 (python3.6) formatted string literals
@@ -152,6 +154,8 @@ class Want:
     define_print_function = to_int(os.environ.get("PYTHON3_DEFINE_PRINT_FUNCTION", NIX))
     define_float_division = to_int(os.environ.get("PYTHON3_DEFINE_FLOAT_DIVISION", NIX))
     define_absolute_import = to_int(os.environ.get("PYTHON3_DEFINE_ABSOLUTE_IMPORT", NIX))
+    catch_ioerror = to_int(os.environ.get("PYTHON3_CATCH_IOERROR", NIX))
+    catch_select_error = to_int(os.environ.get("PYTHON3_CATCH_SELECTERROR", NIX))
     datetime_fromisoformat = to_int(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
     subprocess_run = to_int(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
     time_monotonic = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
@@ -203,6 +207,8 @@ def main() -> int:
     cmdline.add_option("--no-import-pathlib2", action="count", default=0, help="3.3 pathlib to python2 pathlib2")
     cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=0, help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=0, help="3.11 tomllib to external toml")
+    cmdline.add_option("--no-catch-ioerror", action="count", default=0, help="3.3 IOError is an alias to OSError")
+    cmdline.add_option("--no-catch-select-error", action="count", default=0, help="3.3 select.error is an alias to OSError")
     cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
     cmdline.add_option("--no-replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple class")
     cmdline.add_option("--no-replace-typeddict-class", action="count", default=0, help="3.8 TypeDict class")
@@ -228,6 +234,8 @@ def main() -> int:
     cmdline.add_option("--import-pathlib2", action="count", default=0, help="3.3 import pathlib2 as pathlib")
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=0, help="3.9 import zoneinfo from backports")
     cmdline.add_option("--import-toml", action="count", default=0, help="3.11 import toml as tomllib")
+    cmdline.add_option("--catch-ioerror", action="count", default=0, help="3.3 IOError is an alias to OSError")
+    cmdline.add_option("--catch-select-error", action="count", default=0, help="3.3 select.error is an alias to OSError")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
     cmdline.add_option("--replace-typeddict-class", action="count", default=0, help="3.8 TypedDict to builtin dict")
@@ -347,6 +355,12 @@ def main() -> int:
     if back_version < (3,8) or opt.replace_walrus_operator:
         if not opt.no_replace_walrus_operator:
             want.replace_walrus_operator = max(1, opt.replace_walrus_operator)
+    if back_version < (3,3) or opt.catch_ioerror:
+        if not opt.no_catch_ioerror:
+            want.catch_ioerror = max(1,opt.catch_ioerror)
+    if back_version < (3,3) or opt.catch_select_error:
+        if not opt.no_catch_select_error:
+            want.catch_select_error = max(1,opt.catch_select_error)
     if back_version < (3,0) or opt.define_range:
         if not opt.no_define_range:
             want.define_range = max(1,opt.define_range)
@@ -1416,7 +1430,37 @@ class FStringFromVarLocalsFormat(BlockTransformer):
             newbody.append(node)
         return newbody
 
-
+class CatchAliasOnOSError(ast.NodeTransformer):
+    filename: str
+    """ convert 'except OSError' into 'except (OSError, IOError). """
+    def __init__(self, aliases: Optional[List[str]] = None) -> None:
+        self.aliases = aliases if aliases else ["IOError"]
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> ast.AST: # pylint: disable=invalid-name
+        exc = cast(ast.ExceptHandler, node) # type: ignore[redundant-cast]
+        logg.debug("exc1 %s", ast.dump(exc))
+        found: Dict[str, ast.Name] = {}
+        if isinstance(exc.type, ast.Tuple):
+            elts = cast(ast.Tuple, exc.type).elts # type: ignore[redundant-cast]
+            for elt in elts:
+                if isinstance(elt, ast.Name):
+                    name = cast(ast.Name, elt) # type: ignore[redundant-cast]
+                    found[name.id] = name
+        if isinstance(exc.type, ast.Name):
+            name = cast(ast.Name, exc.type) # type: ignore[redundant-cast]
+            found[name.id] = name
+        logg.debug("exc1 found %s", found)
+        for alias in self.aliases:
+            if "OSError" in found and alias not in found:
+                if isinstance(exc.type, ast.Name):
+                    name = cast(ast.Name, exc.type) # type: ignore[redundant-cast]
+                    new1 = ast.Tuple([name, ast.Name(alias)])
+                    exc.type = new1
+                elif isinstance(exc.type, ast.Tuple):
+                    old1 = cast(ast.Tuple, exc.type) # type: ignore[redundant-cast]
+                    old1.elts += [ ast.Name(alias) ]
+                else:
+                    logg.fatal("could not replace 'except' with %s", found)
+        return node
 
 # ......................................................................................
 
@@ -2453,6 +2497,17 @@ class StripPythonTransformer:
             tree = walrus.visit(tree)
             whwalrus = WhileWalrusTransformer()
             tree = whwalrus.visit(tree)
+        if want.catch_ioerror:
+            catch_ioerror = CatchAliasOnOSError(["IOError"])
+            tree = catch_ioerror.visit(tree)
+        if want.catch_select_error:
+            imports = DetectImportsTransformer()
+            imports.visit(tree)
+            logg.fatal("select_error imported %s", imports.imported)
+            if "select" in imports.imported:
+                select_error = imports.imported["select"] + ".error"
+                catch_select_error = CatchAliasOnOSError([select_error])
+                tree = catch_select_error.visit(tree)
         futurerequires = RequireImportFrom()
         if want.define_print_function or want.define_float_division:
             calls2 = DetectImportedFunctionCalls()
