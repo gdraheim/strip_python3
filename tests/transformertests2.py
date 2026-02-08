@@ -5,9 +5,9 @@
 
 """ tests for strip_python3 """
 
-__copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
+__copyright__ = "(C) 2026 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "1.3.1287"
+__version__ = "1.3.2057"
 
 from typing import List, Union, Optional, Iterator, Iterable, NamedTuple, Mapping
 import unittest

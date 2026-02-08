@@ -3,9 +3,9 @@
 # pylint: disable=invalid-name,unspecified-encoding,consider-using-with
 """ testing functions directly in strip_python3 module """
 
-__copyright__ = "(C) 2025 Guido Draheim, licensed under MIT License"
+__copyright__ = "(C) 2026 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "1.3.1287"
+__version__ = "1.3.2057"
 
 from typing import cast
 import sys
