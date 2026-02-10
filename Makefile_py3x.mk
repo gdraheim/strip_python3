@@ -8,17 +8,19 @@ endif
 ifeq ("$(wildcard /usr/bin/python3.11)","/usr/bin/python3.10")
   PY3X=3.10
 endif
-ifeq ("$(wildcard /usr/bin/python3.11)","/usr/bin/python3.10")
+ifeq ("$(wildcard /usr/bin/python3.11)","/usr/bin/python3.11")
   PY3X=3.11
 endif
-ifeq ("$(wildcard /usr/bin/python3.11)","/usr/bin/python3.12")
-  PY3X=3.12
-  PY36=3.12
-  PY39=3.12
+ifeq ("$(wildcard /usr/bin/python3.14)","/usr/bin/python3.14")
+  PY3X=3.14
+  PY36=3.14
+  PY39=3.14
+  PY311=3.14
 endif
 ifeq ("$(wildcard /usr/bin/python3.11)","/usr/bin/python3.11")
   PY36=3.11
   PY39=3.11
+  PY311=3.11
 endif
 ifeq ("$(wildcard /usr/bin/python3.10)","/usr/bin/python3.10")
   PY36=3.10

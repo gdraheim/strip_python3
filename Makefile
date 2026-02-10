@@ -14,7 +14,6 @@ PYTHON39 = python$(PY39)
 PYTHON3 = python3
 PYTHON = python$(PY3X)
 PYTHON_VERSION = $(PY3X)
-TWINE = twine-$(PY3X)
 QTOML_PY = strip3/strip_qtoml_decoder.py
 AST4_PY = strip3/strip_ast_comments.py
 UNITS_PY = tests/unittests1.py
@@ -194,16 +193,17 @@ version:
 	@ ver=`cat $F | sed -e '/__version__/!d' -e 's/.*= *"//' -e 's/".*//' -e q` \
 	; echo "# $(GIT) commit -m v$$ver"
 
-PIP3 = pip3
+PYTHON_PIP = $(PYTHON) -m pip
+PYTHON_TWINE = $(PYTHON) -m twine
 
 pkg package:
 	- rm -rf build dist *.egg-info
 	$(MAKE) tmp/README.MD
-	# $(PIP3) install --root=~/local . -v --no-compile
+	# $(PYTHON_PIP) install --root=~/local . -v --no-compile
 	$(PYTHON) -m build
 	$(MAKE) fix-metadata-version
-	$(TWINE) check dist/*
-	: $(TWINE) upload dist/* --verbose
+	$(PYTHON_TWINE) check dist/*
+	: $(PYTHON_TWINE) upload dist/* --verbose
 
 tmp/README.MD: README.MD Makefile
 	@ test -d tmp || mkdir tmp
@@ -212,16 +212,17 @@ tmp/README.MD: README.MD Makefile
 ins install:
 	$(MAKE) tmp/README.MD
 	test ! -d build || rm -rf build
-	$(PIP3) install --no-compile --user .
+	$(PYTHON_PIP) install --no-compile --user .
 	$(MAKE) show | sed -e "s|[.][.]/[.][.]/[.][.]/bin|$$HOME/.local/bin|"
 
 uns uninstall: 
 	test -d tmp || mkdir -v tmp
-	set -x; $(PIP3) uninstall -y `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//'  pyproject.toml`
+	set -x; $(PYTHON_PIP) uninstall -y `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//'  pyproject.toml`
 
 show:
-	@ $(PIP3) show --files `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//' pyproject.toml` \
+	@ $(PYTHON_PIP) show --files `sed -e '/^name *=/!d' -e 's/name *= *"//' -e 's/".*//' pyproject.toml` \
 	| sed -e "s:[^ ]*/[.][.]/\\([a-z][a-z]*\\)/:~/.local/\\1/:"
+	$(PYTHON) -m strip_python3 --version
 
 
 fix-metadata-version:
@@ -281,7 +282,7 @@ stop:
 	$(DOCKER) ps -q -f name=-repo- | xargs --no-run-if-empty $(DOCKER) rm -f
 
 # .....................
-MYPY = mypy-3.11
+MYPY = mypy-$(PY3X)
 MYPY_EXCLUDES = --exclude /$(notdir $(AST4_PY)) --exclude /$(notdir $(QTOML_PY))
 MYPY_WITH = --strict --show-error-codes --show-error-context 
 MYPY_OPTIONS = --no-warn-unused-ignores --implicit-reexport --python-version $(PYTHON_VERSION)
