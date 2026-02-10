@@ -1,4 +1,4 @@
-F= strip3/strip_python3.py
+F= tool/strip_python3.py
 B= 2024
 FOR=today
 DAY=%u
@@ -14,8 +14,8 @@ PYTHON39 = python$(PY39)
 PYTHON3 = python3
 PYTHON = python$(PY3X)
 PYTHON_VERSION = $(PY3X)
-QTOML_PY = strip3/strip_qtoml_decoder.py
-AST4_PY = strip3/strip_ast_comments.py
+QTOML_PY = tool/strip_qtoml_decoder.py
+AST4_PY = tool/strip_ast_comments.py
 UNITS_PY = tests/unittests1.py
 TESTS_PY = tests/transformertests2.py
 EXECS_PY = tests/exectests3.py
@@ -103,7 +103,7 @@ test%/27:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python2 @ $@ 
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || : ignored "$@"
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                         $(PYTHON39) $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python2 $(COVERAGE1) $V $(TODO)
@@ -113,7 +113,7 @@ test%/36:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python3 @ $@
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || : ignored "$@"
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                         $(PYTHON39) $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3 $(COVERAGE1) $V $(TODO)
@@ -123,7 +123,7 @@ test%/39:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python3.9 @ $@
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                         python3.9 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
@@ -134,7 +134,7 @@ test%/310:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python3.10 @ $@
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                         python3.10 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.10 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
@@ -145,7 +145,7 @@ test%/311:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python3.11 @ $@
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                         python3.11 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
@@ -156,7 +156,7 @@ test%/312:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python3.12 @ $@
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	$[[ "$@" != test_2* ]] || (DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                          python3.12 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.12 $(COVERAGE1) $V $(TODO)
 	$[[ "$@" != test_3* ]] || (DOCKER) exec $(CONTAINER)-python$(notdir $@) \
@@ -167,7 +167,7 @@ test%/11:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : =========== mypy-3.11 + python3.11 @ $@ 
 	$(DOCKER) run -d --name=$(CONTAINER)-python$(notdir $@) $(CONTAINER)/test$(notdir $@) sleep 9999
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
-	$(DOCKER) cp strip3 $(CONTAINER)-python$(notdir $@):/
+	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
 	                         python3.11 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
@@ -246,12 +246,12 @@ tag:
 # .....................
 
 copy:
-	cp -v ../docker-mirror-packages-repo/docker_mirror.py tools/
-	cp -v ../docker-mirror-packages-repo/docker_mirror.pyi tools/
-	cp -v ../docker-mirror-packages-repo/docker_image.py tools/
+	cp -v ../docker-mirror-packages-repo/docker_mirror.py tests/
+	cp -v ../docker-mirror-packages-repo/docker_mirror.pyi tests/
+	cp -v ../docker-mirror-packages-repo/docker_image.py tests/
 
 LOCAL=--local
-DOCKER_IMAGE_PY = ./tools/docker_image.py
+DOCKER_IMAGE_PY = ./tests/docker_image.py
 DOCKER_IMAGE = $(PYTHON3) $(DOCKER_IMAGE_PY) $(LOCAL)
 
 python27: $(CONTAINER)/test27
