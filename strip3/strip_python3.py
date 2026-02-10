@@ -167,19 +167,19 @@ class Want:
     pyproject_toml = "pyproject.toml"
     toolsection = "strip-python3"
     run_python = os.environ.get("PYTHON3_RUN_PYTHON", NIX)
-    no_comments = to_int(os.environ.get("PYTHON3_NO_COMMENTS", NIX))
-    no_unparser = to_int(os.environ.get("PYTHON3_NO_UNPARSER", NIX))
+    remove_comments = to_int(os.environ.get("PYTHON3_REMOVE_COMMENTS", NIX))
+    remove_unparser = to_int(os.environ.get("PYTHON3_REMOVE_UNPARSER", NIX))
 
 want = Want()
 
 def ast_parse(text: str) -> ast.Module:
-    if want.no_comments:
+    if want.remove_comments:
         return ast.parse(text)
     else:
         return parse(text)
 
 def ast_unparse(tree: ast.AST) -> str:
-    if want.no_unparser:
+    if want.remove_unparser:
         return ast.unparse(tree)
     else:
         return unparse(tree)
@@ -253,13 +253,13 @@ def main() -> int:
     cmdline.add_option("-u", "--upgrade", action="count", default=0, help="allow upgrade transformers:")
     cmdline.add_option("--fstring-from-locals-format", action="count", default=0, help="replace idiom '{name}'.format(**locals())")
     cmdline.add_option("--fstring-from-var-locals-format", action="count", default=0, help="and for x='{name}'; x.format(**locals())")
-    cmdline.add_option("--no-comments", action="count", default=0, help="do not use ast_comments to parse")
-    cmdline.add_option("--bare", action="count", default=0, help="do not use ast_comments (parse/unparse)")
+    cmdline.add_option("--remove-comments", action="count", default=0, help="do not use ast_comments to parse")
+    cmdline.add_option("-N", "--no-comments", action="count", default=0, help="do not use ast_comments (parse/unparse)")
     cmdline.add_option("--show", action="count", default=0, help="show transformer settings (from above)")
     cmdline.add_option("--pretty", action="count", default=0, help="no transformers (based on python-version)")
-    cmdline.add_option("--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
-    cmdline.add_option("--python-version", metavar="2.7", default=NIX, help="set python features by version")
-    cmdline.add_option("--run-python", metavar="exe", default=NIX, help="replace shebang with #! /usr/bin/env exe")
+    cmdline.add_option("-Q", "--pyi-version", metavar="3.6", default=NIX, help="set python version for py-includes")
+    cmdline.add_option("-P", "--python-version", metavar="2.7", default=NIX, help="set python features by version")
+    cmdline.add_option("-R", "--run-python", metavar="exe", default=NIX, help="replace shebang with #! /usr/bin/env exe")
     cmdline.add_option("-O", "--old-python", action="count", default=0, help="replace shebang with /bin/env python")
     cmdline.add_option("-V", "--dump", action="count", default=0, help="show ast tree before (and after) changes")
     cmdline.add_option("-0", "--nowrite", action="store_true", default=False, help="suppress writing the transformed file.py")
@@ -404,11 +404,11 @@ def main() -> int:
         want.fstring_from_locals_format = max(1, opt.fstring_from_locals_format)
     if upgrade_version >= (3, 6) or opt.fstring_from_var_locals_format:
         want.fstring_from_var_locals_format = max(1, opt.fstring_from_var_locals_format)
+    if opt.remove_comments:
+        want.remove_comments = opt.remove_comments
     if opt.no_comments:
-        want.no_comments = opt.no_comments
-    if opt.bare:
-        want.no_comments = opt.bare
-        want.no_unparser = opt.bare
+        want.remove_comments = opt.no_comments
+        want.remove_unparser = opt.no_comments
     if opt.show:
         logg.log(NOTE, "%s = %s", "python-version-int", py_version)
         logg.log(NOTE, "%s = %s", "pyi-version-int", pyi_version)
