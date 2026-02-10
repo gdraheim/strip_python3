@@ -1,6 +1,6 @@
 #! /usr/bin/env python3.11
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,no-else-return,line-too-long,too-many-lines,too-many-arguments
-# pylint: disable=too-many-instance-attributes,too-few-public-methods,too-many-branches,too-many-locals,too-many-nested-blocks,too-many-statements
+# pylint: disable=too-many-instance-attributes,too-few-public-methods,too-many-branches,too-many-locals,too-many-nested-blocks,too-many-statements,too-many-positional-arguments
 # pylint: disable=wrong-import-order,wrong-import-position,use-list-literal,use-dict-literal
 """ easy way to transform and remove python3 typehints """
 
@@ -23,7 +23,7 @@ else:  # pragma: nocover
         import tomli as tomllib # type: ignore[no-redef,import-untyped]
     except ImportError:
         try:
-            import qtoml_decoder as tomllib # type: ignore[no-redef,import-untyped]
+            import qtoml_decoder as tomllib # type: ignore[no-redef,import-not-found,import-untyped]
         except ImportError:
             tomllib = None # type: ignore[assignment]
 DEBUG_TOML = logging.DEBUG
@@ -48,12 +48,12 @@ import ast
 if TYPE_CHECKING:
     from ast import parse, unparse
 try:
-    from ast_comments import parse, unparse, Comment # type: ignore[no-redef,import-untyped] # pylint: disable=wrong-import-position
+    from ast_comments import parse, unparse, Comment # type: ignore[no-redef,import-not-found,import-untyped] # pylint: disable=wrong-import-position
 except ImportError:
     # required for unittest.py
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
     try:
-        from ast_comments import parse, unparse, Comment # type: ignore[no-redef,import-untyped] # pylint: disable=wrong-import-position
+        from ast_comments import parse, unparse, Comment # type: ignore[no-redef,import-not-found,import-untyped] # pylint: disable=wrong-import-position
     except ImportError:
         class Comment(ast.Expr): # type: ignore[no-redef]
             pass

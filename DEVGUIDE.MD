@@ -35,9 +35,11 @@ There is a shorthand `make checks` to do the deep analysis with containers.
 ## Check and Release
 
   * make lint
+  * make type
   * make check
   * make python
   * make checks
+  * make python # test for different python version targets
   * for release:
      * make version (and run github actions)
      * make coverage (and update README.MD)

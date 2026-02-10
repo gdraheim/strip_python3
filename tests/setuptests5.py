@@ -31,7 +31,7 @@ _sed = "sed"
 _docker = "docker"
 _python = "/usr/bin/python3"
 _python2 = "/usr/bin/python"
-_strip3 = "../strip3"
+_strip3 = "../tool"
 NIX = ""
 SKIP = True
 TODO = False
@@ -42,7 +42,7 @@ KILLWAIT = 20
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
 
-IMAGES = "localhost:5000/strip3"
+IMAGES = "localhost:5000/strip_python3"
 IMAGE = ""
 LOCAL = 0
 CENTOS = "almalinux:9.4"
@@ -724,7 +724,7 @@ if __name__ == "__main__":
         logg.info("xml results into %s", opt.xmlresults)
     if not logfile:
         if xmlresults:
-            import xmlrunner # type: ignore[import-error] # pylint: disable=import-error
+            import xmlrunner # type: ignore # pylint: disable=import-error
             TestRunner = xmlrunner.XMLTestRunner
             testresult = TestRunner(xmlresults, verbosity=opt.verbose).run(suite)
         else:

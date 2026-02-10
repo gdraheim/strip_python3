@@ -291,7 +291,7 @@ mypy:
 	zypper install -y python3-click python3-pathspec
 type:
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $F
-	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) tests/*.py
+	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) tests/*test*.py
 tests/%.py.type:
 	$(MYPY) $(MYPY_WITH) $(MYPY_OPTIONS) $(MYPY_EXCLUDES) $(@:.type=)
 
@@ -301,6 +301,6 @@ pylint:
 	zypper install -y python3-pylint
 lint:
 	$(PYLINT) $(PYLINT_OPTIONS) $F
-	for py in tests/*.py; do $(PYLINT) $(PYLINT_OPTIONS) $$py || exit 1; done
+	for py in tests/*test*.py; do echo "#" $(PYLINT) $(PYLINT_OPTIONS) $$py; $(PYLINT) $(PYLINT_OPTIONS) $$py || exit 1; done
 
 -include Makefile.tmp
