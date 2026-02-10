@@ -131,11 +131,12 @@ Configuration occurs in this order - with last overriding first
 
 Transformations are automatically selected by the minimum target python version
 that is given by --python-version=3.6 (which has a shorthand --py36). The default
-is to support even python2.
+is to support even python2. 
 
 Each transformation can be selectivly enabled or disabled. This can also be done
 in a pyproject.toml `[tool.strip-python3]` or setup.cfg `[strip-python3]` section.
 The names are the same as the commandline options, just without a leading "--".
+Use "--show" and "--show -v" for details of selected settings.
 
 ## define-print-function
 
