@@ -424,6 +424,13 @@ def main() -> int:
         logg.log(NOTE, "%s = %s", "remove-positional-pyi", want.remove_positional_pyi)
         logg.log(NOTE, "%s = %s", "remove-var-typehints", want.remove_var_typehints)
         logg.log(NOTE, "%s = %s", "remove-typehints", want.remove_typehints)
+        for wanted in sorted(dir(want)):
+            if "_" in wanted and not wanted.startswith("_"):
+                wantedvalue = getattr(want, wanted)
+                if isinstance(wantedvalue, (int, bool, tuple,)):
+                    logg.info("  want.%s = %s", wanted, wantedvalue)
+                elif isinstance(wantedvalue, (str,)):
+                    logg.info("  want.%s = '%s'", wanted, wantedvalue)
     if opt.dump:
         want.show_dump = int(opt.dump)
     eachfile = EACH_REMOVE3 if opt.remove3 else 0
