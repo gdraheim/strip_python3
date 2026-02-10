@@ -34,13 +34,13 @@ KEEP = False
 SOMETIME = 222
 TODO = 0
 DOCKER_SOCKET = "/var/run/docker.sock"
-IMAGES = "localhost:5000/strip3/testing"
+IMAGES = "localhost:5000/strip_python3/testing"
 COVERAGE = False
 IMAGE= "ubuntu:22.04"
 PYTHON="python3"
 PYTHON3="python3.9"
 MYPY=""
-STRIP="strip3/strip_python3.py"
+STRIP="tool/strip_python3.py"
 VV="-vv"
 
 def decodes(text: Union[str, bytes, None]) -> str:
