@@ -26,13 +26,15 @@ CONTAINER = strip-py
 COVERAGE2 = --coverage --coverage
 TODO=
 V=-v
+VV=-vv
+
+.PHONY: tests tool src doc dist
 
 all: help
 
 help:
 	$(PYTHON) $F --help
 
-checks: test test27 test36 test39 test310 test311 test312 test11
 check39: ; test ! -f /usr/bin/python3.9 || $(MAKE) test PYTHON=python3.9
 check10: ; test ! -f /usr/bin/python3.10 || $(MAKE) test PYTHON=python3.10
 check11: ; test ! -f /usr/bin/python3.11 || $(MAKE) test PYTHON=python3.11
@@ -44,6 +46,9 @@ check5: ; $(MAKE) test_5*/3.11 || $(MAKE) test_5*/3.12
 check: check39 check10 check11 check12
 	: " ready for $(MAKE) checks ? "
 
+checks: ; $(MAKE) tests3.9 tests3.10 tests3.11 tests3.12
+	: " ready for $(MAKE) tests ? "
+tests: ; $(MAKE) test3.9 test3.10 test3.11 test3.12
 tests3.9:  ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
 tests3.10: ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
 tests3.11: ; test ! -f /usr/bin/python$(subst tests,,$@) || python$(subst tests,,$@) $(TESTS_PY) $(TESTS_OPTIONS) --python=/usr/bin/python$(subst tests,,$@) $V $(TODO) --failfast
@@ -68,7 +73,7 @@ todo1: ; $(MAKE) check1 TODO=--todo
 todo2: ; $(MAKE) check2 TODO=--todo
 todo3: ; $(MAKE) check3 TODO=--todo
 todo: ; $(MAKE) test TODO=--todo
-test: ; $(PYTHON) $(TESTS) $V $@ $(TODO)
+test: ; $(PYTHON) $(UNITS) $V $@ $(TODO) && $(PYTHON) $(TESTS) $V $@ $(TODO)
 test_1%: ; $(PYTHON) $(UNITS) $V $@ $(TODO) --failfast
 test_2%: ; $(PYTHON) $(TESTS) $V $@ $(TODO) --failfast
 st_2%: ; $(PYTHON) $(TESTS) $V te$@ $(TODO) $(COVERAGE2)
@@ -81,23 +86,29 @@ coverage: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) && $(MAKE) testcases
 coverage1: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_1
 coverage2: ; $(PYTHON) $(TESTS) $V $(COVERAGE2) test_2
 
-# TESTS in container
-tests27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
-tests36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
-tests39: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
-tests310: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
-tests311: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
-tests312: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
-tests11: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_2/$(subst tests,,$@)
+docker: 
+	$(MAKE) dockertests VV=
+	$(MAKE) dockerchecks VV=
+dockerchecks: test test27 test36 test39 test310 test311 test312 test11
+dockertests: tests tests27 tests36 tests39 tests310 tests311 tests312 tests11
 
 # EXECS in container
-test27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
-test36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
-test39: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
-test310: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
-test311: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
-test312: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
-test11: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_3/$(subst test,,$@)
+tests27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+tests36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+tests39: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+tests310: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+tests311: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+tests312: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+tests11: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$(subst tests,test,$@)`" || $(MAKE) test_3/$(subst tests,,$@)
+
+# TESTS in container
+test27: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
+test36: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
+test39: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
+test310: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
+test311: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
+test312: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
+test11: ; test -z "`$(DOCKER) images -q -f reference=$(CONTAINER)/$@`" || $(MAKE) test_2/$(subst test,,$@)
 
 test%/27:
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@) ; : ========== python2 @ $@ 
@@ -106,7 +117,7 @@ test%/27:
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || : ignored "$@"
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         $(PYTHON39) $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python2 $(COVERAGE1) $V $(TODO)
+	                         $(PYTHON39) $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python2 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/36:
@@ -116,7 +127,7 @@ test%/36:
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || : ignored "$@"
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         $(PYTHON39) $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3 $(COVERAGE1) $V $(TODO)
+	                         $(PYTHON39) $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python3 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/39:
@@ -125,9 +136,9 @@ test%/39:
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.9 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V $(TODO)
+	                         python3.9 $(TESTS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.9 $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V $(TODO)
+	                         python3.9 $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.9 $(COVERAGE1) $V $(TODO)
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/310:
@@ -136,9 +147,9 @@ test%/310:
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.10 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.10 $(COVERAGE1) $V $(TODO)
+	                         python3.10 $(TESTS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.10 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.10 $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3.10 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.10
+	                         python3.10 $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.10 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.10
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/311:
@@ -147,9 +158,9 @@ test%/311:
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.11 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
+	                         python3.11 $(TESTS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.11 $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.11
+	                         python3.11 $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.11
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/312:
@@ -158,9 +169,9 @@ test%/312:
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	$[[ "$@" != test_2* ]] || (DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                          python3.12 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.12 $(COVERAGE1) $V $(TODO)
+	                          python3.12 $(TESTS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.12 $(COVERAGE1) $V $(TODO)
 	$[[ "$@" != test_3* ]] || (DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                          python3.12 $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3.12 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.12
+	                          python3.12 $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.12 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.12
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 test%/11:
@@ -169,9 +180,9 @@ test%/11:
 	$(DOCKER) cp tests $(CONTAINER)-python$(notdir $@):/
 	$(DOCKER) cp tool $(CONTAINER)-python$(notdir $@):/
 	[[ "$@" != test_2* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.11 $(TESTS_PY) -vv $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
+	                         python3.11 $(TESTS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO)
 	[[ "$@" != test_3* ]] || $(DOCKER) exec $(CONTAINER)-python$(notdir $@) \
-	                         python3.11 $(EXECS_PY) -vv $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.11 --mypy=mypy-3.11
+	                         python3.11 $(EXECS_PY) $(VV) $(dir $@) --python=/usr/bin/python3.11 $(COVERAGE1) $V $(TODO) --python3=/usr/bin/python3.11 --mypy=mypy-3.11
 	- test -z "$(COVERAGE1)" || $(DOCKER) cp $(CONTAINER)-python$(notdir $@):/.coverage .coverage.cov$(notdir $@)
 	$(DOCKER) rm -f $(CONTAINER)-python$(notdir $@)
 
