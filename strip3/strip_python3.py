@@ -2503,7 +2503,6 @@ class StripPythonTransformer:
         if want.catch_select_error:
             imports = DetectImportsTransformer()
             imports.visit(tree)
-            logg.fatal("select_error imported %s", imports.imported)
             if "select" in imports.imported:
                 select_error = imports.imported["select"] + ".error"
                 catch_select_error = CatchAliasOnOSError([select_error])
