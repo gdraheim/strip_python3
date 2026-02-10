@@ -4,13 +4,17 @@ FOR=today
 DAY=%u
 # 'make version FOR=yesterday' or 'make version DAY=0'
 
+PY39 = 3.9
+PY3X = 3.11
+-include Makefile_py3x.mk
+
 GIT = git
 DOCKER = docker
-PYTHON39 = python3.9
+PYTHON39 = python$(PY39)
 PYTHON3 = python3
-PYTHON = python3.11
-PYTHON_VERSION = 3.11
-TWINE = twine-3.11
+PYTHON = python$(PY3X)
+PYTHON_VERSION = $(PY3X)
+TWINE = twine-$(PY3X)
 QTOML_PY = strip3/strip_qtoml_decoder.py
 AST4_PY = strip3/strip_ast_comments.py
 UNITS_PY = tests/unittests1.py
