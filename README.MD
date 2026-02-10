@@ -138,72 +138,72 @@ in a pyproject.toml `[tool.strip-python3]` or setup.cfg `[strip-python3]` sectio
 The names are the same as the commandline options, just without a leading "--".
 Use "--show" and "--show -v" for details of selected settings.
 
-## define-print-function
+## --define-print-function
 
 If `print()` is used then `from __future__ import print_function` is added
 if python2 compatibility is requested. (see [doc](doc/define-print-function.md))
 
-## define-float-division
+## --define-float-division
 
 If `/` is used then `from __future__ import division` is added
 if python2 compatibility is requested. (see [doc](doc/define-float-division.md))
 
-## define-absolute-import
+## --define-absolute-import
 
 If `.localtypes` is used then `from __future__ import absolute_import` is added
 if python2 compatibility is requested. (see [doc](doc/define-absolute-import.md))
 
-## define-basestring
+## --define-basestring
 
 If `isinstance(x, str)` is used then each is replaced by `isinstance(x, basestring)`
 if python2 compatibility is requested. It does also import `basestring = str` for
 python3 versions. (see [doc](doc/define-basestring.md))
 
-## define-range
+## --define-range
 
 If `range(x)` is used then `range = xrange` is defined for python2 versions
 if python2 compatibility is required. (see [doc](doc/define-range.md))
 
-## define-callable
+## --define-callable
 
 If `callable(x)` is used then a `def callable` boilerplate is added for python3
 versions where it was not predefined, which only in 3.0 and 3.1 (see [doc](doc/define-callable.md))
 
-## datetime-fromisoformat
+## --datetime-fromisoformat
 
 If `datetime.datetime.fromisoformat` is used then it is replaced by `datetime_fromisodate`
 with boilerplate code if python2 or python3 older than 3.7. (see [doc](doc/datetime-fromisoformat.md)) 
 
-## subprocess-run
+## --subprocess-run
 
 If `subprocess.run` is used then it is replaced by `subprocess_run`
 with boilerplate code if python2 or python3 older than 3.5. (see [doc](doc/subprocess-run.md)) 
 
-## time-monotonic
+## --time-monotonic
 
 If `time.monotonic` is used then it is replaced by `time_monotonic`
 with boilerplate code based on `time.time`. This is needed for 
 python2 or python3 older than 3.3. (see [doc](doc/time-monotonic.md)) 
 
-## import-pathlib2
+## --import-pathlib2
 
 If `import pathlib` is used then it is replaced by `import pathlib2`
 if python2 compatiblity is requested. Pathlib exists since python 3.3
 but there is a backport available (to be installed seperately)
 
-## import-backports-zoneinfo
+## --import-backports-zoneinfo
 
 If `import zoneinfo` is used then it is replaced by `from backports import zoneinfo`
 if python3 compatiblity is requested before python 3.9 (backport requires atleast 3.6)
 
-## import-toml
+## --import-toml
 
 If `import tomllib` is used then it is replaced by `import toml`
 if compatiblity with python older than 3.11 is requested. The
 external toml package (to be installed seperately) did exist 
 before and was integrated into the standard lib.
 
-## catch-ioerror and catch-select-error
+## --catch-ioerror and --catch-select-error
 
 if `except OSError` is used then it gets extended to `except (OSError, IOError)`.
 if python3 compatibility is requested before python 3.3 (having PEP3151)
@@ -211,7 +211,7 @@ if python3 compatibility is requested before python 3.3 (having PEP3151)
 On `import select` it gets extended to `except (OSError, select.error)`.
 So for python 3.3 that results in `except (OSError, IOError, select.error)`.
 
-## replace-fstring
+## --replace-fstring
 
 If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`
 if python2 compatibility requested, as well as python3 older than 3.5.
@@ -223,7 +223,7 @@ you can write `F"string {len(part):4n}: {part}"` which gets expanded to:
 
 See [doc for details](doc/replace-fstring.md) and `--fstring-from-var-locals`.
 
-## replace-namedtuple-class
+## --replace-namedtuple-class
 
 If `class Result(NamedTuple)` is used then it is replaced by `Result = namedtuple("Result",[])`
 if python2 compatibility requested, as well as python3 older than 3.6. (see [doc](doc/replace-namedtuple-class.md)) 
@@ -231,7 +231,7 @@ if python2 compatibility requested, as well as python3 older than 3.6. (see [doc
 They pyi typehints file retains the NamedTuple definition. An exception is thrown if
 the NamedTuple class contains non-variable definitions (like method functions).
 
-## replace-walrus-operator
+## --replace-walrus-operator
 
 If `if x := fu(): pass` is used then it is replaced by `x = fu()` followed
 by `if x: pass` if python2 compatibility requested, as well as python3 older than 3.8.
@@ -248,26 +248,26 @@ When using `while (x:= fu()) != "end": print(x)` it gets expanded to
 Currently only if-walrus and while-walrus are supported. Only a direct
 assignment or compare/binop is supported. See [doc for details](doc/replace-walrus-operator.md).
 
-## replace-annotated-typing
+## --replace-annotated-typing
 
 If `var: Annotated[int, Field(gt=0)]` is used then it is replaced by `var: int`
 if python2 compatibility requested, as well as python3 older than 3.9.
 (see [doc for details](doc/replace-annotated-typing.md)) 
 
-## replace-builtin-typing
+## --replace-builtin-typing
 
 If `var: list[int]` is used then it is replaced by `var: List[int]`
 if python2 compatibility requested, as well as python3 older than 3.9.
 (see [doc for details](doc/replace-builtin-typing.md)) 
 
-## replace-union-typing
+## --replace-union-typing
 
 If `var: int|str` is used then it is replaced by `var: Union[int, str]`
 if python2 compatibility requested, as well as python3 older than 3.10.
 It does also replace `var: int|None` by `var: Optional[int]`
 (see [doc for details](doc/replace-builtin-typing.md)) 
 
-## replace-self-typing
+## --replace-self-typing
 
 If `param: Self` is used then it is replaced by `param: SelfB`
 if python2 compatibility requested, as well as python3 older than 3.11.
@@ -275,23 +275,23 @@ It does declare a `SelfB = TypeVar("SelfB", bound="B")` as suggested
 in PEP 673, and it works for the return type of a class method as well.
 (see [doc for details](doc/replace-self-typing.md)) 
 
-## remove-keywordsonly
+## --remove-keywordsonly
 
 The keywordsonly syntax became available in python 3.0, so it need to be
 removed for python2 (see [doc](doc/remove-positionalonly.md)) 
 
 
-## remove-positionalonly
+## --remove-positionalonly
 
 The postionalonly syntax became available in python 3.8, so it need to be
 removed for python2 and python3 older than 3.8 (see [doc](doc/remove-positionalonly.md)) 
 
-## remove-var-typehints
+## --remove-var-typehints
 
 The var typehints became available in python 3.6, so they need to be
 removed for older python3 (or python2)
 
-## remove-typehints
+## --remove-typehints
 
 The function annotations became available in python 3.0, so they need to
 be removed for python2. Note that the typehints syntax became available
@@ -306,12 +306,12 @@ The `"*.pyi"` file generation needs to be requested with the "--pyi" commandline
 The transformations are automatically selected by the minimum target python version
 that is given by --pyi-version=3.8 (which is the default). 
 
-## remove-positional-pyi
+## --remove-positional-pyi
 
 The postionalonly syntax became available in python 3.8, so it need to be
 removed for python3 compatiblity older than 3.8.
 
-## remove-typeddict-pyi
+## --remove-typeddict-pyi
 
 The TypedDict definition became available in python 3.8, so it need to be
 removed for python3 compatiblity older than 3.8.
@@ -343,6 +343,44 @@ let "-2" append a "_2" so that "myfile.py" becomes "myfile_2.py" and "myfile_2.p
 after transformations.
 
 If no `*.pyi` file is wanted then disable it with "--no-pyi" again.
+
+# Parser Variants
+
+By default, ast_comments is used to parse/unparse the source tree. This is
+actually using the stdlib ast.parse adding comments by line number after
+the source code tree has been loaded, and it adds a visitComment to the
+stdlib.unparse that was introduced in Python 3.9. In some cases this
+scheme generates bad code - specifically, when block heads and expr
+statements are on the same line (`if true: return 1`).
+
+## --no-comments
+
+Disables the comment node handling for both parse and unparse. The python
+core maintainers ensure the output to be correct. The only comment being
+kept (or actually added) is the shebang in the first line of the python
+file.
+
+## --remove-comments
+
+Disables loading the comments but still uses the new unparser.
+
+# Upgrade transfomers
+
+Most transformers look for newer python features to be replaced
+by older features being the same or similar enough. The transformer
+classes are able to upgrade source code to newer python features
+as well.
+
+
+## --fstring-from-locals
+
+Replace `"{x} {y}".format(**locals())` to be `F"{x} {y}"`.
+
+## --fstring-from-var-locals
+
+Adding on `--fstring-from-locals` the format may be not
+a literal string. `x='{name}'; x.format(**locals())`
+gets replaced here.
 
 # Development
 
