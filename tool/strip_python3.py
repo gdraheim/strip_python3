@@ -28,7 +28,7 @@ else:  # pragma: nocover
             tomllib = None # type: ignore[assignment]
 DEBUG_TOML = logging.DEBUG
 DEBUG_TYPING = logging.DEBUG
-DEBUG_COPY = logging.INFO
+DEBUG_COPY = logging.DEBUG
 NIX = ""
 OK = True
 
