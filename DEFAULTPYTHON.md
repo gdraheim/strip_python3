@@ -1,0 +1,249 @@
+## Default Python
+
+Docker was shipped with RHEL 7.0 since 2014, and openSUSE adopted it in the same year.
+Docker was dropped in RHEL 8.0 to be replaced by 'podman' which is mostly compatible.
+
+centos:7.3.1611 (2016.12) EOL 2021 (2024-08)
+* does not have /usr/libexec/platform-python
+* python = python2
+* python2 : installed (2.7.5)
+* python3 : yum install --enablerepo=base -y python3 (3.6.8)
+
+centos:7.4.1708 (2017.09) EOL 2022 (2024-08)
+* does not have /usr/libexec/platform-python
+* python = python2 
+* python2 : installed (2.7.5)
+* python3 ; yum install --enablerepo=base -y python3 (3.6.8)
+
+centos:7.5.1804 (2018.05) EOL 2023 (2024-08)
+* does not have /usr/libexec/platform-python
+* python = python2 
+* python2 : installed (2.7.5)
+* python3 ; yum install --enablerepo=base -y python3 (3.6.8)
+
+centos:7.6.1810 (2018.12) EOL 2023 (2024-08)
+* /usr/libexec/platform-python = python2
+* /usr/libexec/platform-python : installed (2.7.5)
+* python = python2 
+* python2 : installed (2.7.5)
+* python3 ; yum install --enablerepo=base -y python3 (3.6.8)
+
+centos:7.7.1908 (2019.09) EOL 2024 (2024-08)
+* /usr/libexec/platform-python = python2
+* /usr/libexec/platform-python : installed (2.7.5)
+* python = python2 
+* python2 : installed (2.7.5)
+* python3 ; yum install --enablerepo=base -y python3 (3.6.8)
+* /usr/libexec/platform-python : (n/a)
+
+centos:7.8.2003 (2020.04) EOL 2024 (2024-08)
+* /usr/libexec/platform-python = python2
+* /usr/libexec/platform-python : installed (2.7.5)
+* python = python2 
+* python2 : installed (2.7.5)
+* python3 ; yum install --enablerepo=base -y python3 (3.6.8)
+* /usr/libexec/platform-python : (n/a)
+
+centos:7.9.2009 (2020-10) EOL 2024 (2024-08)
+* ...
+
+centos:8.0.1905 (2019.09) EOL 2029 (2029-05)
+* /usr/libexec/platform-python = python3
+* /usr/libexec/platform-python : installed (3.6.8)
+* python2 : yum install --enablerepo=AppStream -y python2 (2.7.16)
+* python2 = does not setup 'python'
+* python3 ; yum install --enablerepo=BaseOS -y python3 (3.6.8)
+* python2 = does not setup 'python'
+
+centos:8.1.1911 (2020.01) EOL 2029 (2029-05)
+* /usr/libexec/platform-python = python3
+* /usr/libexec/platform-python : installed (3.6.8)
+* python2 : yum install --enablerepo=AppStream -y python2 (2.7.16)
+* python2 = does not setup 'python'
+* python3 ; yum install --enablerepo=BaseOS -y python3 (3.6.8)
+* python2 = does not setup 'python'
+
+almalinux:9.3 (2023.11) EOL 2032
+* /usr/libexec/platform-python = python3
+* /usr/libexec/platform-python : installed (3.9.18)
+* python2 = does not exist (yum install python does install python3)
+* python3 ; yum install --enablerepo=BaseOS -y python3 (3.9.18)
+* python3 = python python3.9
+
+almalinux:9.4 (2024.05) EOL 2032
+* ...
+
+almalinux:9.5 (2024.11) EOL 2032
+* ...
+
+almalinux:9.6 (2025.05) EOL 2032
+* ...
+
+almalinux:9.7 (2025.11) EOL 2032
+* python2 = does not exist
+* python3 is preinstalled
+* python3 = python3 symlink to python3.9
+* python3.9 ; yum install --enablerepo=baseos -y python3.9 (3.9.25)
+* python3.9 = python3.9
+* python3.11 ; yum install --enablerepo=baseos -y python3.11 (3.11.13)
+* python3.11 = python3.11
+* python3.12 ; yum install --enablerepo=baseos -y python3.12 (3.12.12)
+* python3.12 = python3.11
+
+almalinux:10.1 (2025.11) EOL 2035
+* can not test: "CPU does not support x86-64-v3"
+
+opensuse:42.2 (2016.11) EOL 2018
+* zypper is not python anymore
+* python2 : zypper install -r OSS -y python2 (2.7.13)
+* python2 = with 'python' (actually package 'python' provides 'python2')
+* python3 : zypper install -r OSS -y python3 (3.4.6)
+* python3 = does not setup 'python'
+
+opensuse:42.3 (2017.07) EOL 2019
+* zypper is not python anymore
+* python2 : zypper install -r OSS -y python2 (2.7.13)
+* python2 = with 'python' (actually package 'python' provides 'python2')
+* python3 : zypper install -r OSS -y python3 (3.4.6)
+* python3 = does not setup 'python'
+
+opensuse/leap:15.0 (2018.05) EOL 2019
+* zypper is binary
+* python2 : zypper install -r repo-oss -y python2 (2.7.14)
+* python2 = with 'python' (actually package 'python-base' provides 'python2')
+* python3 : zypper install -r repo-oss -y python3 (3.6.5)
+* python3 = does not setup 'python'
+
+opensuse/leap:15.1 (2019.05) EOL 2021
+* zypper is binary
+* python2 : zypper install -r repo-oss -y python2 (2.7.14)
+* python2 = with 'python' (actually package 'python-base' provides 'python2')
+* python3 : zypper install -r repo-oss -y python3 (3.6.5)
+* python3 = does not setup 'python'
+
+opensuse/leap:15.2 (2020.05) EOL 2022
+* zypper is binary
+* python2 : zypper install -r repo-oss -y python2 (2.7.17)
+* python2 = with 'python' (actually package 'python-base' provides 'python2')
+* python3 : zypper install -r repo-oss -y python3 (3.6.10)
+* python3 = does not setup 'python'
+
+opensuse/leap:15.4 (2022.06) EOL 2023
+* zypper is binary
+* python2 : zypper install -r repo-oss -y python2 (2.7.18)
+* python2 = with 'python' (actually package 'python-base' provides 'python2')
+* python3 : zypper install -r repo-oss -y python3 (3.6.15)
+* python3 = does not setup 'python'
+* python310 : zypper install python310 (3.10.13)
+* python310 = python3.10
+* python311 : zypper install python311 (3.11.5)
+
+opensuse/leap:15.5 (2023.06) EOL 2024
+* zypper is binary
+* python2 : zypper install -r repo-oss -y python2 (2.7.18)
+* python3 : zypper install -r repo-oss -y python3 (3.6.15)
+* python3 = does not setup 'python'
+* python310 : zypper install python310 (3.10.13)
+* python310 = python3.10
+* python311 : zypper install python311 (3.11.5)
+
+opensuse/leap:15.6 (2024.06) EOL 2026 (2026-04)
+* zypper is binary
+* python2 : zypper install -r repo-oss -y python (2.7.18)
+* python3 : zypper install -r repo-oss -y python3 (3.6.15)
+* python3 = does not setup 'python'
+* python39 : zypper install python39 (3.9.25)
+* python310 : zypper install python310 (3.10.19)
+* python310 = python3.10
+* python311 : zypper install python311 (3.11.14)
+* python312 : zypper install python311 (3.12.12)
+
+
+opensuse/leap:16.0 (2025.10) EOL 2027 (2027-10)
+* python2 does not exist as a package
+* zypper install python3 => installs python313
+* python313 : zypper install python313 (3.13.11)
+* python313 = python3.13 / and symlink python3
+
+SLES 15.000 (2018.06) EOL 2021 (LTS 2028-07 / 2031-07)
+* ..
+
+SLES 15.SP1 (2019.06) EOL 2022 (LTS 2028-07 / 2031-07)
+* ..
+
+SLES 15.SP2 (2020.06) EOL 2023 (LTS 2028-07 / 2031-07)
+* ..
+
+debian:10 (2019.07) EOL 2022-07 (LTS 2024-06)
+* ..
+
+debian:11 (2021.08) EOL 2024-08 (LTS 2026-08)
+* python3: apt-get install -y python3 : depends python3.9
+* python3 = python3 symlink to python3.9 (does not setup python)
+* python3.9 : apt-get install -y python3.9 (3.9.2)
+* python3.9 = python3.9 
+* python3.10 : apt-get install -y python3.9 (3.10.14)
+* python3.10 = python3.10
+
+debian:12 (2023.06) EOL 2026-06 (LTS 2028-06)
+* python3: apt-get install -y python3 : depends python3.11
+* python3 = python3 symlink to python3.11 (does not setup python)
+* python3.11 : apt-get install -y python3.11 (3.11.2)
+* python3.11 = python3.11
+
+debian:13 (2025.08) EOL 2028-06 (LTS 2030-06)
+* python3: apt-get install -y python3 : depends python3.13
+* python3 = python3 (not a symlink - does not setup python)
+* python3.13 : apt-get install -y python3.11 (3.13.5)
+* python3.13 = python3.13
+
+ubuntu:16.04 (2016.04) EOL 2019 (LTS 2021-04)
+* apt is binary
+* python2 : apt-get install -y python (2.7.12)
+* python2 = with 'python' (note that there is no package 'python2')
+* python3 : apt-get install -y python3 (3.5.2)
+* python3 = does not setup 'python'
+
+ubuntu:18.04 (2018.04) EOL 2021 (LTS 2023-04)
+* apt is binary
+* python2 : apt-get install -y python (2.7.17)
+* python2 = with 'python' (note that there is no package 'python2')
+* python3 : apt-get install -y python3 (3.6.9)
+* python3 = does not setup 'python'
+
+ubuntu:20.04 (2020.04) EOL 2023 (LTS 2025-04)
+* apt is binary
+* python2 : apt-get install -y python (2.7.17)
+* python2 = with 'python' (python installs package 'python2')
+* python3 : apt-get install -y python3 (3.8.2)
+* python3 = python3.8 # does not setup 'python' (python3 installs package 'python3.8')
+* python3.9 : apt-get install -y python3.9 (3.9.5)
+* python3.9 = python3.9 # does not setup 'python' nor 'python3'
+
+ubuntu:22.04 (2022.04) EOL 2025 (LTS 2027-04)
+* apt is binary
+* python2 : apt-get install -y python2 (2.7.18)
+* python2 = does not setup 'python'
+* python3 : apt-get install -y python3 (3.10.6)
+* python3 = python3.10 # does not setup 'python' (python3 installs package 'python3.10')
+* python311 : apt-get install -y python3.11 (3.11.0)
+* python311 = python3.11 # does not setup 'python' nor 'python3'
+
+ubuntu:24.04 (2024.04) EOL 2027 (LTS 2029-04)
+* apt is binary
+* python2 = does not exist (not even a wrapper)
+* python3 : apt-get install -y python3 (3.11.7)
+* python3 = python3.11 # does not setup 'python' (python3 installs package 'python3.11')
+* python312 : apt-get install -y python3.12 (3.12.1)
+* python312 = python3.12 # does not setup 'python' nor 'python3'
+
+ubuntu:26.04 (2026.04) EOL 2029 (LTS 2031-04)
+* python2 = does not exist (not even a wrapper)
+* python3 : apt-get install -y python3 : Depends python3.13
+* python3 = python3 symlink to python3.13
+* python313 : apt-get install -y python3.13 (3.13.11)
+* python313 = python3.13 
+* python314 : apt-get install -y python3.14 (3.14.2)
+* python314 = python3.14
+
+
