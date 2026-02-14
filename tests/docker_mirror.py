@@ -7,7 +7,7 @@ from __future__ import print_function
 __copyright__ = "(C) 2026 Guido Draheim"
 __contact__ = "https://github.com/gdraheim/docker-mirror-packages-repo"
 __license__ = "CC0 Creative Commons Zero (Public Domain)"
-__version__ = "1.7.2062"
+__version__ = "1.7.2066"
 
 from collections import OrderedDict
 import os.path

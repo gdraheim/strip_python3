@@ -6,7 +6,7 @@
 
 __copyright__ = "(C) 2026 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "1.4.2062"
+__version__ = "1.4.2066"
 
 from typing import Set, List, Dict, Optional, Union, Tuple, cast, NamedTuple, TypeVar, Deque, Iterable, TYPE_CHECKING
 import sys
