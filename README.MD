@@ -223,6 +223,15 @@ you can write `F"string {len(part):4n}: {part}"` which gets expanded to:
 
 See [doc for details](doc/replace-fstring.md) and `--fstring-from-var-locals`.
 
+## --replace-enum-class
+
+If `class Result(Enum)` is used then `from enum import Enum` is replaced by local `class Enum`.
+if python2 compatibility requested, as well as python3 older than 3.3.
+
+The Enum subclass is modified as well - note however that only basic definitions on a global
+level can get replaced. Dont use `auto()` or function-level declarations. Most member functions
+of an `enum` have not been implemented - you can only check for `Color(3) is Color.R`.
+
 ## --replace-namedtuple-class
 
 If `class Result(NamedTuple)` is used then it is replaced by `Result = namedtuple("Result",[])`
