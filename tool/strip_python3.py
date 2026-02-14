@@ -78,9 +78,10 @@ class TransformerSyntaxError(SyntaxError):
 # (python3.8) = Protocol
 # (python3.11) = assert_type
 # PEP3102 (python 3.0) keyword-only params
-# PEP3107 (python3.0) function annotations
+# PEP3107 (python 3.0) function annotations
 # PEP3151 (python 3.3) IOError (and lib.error) become alias to OSError being a catch-all errno
 # PEP3151 (python 3.3) declare subtypes of OSError for specific errno
+# PEP 435 (python 3.4) introducing class Enum syntax for enum() from PEP354 (2.6)
 # PEP 484 (python 3.5) typehints and "typing" module (and tpying.TYPE_CHECKING)
 #          including "cast", "NewType", "overload", "no_type_check", "ClassVar", AnyStr = str|bytes
 # PEP 498 (python3.6) formatted string literals
@@ -140,6 +141,7 @@ class Want:
     fstring_from_locals_format = to_int(os.environ.get("PYTHON3_FSTRING_FROM_LOCALS_FORMAT", NIX))
     fstring_from_var_locals_format = to_int(os.environ.get("PYTHON3_FSTRING_FROM_VAR_LOCALS_FORMAT", NIX))
     replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
+    replace_enum_class = to_int(os.environ.get("PYTHON3_REPLACE_ENUM_CLASS", NIX))
     replace_namedtuple_class = to_int(os.environ.get("PYTHON3_REPLACE_NAMEDTUPLE_CLASS", NIX))
     replace_typeddict_class = to_int(os.environ.get("PYTHON3_REPLACE_TYPEDDICT_CLASS", NIX))
     replace_typeddict_pyi = to_int(os.environ.get("PYTHON3_REPLACE_TYPEDDICT_PYI", NIX))
@@ -210,6 +212,7 @@ def main() -> int:
     cmdline.add_option("--no-catch-ioerror", action="count", default=0, help="3.3 IOError is an alias to OSError")
     cmdline.add_option("--no-catch-select-error", action="count", default=0, help="3.3 select.error is an alias to OSError")
     cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
+    cmdline.add_option("--no-replace-enum-class", action="count", default=0, help="3.3 Enum class")
     cmdline.add_option("--no-replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple class")
     cmdline.add_option("--no-replace-typeddict-class", action="count", default=0, help="3.8 TypeDict class")
     cmdline.add_option("--no-replace-typeddict-pyi", action="count", default=0, help="3.8 TypeDict class (in pyi)")
@@ -237,6 +240,7 @@ def main() -> int:
     cmdline.add_option("--catch-ioerror", action="count", default=0, help="3.3 IOError is an alias to OSError")
     cmdline.add_option("--catch-select-error", action="count", default=0, help="3.3 select.error is an alias to OSError")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
+    cmdline.add_option("--replace-enum-class", action="count", default=0, help="3.3 Enum class to local wrapper")
     cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
     cmdline.add_option("--replace-typeddict-class", action="count", default=0, help="3.8 TypedDict to builtin dict")
     cmdline.add_option("--replace-typeddict-pyi", action="count", default=0, help="3.8 TypedDict to builtin dict in *.pyi")
@@ -343,6 +347,9 @@ def main() -> int:
             want.replace_fstring = max(1, opt.replace_fstring)
             if want.replace_fstring > 1:
                 want.fstring_numbered = 1
+    if back_version < (3,3) or opt.replace_enum_class:
+        if not opt.no_replace_enum_class:
+            want.replace_enum_class = max(1, opt.replace_enum_class)
     if back_version < (3,6) or opt.replace_namedtuple_class:
         if not opt.no_replace_namedtuple_class:
             want.replace_namedtuple_class = max(1, opt.replace_namedtuple_class)
@@ -1181,6 +1188,109 @@ class DefineIfPython3:
             return module2
         else:
             return node
+
+class EnumClassTransformer(DetectImportsTransformer):
+    typedefs: List[ast.stmt]
+    requiresfrom: Set[str]
+    only: Set[str]
+    _Enum = """class Enum:
+
+        def __new__(cls, *values):
+            if len(values) != 1:
+                return super().__new__(cls)
+            for name in dir(cls):
+                elem = getattr(cls, name)
+                if isinstance(elem, Enum):
+                    if elem.value == values[0]:
+                        return elem
+            raise ValueError('unknown enum value %s' % values)
+        
+        def __init__(self, name, value=None):
+            if value is not None:
+                self.name = name
+                self.value = value
+
+        def __iter__(self):
+            for name in dir(self):
+                elem = getattr(cls, name)
+                if isinstance(elem, Enum):
+                    yield elem
+        def __str__(self):
+            return "<%s: %s>" % (self.name, self.value)
+    """
+    def __init__(self) -> None:
+        DetectImportsTransformer.__init__(self)
+        self.only = set()
+    def visit(self, node: ast.AST) -> ast.AST:
+        if isinstance(node, ast.Module):
+            module = cast(ast.Module, node)  # type: ignore[redundant-cast]
+            for stmt in module.body:
+                if isinstance(stmt, ast.ClassDef):
+                    self.only.add(stmt.name) # only top-level class names
+        return cast(ast.AST, DetectImportsTransformer.visit(self, node))
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST: # pylint: disable=invalid-name
+        atleast = (3, 3)
+        imports: ast.ImportFrom = node
+        if imports.module and imports.module == "enum":
+            orelse: List[ast.stmt] = []
+            for symbol in imports.names:
+                if symbol.name in "Enum":
+                    orelse += cast(ast.Module, ast_parse(self._Enum)).body # type: ignore[redundant-cast]
+            if not orelse:
+                orelse = [ast.Pass()]
+            testcode = "sys.version_info >= ({}, {})".format(atleast[0], atleast[1]) # pylint: disable=consider-using-f-string
+            testparsed = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
+            assert isinstance(testparsed.body[0], ast.Expr)
+            testbody = testparsed.body[0]
+            testcompare = testbody.value
+            python2 = ast.If(test=testcompare, body=[imports], orelse=orelse)
+            python2 = copy_location(python2, imports)
+            return python2
+        return node
+    def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST: # pylint: disable=invalid-name
+        atleast = (3, 3)
+        classname = node.name
+        for base in node.bases:
+            if isinstance(base, ast.Name):
+                basename = cast(ast.Name, base)  # type: ignore[redundant-cast]
+                logg.fatal("Enum base = %s", basename)
+                logg.fatal("Enum base id = %s", basename.id)
+                if basename.id == "Enum":
+                    if True:
+                        body: List[ast.stmt] = []
+                        fields: Dict[str, ast.expr] = OrderedDict()
+                        for stmt in node.body:
+                            if isinstance(stmt, ast.Assign):
+                                assign = cast(ast.Assign, stmt)   # type: ignore[redundant-cast]
+                                for target in assign.targets:
+                                    fieldname = cast(ast.Name, target).id
+                                    fields[fieldname] = assign.value
+                            else: # pragma: nocover
+                                raise TransformerSyntaxError(F"Enum {classname} - can only replace enum declarations", #  ..
+                                    (None, stmt.lineno, stmt.col_offset, str(type(stmt)), stmt.end_lineno, stmt.end_col_offset))
+                        typebase = ast.Name("Enum")
+                        typebody: List[ast.stmt] = [ast.Pass()]
+                        copy_location(typebase, node)
+                        typebases: List[ast.expr] = [typebase]
+                        typeclass = ast.ClassDef(classname, typebases, body=typebody, keywords=[], decorator_list=[])
+                        copy_location(typeclass, node)
+                        orelse: list[ast.stmt] = [typeclass]
+                        for fieldname, fieldexpr in fields.items():
+                            fieldargs = [ast.Constant(fieldname), fieldexpr]
+                            fieldmake = ast.Call(ast.Name(classname), fieldargs, keywords=[])
+                            replaced = ast.Assign([ast.Attribute(ast.Name(classname), attr=fieldname)], fieldmake)
+                            copy_location(replaced, node)
+                            orelse.append(replaced)
+                        testcode = "sys.version_info >= ({}, {})".format(atleast[0], atleast[1]) # pylint: disable=consider-using-f-string
+                        testparsed = cast(ast.Module, ast_parse(testcode)) # type: ignore[redundant-cast]
+                        assert isinstance(testparsed.body[0], ast.Expr)
+                        testbody = testparsed.body[0]
+                        testcompare = testbody.value
+                        python2 = ast.If(test=testcompare, body=[node], orelse=orelse)
+                        python2 = copy_location(python2, node)
+                        return python2
+        return self.generic_visit(node)
+
 
 class NamedTupleToCollectionsTransformer(DetectImportsTransformer):
     typedefs: List[ast.stmt]
@@ -2415,6 +2525,9 @@ class StripPythonTransformer:
             tree = typeddict.visit(tree)
             importrequiresfrom.append(typeddict.requiresfrom)
             self.typedefs.extend(typeddict.typedefs)
+        if want.replace_enum_class:
+            typedenum = EnumClassTransformer()
+            tree = typedenum.visit(tree)
         extracted = ExtractTypeHints()
         tree = extracted.visit(tree)
         self.typedefs.extend(extracted.typedefs)

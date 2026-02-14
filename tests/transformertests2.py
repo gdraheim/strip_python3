@@ -4521,6 +4521,76 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_2541(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        from enum import Enum
+        class A(Enum):
+            B = 2
+            C = 3
+        def func1() -> int:
+            return A(3)
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        if sys.version_info >= (3, 3):
+            from enum import Enum
+        else:
+
+            class Enum:
+
+                def __new__(cls, *values):
+                    if len(values) != 1:
+                        return super().__new__(cls)
+                    for name in dir(cls):
+                        elem = getattr(cls, name)
+                        if isinstance(elem, Enum):
+                            if elem.value == values[0]:
+                                return elem
+                    raise ValueError('unknown enum value %s' % values)
+        
+                def __init__(self, name, value=None):
+                    if value is not None:
+                        self.name = name
+                        self.value = value
+
+                def __iter__(self):
+                    for name in dir(self):
+                        elem = getattr(cls, name)
+                        if isinstance(elem, Enum):
+                            yield elem
+
+                def __str__(self):
+                    return '<%s: %s>' % (self.name, self.value)
+        if sys.version_info >= (3, 3):
+
+            class A(Enum):
+                B = 2
+                C = 3
+        else:
+
+            class A(Enum):
+                pass
+            A.B = A('B', 2)
+            A.C = A('C', 3)
+
+        def func1():
+            return A(3)
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
     def test_2601(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)
