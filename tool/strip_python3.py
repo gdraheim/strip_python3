@@ -1191,8 +1191,7 @@ class DefineIfPython3:
 
 class EnumClassTransformer(DetectImportsTransformer):
     typedefs: List[ast.stmt]
-    requiresfrom: Set[str]
-    only: Set[str]
+    requires: List[str]
     _Enum = """class Enum:
 
         def __new__(cls, *values):
@@ -1215,21 +1214,15 @@ class EnumClassTransformer(DetectImportsTransformer):
                 elem = getattr(cls, name)
                 if isinstance(elem, Enum):
                     yield elem
+
         def __str__(self):
             return "<%s: %s>" % (self.name, self.value)
     """
     def __init__(self) -> None:
         DetectImportsTransformer.__init__(self)
-        self.only = set()
-    def visit(self, node: ast.AST) -> ast.AST:
-        if isinstance(node, ast.Module):
-            module = cast(ast.Module, node)  # type: ignore[redundant-cast]
-            for stmt in module.body:
-                if isinstance(stmt, ast.ClassDef):
-                    self.only.add(stmt.name) # only top-level class names
-        return cast(ast.AST, DetectImportsTransformer.visit(self, node))
+        self.requires = []
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST: # pylint: disable=invalid-name
-        atleast = (3, 3)
+        atleast = [int(val) for val in os.environ.get("PYTHON3_ENUM_CLASS_ATLEAST", "3.3").split(".")]
         imports: ast.ImportFrom = node
         if imports.module and imports.module == "enum":
             orelse: List[ast.stmt] = []
@@ -1245,10 +1238,12 @@ class EnumClassTransformer(DetectImportsTransformer):
             testcompare = testbody.value
             python2 = ast.If(test=testcompare, body=[imports], orelse=orelse)
             python2 = copy_location(python2, imports)
+            if "sys" not in self.requires:
+                self.requires += ["sys"]
             return python2
         return node
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST: # pylint: disable=invalid-name
-        atleast = (3, 3)
+        atleast = [int(val) for val in os.environ.get("PYTHON3_ENUM_CLASS_ATLEAST", "3.3").split(".")]
         classname = node.name
         for base in node.bases:
             if isinstance(base, ast.Name):
@@ -2528,6 +2523,7 @@ class StripPythonTransformer:
         if want.replace_enum_class:
             typedenum = EnumClassTransformer()
             tree = typedenum.visit(tree)
+            importrequires.append(typedenum.requires)
         extracted = ExtractTypeHints()
         tree = extracted.visit(tree)
         self.typedefs.extend(extracted.typedefs)

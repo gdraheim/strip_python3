@@ -4522,6 +4522,7 @@ class StripTest(unittest.TestCase):
         self.coverage()
         self.rm_testdir()
     def test_2541(self) -> None:
+        """ check Enum classes are replaced by local def"""
         vv = self.begin()
         strip = coverage(STRIP)
         tmp = self.testdir()
@@ -4541,6 +4542,7 @@ class StripTest(unittest.TestCase):
         py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
         logg.debug("py:\n%s", py)
         self.assertEqual(lines4(py), lines4(text4("""
+        import sys
         if sys.version_info >= (3, 3):
             from enum import Enum
         else:

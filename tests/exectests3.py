@@ -60,18 +60,18 @@ def q_str(part: Union[str, int, None]) -> str:
     if isinstance(part, int):
         return str(part)
     return "'%s'" % part  # pylint: disable=consider-using-f-string
-def sh____(cmd: Union[str, List[str]], shell: bool = True) -> int:
+def sh____(cmd: Union[str, List[str]], shell: bool = True, env=None) -> int:
     if isinstance(cmd, string_types):
         logg.info(": %s", cmd)
     else:
         logg.info(": %s", " ".join([q_str(item) for item in cmd]))
-    return subprocess.check_call(cmd, shell=shell)
-def sx____(cmd: Union[str, List[str]], shell: bool = True) -> int:
+    return subprocess.check_call(cmd, shell=shell, env=env)
+def sx____(cmd: Union[str, List[str]], shell: bool = True, env=None) -> int:
     if isinstance(cmd, string_types):
         logg.info(": %s", cmd)
     else:
         logg.info(": %s", " ".join([q_str(item) for item in cmd]))
-    return subprocess.call(cmd, shell=shell)
+    return subprocess.call(cmd, shell=shell, env=env)
 
 class CalledProcessError(subprocess.SubprocessError):
     def __init__(self, args: Union[str, List[str]], returncode: int = 0, stdout: Union[str,bytes] = NIX, stderr: Union[str,bytes] = NIX) -> None:
@@ -887,6 +887,36 @@ class StripPythonExecTest(unittest.TestCase):
             x2 = X(F"{MYPY} --strict {tmp}/test4.py")
             logg.info("%s -> %s\n%s", x2.args, x2.out, x2.err)
             self.assertEqual(x2.out, "Success: no issues found in 1 source file")
+        self.rm_testdir()
+        self.end()
+    def test_3541(self) -> None:
+        """ check Enum classes are replaced by local def"""
+        vv = self.begin()
+        python = PYTHON
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        from enum import Enum
+        class A(Enum):
+            B = 2
+            C = 3
+        def func1() -> A:
+            return A(3)
+        f = func1()
+        if f is A.C:
+            print("OK:", f)
+        else:
+            print("NO:", f)
+        """)
+        sh____(F"{PYTHON3} {STRIP} -3 {tmp}/test3.py {vv}", env={"PYTHON3_ENUM_CLASS_ATLEAST":"3.99"})
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        script = lines4(open(F"{tmp}/test.py").read())
+        logg.info("script = %s", script)
+        self.assertTrue(greps(script, "(3, 99)"))
+        self.assertTrue(greps(script, "class Enum"))
+        x1 = X(F"{python} {tmp}/test.py")
+        logg.info("%s -> %s\n%s", x1.args, x1.out, x1.err)
+        self.assertTrue(greps(x1.out, "OK: <C: 3>"))
         self.rm_testdir()
         self.end()
 
