@@ -1248,8 +1248,6 @@ class EnumClassTransformer(DetectImportsTransformer):
         for base in node.bases:
             if isinstance(base, ast.Name):
                 basename = cast(ast.Name, base)  # type: ignore[redundant-cast]
-                logg.fatal("Enum base = %s", basename)
-                logg.fatal("Enum base id = %s", basename.id)
                 if basename.id == "Enum":
                     if True:
                         body: List[ast.stmt] = []
