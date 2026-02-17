@@ -104,10 +104,10 @@ def decodes_(text: Union[bytes, str]) -> Optional[str]:
 
 def each_lines4(lines: Union[str, Iterable[str]]) -> Iterable[str]:
     if isinstance(lines, basestring):
-        lines = lines.split("\n")
-        if len(lines) and lines[-1] == "":
-            lines = lines[:-1]
-        return lines
+        lines2 = lines.split("\n")
+        if len(lines2) and lines2[-1] == "":
+            lines2 = lines2[:-1]
+        return lines2
     return lines
 def lines4(text: Union[str, Iterable[str]]) -> List[str]:
     lines = []
@@ -2886,6 +2886,211 @@ class StripTest(unittest.TestCase):
         logg.warning('running %s', x)
         s = foo(f'{y:n}')
         print(s)"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2271(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp1.py", """
+        from typing import Final, final
+        a: Final[int] = 0
+        class A:
+            @final
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -27 {tmp}/tmp1.py --pyi {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/tmp1_2.pyi"))
+        py, pyi = file_text4(F"{tmp}/tmp1_2.py"), file_text4(F"{tmp}/tmp1_2.pyi")
+        logg.debug("--- py:\n%s\n--- pyi:\n%s\n---", py, pyi)
+        self.assertEqual(py, text4("""
+        a = 0
+
+        class A:
+
+            def adds(self, b=0):
+                return a + b
+        """))
+        self.assertEqual(pyi, text4("""
+        from typing import Final, final
+        a: int
+       
+        class A:
+
+            def adds(self, b: int=0) -> int:
+                pass"""))
+        self.coverage()
+        self.rm_testdir()
+    def test_2273(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        from typing import Final, final
+        a: Final[int] = 0
+        class A:
+            @final
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -36 {tmp}/tmp3.py {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.info("--- py:\n%s\n", lines4(py))
+        self.assertEqual(lines4(py), lines4(text4("""
+        a: int = 0
+
+        class A:
+
+            def adds(self, b: int=0) -> int:
+                return a + b
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2274(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        from typing import Final as Foo, final as foo
+        a: Foo[int] = 0
+        class A:
+            @foo
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -36 {tmp}/tmp3.py {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.info("--- py:\n%s\n", lines4(py))
+        self.assertEqual(lines4(py), lines4(text4("""
+        a: int = 0
+
+        class A:
+
+            def adds(self, b: int=0) -> int:
+                return a + b
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2275(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        # from typing import Final, final
+        a: Final[int] = 0
+        class A:
+            @final
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -36 {tmp}/tmp3.py {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.info("--- py:\n%s\n", lines4(py))
+        self.assertEqual(lines4(py), lines4(text4("""
+        # from typing import Final, final
+        a: Final[int] = 0
+
+        class A:
+
+            @final
+            def adds(self, b: int=0) -> int:
+                return a + b
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2276(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        from typing import Final, final
+        a: Final[int]
+        class A:
+            @final
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -36 {tmp}/tmp3.py {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.info("--- py:\n%s\n", lines4(py))
+        self.assertEqual(lines4(py), lines4(text4("""
+        a: int
+
+        class A:
+
+            def adds(self, b: int=0) -> int:
+                return a + b
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2277(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        from typing import Final, final
+        a: Final = 0
+        class A:
+            @final
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -36 {tmp}/tmp3.py {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.info("--- py:\n%s\n", lines4(py))
+        self.assertEqual(lines4(py), lines4(text4("""
+        a = 0
+
+        class A:
+
+            def adds(self, b: int=0) -> int:
+                return a + b
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2278(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/tmp3.py", """
+        from typing import Final, final
+        a: Final
+        class A:
+            @final
+            def adds(self, b: int = 0) -> int:
+                return a+b
+        """)
+        run = sh(F"{strip} -36 {tmp}/tmp3.py {vv}")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/tmp.py"))
+        py = file_text4(F"{tmp}/tmp.py")
+        logg.info("--- py:\n%s\n", lines4(py))
+        self.assertEqual(lines4(py), lines4(text4("""
+        class A:
+
+            def adds(self, b: int=0) -> int:
+                return a + b
+        """)))
         self.coverage()
         self.rm_testdir()
 

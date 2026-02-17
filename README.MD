@@ -284,6 +284,12 @@ It does declare a `SelfB = TypeVar("SelfB", bound="B")` as suggested
 in PEP 673, and it works for the return type of a class method as well.
 (see [doc for details](doc/replace-self-typing.md)) 
 
+## --remove-final-decorator
+
+The `typing.final` decorator ('@final' function) and the `typing.Final`
+annotation ('Final[int]') became available in python3.9. These can be
+removed altogether (and removing the typing imports as well)
+
 ## --remove-keywordsonly
 
 The keywordsonly syntax became available in python 3.0, so it need to be

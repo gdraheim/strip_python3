@@ -74,7 +74,6 @@ class TransformerSyntaxError(SyntaxError):
 # (python3.12) = type() statement
 # (python3.12) = support for generics
 # (python3.6) = NoReturn
-# (python3.8) = Final
 # (python3.8) = Protocol
 # (python3.11) = assert_type
 # PEP3102 (python 3.0) keyword-only params
@@ -138,6 +137,7 @@ class Want:
     remove_keywordonly = to_int(os.environ.get("PYTHON3_REMOVE_KEYWORDSONLY", NIX))
     remove_positional = to_int(os.environ.get("PYTHON3_REMOVE_POSITIONAL", NIX))
     remove_positional_pyi = to_int(os.environ.get("PYTHON3_REMOVE_POSITIONAL_PYI", NIX))
+    remove_final_decorator = to_int(os.environ.get("PYTHON3_REMOVE_FINAL_DECORATOR", NIX))
     fstring_from_locals_format = to_int(os.environ.get("PYTHON3_FSTRING_FROM_LOCALS_FORMAT", NIX))
     fstring_from_var_locals_format = to_int(os.environ.get("PYTHON3_FSTRING_FROM_VAR_LOCALS_FORMAT", NIX))
     replace_fstring = to_int(os.environ.get("PYTHON3_REPLACE_FSTRING", NIX))
@@ -221,6 +221,7 @@ def main() -> int:
     cmdline.add_option("--no-replace-builtin-typing", action="count", default=0, help="3.9 list[int] (in pyi)")
     cmdline.add_option("--no-replace-union-typing", action="count", default=0, help="3.10 int|str (in pyi)")
     cmdline.add_option("--no-replace-self-typing", action="count", default=0, help="3.11 Self (in pyi)")
+    cmdline.add_option("--no-remove-final-decorator", action="count", default=0, help="3.9 @final decorator")
     cmdline.add_option("--no-remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
     cmdline.add_option("--no-remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
     cmdline.add_option("--no-remove-positional-pyi", action="count", default=0, help="3.8 positionalonly in *.pyi")
@@ -249,6 +250,7 @@ def main() -> int:
     cmdline.add_option("--replace-builtin-typing", action="count", default=0, help="3.9 list[int] converted to List[int]")
     cmdline.add_option("--replace-union-typing", action="count", default=0, help="3.10 int|str converted to Union[int,str]")
     cmdline.add_option("--replace-self-typing", action="count", default=0, help="3.11 Self converted to SelfClass TypeVar")
+    cmdline.add_option("--remove-final-decorator", action="count", default=0, help="3.9 @final decorator")
     cmdline.add_option("--remove-typehints", action="count", default=0, help="3.5 function annotations and cast()")
     cmdline.add_option("--remove-keywordonly", action="count", default=0, help="3.0 keywordonly parameters")
     cmdline.add_option("--remove-positionalonly", action="count", default=0, help="3.8 positionalonly parameters")
@@ -330,6 +332,9 @@ def main() -> int:
         want.remove_var_typehints = max(1,opt.remove_typehints,opt.remove_var_typehints)
     if back_version < (3,5) or opt.remove_typehints:
         want.remove_typehints = max(1,opt.remove_typehints)
+    if back_version < (3,9) or opt.remove_final_decorator:
+        if not opt.no_remove_final_decorator:
+            want.remove_final_decorator = max(1,opt.remove_final_decorator)
     if back_version < (3,9) or opt.replace_builtin_typing:
         if not opt.no_replace_builtin_typing:
             want.replace_builtin_typing = max(1,opt.replace_builtin_typing)
@@ -715,6 +720,79 @@ class WhileWalrusTransformer(BlockTransformer):
         else:
             logg.log(DEBUG_TYPING, "whwalrus-if?: %s", ast.dump(node))
             return [node]
+
+class FinalDecoratorTransformer(ast.NodeTransformer):
+    importfrom: Dict[str, Dict[str, str]]
+    imported: Dict[str, str]
+    importas: Dict[str, str]
+    removes: Dict[str, Optional[str]]
+    def __init__(self) -> None:
+        ast.NodeTransformer.__init__(self)
+        self.importfrom = {}
+        self.imported = {}
+        self.importas = {}
+        self.removes = {}
+    # def visit(self, node: ast.AST) -> ast.AST:
+    #    logg.fatal("@final %s", ast.dump(node))
+    #    return self.generic_visit(node)
+    def visit_FunctionDef(self, node: ast.AST) -> ast.AST: # pylint: disable=invalid-name
+        logg.debug("??final FuncDef %s", ast.dump(node))
+        if "typing.final" in self.imported:
+            self.removes["typing.final"] = None
+            decorator_name = self.imported["typing.final"]
+            funcdef: ast.FunctionDef = cast(ast.FunctionDef, node)
+            decorator_list: List[ast.expr] = []
+            for decorator in funcdef.decorator_list:
+                if isinstance(decorator, ast.Name):
+                    decorated = cast(ast.Name, decorator) # type: ignore[redundant-cast]
+                    if decorated.id == decorator_name:
+                        continue # skip
+                decorator_list.append(decorator)
+            funcdef.decorator_list = decorator_list
+        return self.generic_visit(node)
+    def visit_AnnAssign(self, node: ast.AST) -> Optional[ast.AST]: # pylint: disable=invalid-name
+        assign: ast.AnnAssign = cast(ast.AnnAssign, node)
+        logg.debug("final AnnAssign %s", ast.dump(assign))
+        if "typing.Final" in self.imported:
+            self.removes["typing.Final"] = None
+            decorator_name = self.imported["typing.Final"]
+            if isinstance(assign.annotation, ast.Subscript):
+                subscript = cast(ast.Subscript, assign.annotation) # type: ignore[redundant-cast]
+                if isinstance(subscript.value, ast.Name):
+                    name = cast(ast.Name, subscript.value) # type: ignore[redundant-cast]
+                    if name.id == decorator_name:
+                        assign.annotation = subscript.slice
+            elif isinstance(assign.annotation, ast.Name):
+                typed = cast(ast.Name, assign.annotation) # type: ignore[redundant-cast]
+                if typed.id == decorator_name:
+                    if assign.value:
+                        newnode = ast.Assign([assign.target], value=assign.value)
+                        copy_location(newnode, node)
+                        return newnode
+                    return None
+        return self.generic_visit(node)
+    def visit_Import(self, node: ast.Import) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.Import = node
+        for symbol in imports.names:
+            origname = symbol.name
+            codename = symbol.name if not symbol.asname else symbol.asname
+            self.imported[origname] = codename
+            self.importas[codename] = origname
+        return self.generic_visit(node)
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> Optional[ast.AST]:  # pylint: disable=invalid-name
+        imports: ast.ImportFrom = node
+        if imports.module:
+            modulename = ("." * imports.level) + imports.module
+            if modulename not in self.importfrom:
+                self.importfrom[modulename] = {}
+            for symbol in imports.names:
+                origname = modulename + "." + symbol.name
+                codename = symbol.name if not symbol.asname else symbol.asname
+                self.imported[origname] = codename
+                self.importas[codename] = origname
+                if symbol.name not in self.importfrom[modulename]:
+                    self.importfrom[modulename][symbol.name] = codename
+        return self.generic_visit(node)
 
 class DetectImportsTransformer(ast.NodeTransformer):
     importfrom: Dict[str, Dict[str, str]]
@@ -1250,7 +1328,6 @@ class EnumClassTransformer(DetectImportsTransformer):
                 basename = cast(ast.Name, base)  # type: ignore[redundant-cast]
                 if basename.id == "Enum":
                     if True:
-                        body: List[ast.stmt] = []
                         fields: Dict[str, ast.expr] = OrderedDict()
                         for stmt in node.body:
                             if isinstance(stmt, ast.Assign):
@@ -2522,6 +2599,10 @@ class StripPythonTransformer:
             typedenum = EnumClassTransformer()
             tree = typedenum.visit(tree)
             importrequires.append(typedenum.requires)
+        if want.remove_final_decorator:
+            finaldecorator = FinalDecoratorTransformer()
+            tree = finaldecorator.visit(tree)
+            typingrequires.removes.update(finaldecorator.removes)
         extracted = ExtractTypeHints()
         tree = extracted.visit(tree)
         self.typedefs.extend(extracted.typedefs)
