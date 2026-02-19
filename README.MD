@@ -211,6 +211,15 @@ if python3 compatibility is requested before python 3.3 (having PEP3151)
 On `import select` it gets extended to `except (OSError, select.error)`.
 So for python 3.3 that results in `except (OSError, IOError, select.error)`.
 
+## --raise-oserror-subclasses
+
+if `raise FileNotFoundException("foo")` is used then it gets replaced by OSError
+if python3 compatibility is requested before python 3.3 (having PEP3151)
+
+There are a dozen of subclasses of OSError that are mapped to some errno
+number. FileNotFoundException maps to `errno.ENOENT`, so that the new
+source code reads `raise OSError(errno.ENOENT, "foo")`.
+
 ## --replace-fstring
 
 If `F"string {part}"` is used then it is replaced by `"string {}".format(part)`

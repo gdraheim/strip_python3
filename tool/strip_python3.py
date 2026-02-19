@@ -158,6 +158,7 @@ class Want:
     define_absolute_import = to_int(os.environ.get("PYTHON3_DEFINE_ABSOLUTE_IMPORT", NIX))
     catch_ioerror = to_int(os.environ.get("PYTHON3_CATCH_IOERROR", NIX))
     catch_select_error = to_int(os.environ.get("PYTHON3_CATCH_SELECTERROR", NIX))
+    raise_oserror_subclasses = to_int(os.environ.get("PYTHON3_RAISE_OSERROR_SUBCLASSES", NIX))
     datetime_fromisoformat = to_int(os.environ.get("PYTHON3_DATETIME_FROMISOFORMAT", NIX))
     subprocess_run = to_int(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
     time_monotonic = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
@@ -211,6 +212,7 @@ def main() -> int:
     cmdline.add_option("--no-import-toml", action="count", default=0, help="3.11 tomllib to external toml")
     cmdline.add_option("--no-catch-ioerror", action="count", default=0, help="3.3 IOError is an alias to OSError")
     cmdline.add_option("--no-catch-select-error", action="count", default=0, help="3.3 select.error is an alias to OSError")
+    cmdline.add_option("--no-raise-oserror-subclasses", action="count", default=0, help="3.3 OSError has errno subclasses")
     cmdline.add_option("--no-replace-fstring", action="count", default=0, help="3.6 f-strings")
     cmdline.add_option("--no-replace-enum-class", action="count", default=0, help="3.3 Enum class")
     cmdline.add_option("--no-replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple class")
@@ -240,6 +242,7 @@ def main() -> int:
     cmdline.add_option("--import-toml", action="count", default=0, help="3.11 import toml as tomllib")
     cmdline.add_option("--catch-ioerror", action="count", default=0, help="3.3 IOError is an alias to OSError")
     cmdline.add_option("--catch-select-error", action="count", default=0, help="3.3 select.error is an alias to OSError")
+    cmdline.add_option("--raise-oserror-subclasses", action="count", default=0, help="3.3 OSError has errno subclasses")
     cmdline.add_option("--replace-fstring", action="count", default=0, help="3.6 f-strings to string.format")
     cmdline.add_option("--replace-enum-class", action="count", default=0, help="3.3 Enum class to local wrapper")
     cmdline.add_option("--replace-namedtuple-class", action="count", default=0, help="3.6 NamedTuple to collections.namedtuple")
@@ -373,6 +376,9 @@ def main() -> int:
     if back_version < (3,3) or opt.catch_select_error:
         if not opt.no_catch_select_error:
             want.catch_select_error = max(1,opt.catch_select_error)
+    if back_version < (3,3) or opt.raise_oserror_subclasses:
+        if not opt.no_raise_oserror_subclasses:
+            want.raise_oserror_subclasses = max(1,opt.raise_oserror_subclasses)
     if back_version < (3,0) or opt.define_range:
         if not opt.no_define_range:
             want.define_range = max(1,opt.define_range)
@@ -1618,13 +1624,13 @@ class FStringFromVarLocalsFormat(BlockTransformer):
         return newbody
 
 class CatchAliasOnOSError(ast.NodeTransformer):
-    filename: str
     """ convert 'except OSError' into 'except (OSError, IOError). """
+    aliases: List[str]
     def __init__(self, aliases: Optional[List[str]] = None) -> None:
         self.aliases = aliases if aliases else ["IOError"]
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> ast.AST: # pylint: disable=invalid-name
         exc = cast(ast.ExceptHandler, node) # type: ignore[redundant-cast]
-        logg.debug("exc1 %s", ast.dump(exc))
+        logg.debug("[ExceptHandler]\n%s", ast.dump(exc))
         found: Dict[str, ast.Name] = {}
         if isinstance(exc.type, ast.Tuple):
             elts = cast(ast.Tuple, exc.type).elts # type: ignore[redundant-cast]
@@ -1647,6 +1653,46 @@ class CatchAliasOnOSError(ast.NodeTransformer):
                     old1.elts += [ ast.Name(alias) ]
                 else:
                     logg.fatal("could not replace 'except' with %s", found)
+        return node
+
+# PEP3151
+errno_of_subclasses = {
+   "BlockingError": "EAGAIN",
+   "ChildProcessError": "ECHILD",
+   "BrokenPipeError": "EPIPE",
+   "ConnectionAbortedError": "ECONNABORTED",
+   "ConnectionRefusedError": "ECONNREFUSED",
+   "ConnectionResetError": "ECONNRESET",
+   "FileExistsError": "EEXIST",
+   "FileNotFoundError": "ENOENT",
+   "InterruptedError": "EINTR",
+   "IsADirectoryError": "EISDIR",
+   "NotADirectoryError": "ENOTDIR",
+   "PermissionError": "EPERM",
+   "ProcessLookupError": "ESRCH",
+   "TimeoutError": "ETIMEDOUT",
+}
+class RaiseOSErrorSubclasses(ast.NodeTransformer):
+    """ convert 'raise FileNotFound()' and simillar subclasses of OSError. """
+    errno_of_subclass: Dict[str, str]
+    requires: List[str] = []
+    def __init__(self, subclasses: Optional[Dict[str, str]] = None) -> None:
+        self.errno_of_subclass = subclasses if subclasses else errno_of_subclasses
+        self.requires = []
+    def visit_Raise(self, node: ast.Raise) -> ast.AST: # pylint: disable=invalid-name
+        throws = cast(ast.Raise, node) # type: ignore[redundant-cast]
+        logg.debug("[Raise]\n%s", ast.dump(throws))
+        if isinstance(throws.exc, ast.Call):
+            calls = throws.exc
+            if isinstance(calls.func, ast.Name):
+                name = calls.func
+                if name.id in self.errno_of_subclass:
+                    errno2 = self.errno_of_subclass[name.id]
+                    name.id = "OSError"
+                    if len(calls.args) == 1:
+                        calls.args = [ast.Attribute(ast.Name("errno"), attr=errno2)] + calls.args
+                        if "errno" not in self.requires:
+                            self.requires += ["errno"]
         return node
 
 # ......................................................................................
@@ -2702,6 +2748,10 @@ class StripPythonTransformer:
                 select_error = imports.imported["select"] + ".error"
                 catch_select_error = CatchAliasOnOSError([select_error])
                 tree = catch_select_error.visit(tree)
+        if want.raise_oserror_subclasses:
+            raise_oserror = RaiseOSErrorSubclasses()
+            tree = raise_oserror.visit(tree)
+            importrequires.append(raise_oserror.requires)
         futurerequires = RequireImportFrom()
         if want.define_print_function or want.define_float_division:
             calls2 = DetectImportedFunctionCalls()
