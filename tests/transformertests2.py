@@ -5025,6 +5025,42 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_2622(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        def func1() -> int:
+            try:
+                raise FileNotFoundError(0, "suddenly gone", "x")
+            except OSError as e:
+                print(badfile, e.errno)
+            return 0
+        """)
+        run = sh(F"{strip} -37 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        self.assertTrue(os.path.exists(F"{tmp}/test.pyi"))
+        py, pyi = file_text4(F"{tmp}/test.py"), file_text4(F"{tmp}/test.pyi")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        from __future__ import print_function
+        import errno
+
+        def func1():
+            try:
+                raise OSError(errno.ENOENT, 'suddenly gone', 'x')
+            except (OSError, IOError) as e:
+                print(badfile, e.errno)
+            return 0
+        """)))
+        self.assertEqual(lines4(pyi), lines4(text4("""
+        def func1() -> int:
+            pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
 
 
 def summary() -> None:

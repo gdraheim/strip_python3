@@ -1688,11 +1688,15 @@ class RaiseOSErrorSubclasses(ast.NodeTransformer):
                 name = calls.func
                 if name.id in self.errno_of_subclass:
                     errno2 = self.errno_of_subclass[name.id]
+                    errno_name = ast.Attribute(ast.Name("errno"), attr=errno2)
+                    copy_location(errno_name, node)
                     name.id = "OSError"
-                    if len(calls.args) == 1:
-                        calls.args = [ast.Attribute(ast.Name("errno"), attr=errno2)] + calls.args
-                        if "errno" not in self.requires:
-                            self.requires += ["errno"]
+                    if len(calls.args) <= 1:
+                        calls.args = [errno_name] + calls.args
+                    else:
+                        calls.args[0] = errno_name
+                    if "errno" not in self.requires:
+                        self.requires += ["errno"]
         return node
 
 # ......................................................................................
