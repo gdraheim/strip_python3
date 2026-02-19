@@ -5,7 +5,7 @@
 
 __copyright__ = "(C) 2026 Guido Draheim, licensed under MIT License"
 __author__ = "Guido U. Draheim"
-__version__ = "1.4.2072"
+__version__ = "1.4.2074"
 
 from typing import cast
 import sys
