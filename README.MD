@@ -185,6 +185,11 @@ If `time.monotonic` is used then it is replaced by `time_monotonic`
 with boilerplate code based on `time.time`. This is needed for 
 python2 or python3 older than 3.3. (see [doc](doc/time-monotonic.md)) 
 
+## --import-io-open
+
+If `builtins.open` is used with an `encoding="utf-8"` parameter
+then it needs to be replaced with io.open() for python2.
+
 ## --import-pathlib2
 
 If `import pathlib` is used then it is replaced by `import pathlib2`
