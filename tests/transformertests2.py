@@ -4517,6 +4517,60 @@ class StripTest(unittest.TestCase):
         """)))
         self.coverage()
         self.rm_testdir()
+    def test_2460(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        def func1() -> int:
+            filename = "tmp.tmp"
+            with open(filename, "r") as f:
+                pass
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        def func1():
+            filename = 'tmp.tmp'
+            with open(filename, 'r') as f:
+                pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
+    def test_2461(self) -> None:
+        vv = self.begin()
+        strip = coverage(STRIP)
+        tmp = self.testdir()
+        text_file(F"{tmp}/test3.py", """
+        def func1() -> int:
+            filename = "tmp.tmp"
+            with open(filename, "r", encoding="utf-8") as f:
+                pass
+        """)
+        run = sh(F"{strip} -3 {tmp}/test3.py {vv} -VVV")
+        logg.debug("%s %s %s", strip, errs(run.err), outs(run.out))
+        # self.assertFalse(run.err)
+        self.assertTrue(os.path.exists(F"{tmp}/test.py"))
+        py = file_text4(F"{tmp}/test.py")
+        logg.debug("py:\n%s", py)
+        self.assertEqual(lines4(py), lines4(text4("""
+        import io, sys
+        if sys.version_info >= (3, 0):
+            io_open = open
+        else:
+            io_open = io.open
+
+        def func1():
+            filename = 'tmp.tmp'
+            with io_open(filename, 'r', encoding='utf-8') as f:
+                pass
+        """)))
+        self.coverage()
+        self.rm_testdir()
     def test_2501(self) -> None:
         vv = self.begin()
         strip = coverage(STRIP)

@@ -96,6 +96,8 @@ class TransformerSyntaxError(SyntaxError):
 # PEP 589 (python 3.8) TypeDict classes with member annotations (extended in 3.11 PEP 655)
 # PEP 593 (python 3.9) typing.Annotated
 # PEP 585 (python 3.9) builtins as types (e.g "list", "dict")
+# PEP 597 (python 3.10) builds open() requires encoding="utf-8" parameter (default in python 3.14 PEP-686)
+#          the python-3 builtins.open() is implemented in python2 io.open() but slow
 # PEP 604 (python 3.10) a|b union operator
 # PEP 613 (python 3.10) TypeAlias
 # PEP 647 (python 3.10) TypeGuard
@@ -163,6 +165,7 @@ class Want:
     subprocess_run = to_int(os.environ.get("PYTHON3_SUBPROCESS_RUN", NIX))
     time_monotonic = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC", NIX))
     time_monotonic_ns = to_int(os.environ.get("PYTHON3_TIME_MONOTONIC_NS", os.environ.get("PYTHON3_TIME_MONOTONIC", NIX)))
+    import_io_open = to_int(os.environ.get("PYTHON3_IMPORT_IO_OPEN", NIX))
     import_pathlib2 = to_int(os.environ.get("PYTHON3_IMPORT_PATHLIB2", NIX))
     import_backports_zoneinfo = to_int(os.environ.get("PYTHON3_IMPORT_BACKBORTS_ZONEINFO", NIX))
     import_toml = to_int(os.environ.get("PYTHON3_IMPORT_TOML", NIX))
@@ -207,6 +210,7 @@ def main() -> int:
     cmdline.add_option("--no-subprocess-run", action="count", default=0, help="3.5 subprocess.run")
     cmdline.add_option("--no-time-monotonic", action="count", default=0, help="3.3 time.monotonic")
     cmdline.add_option("--no-time-monotonic-ns", action="count", default=0, help="3.7 time.monotonic_ns")
+    cmdline.add_option("--no-import-io-open", action="count", default=0, help="3.0 import io.open() for encoding param")
     cmdline.add_option("--no-import-pathlib2", action="count", default=0, help="3.3 pathlib to python2 pathlib2")
     cmdline.add_option("--no-import-backports-zoneinfo", action="count", default=0, help="3.9 zoneinfo from backports")
     cmdline.add_option("--no-import-toml", action="count", default=0, help="3.11 tomllib to external toml")
@@ -237,6 +241,7 @@ def main() -> int:
     cmdline.add_option("--subprocess-run", action="count", default=0, help="3.5 subprocess.run or use boilerplate")
     cmdline.add_option("--time-monotonic", action="count", default=0, help="3.3 time.monotonic or use time.time")
     cmdline.add_option("--time-monotonic-ns", action="count", default=0, help="3.7 time.monotonic_ns or use time.time")
+    cmdline.add_option("--import-io-open", action="count", default=0, help="3.0 import io.open() for encoding parameter")
     cmdline.add_option("--import-pathlib2", action="count", default=0, help="3.3 import pathlib2 as pathlib")
     cmdline.add_option("--import-backports-zoneinfo", action="count", default=0, help="3.9 import zoneinfo from backports")
     cmdline.add_option("--import-toml", action="count", default=0, help="3.11 import toml as tomllib")
@@ -409,6 +414,9 @@ def main() -> int:
     if back_version < (3,7) or opt.time_monotonic_ns or opt.time_monotonic:
         if not opt.no_time_monotonic_ns:
             want.time_monotonic_ns = max(1, opt.time_monotonic_ns)
+    if back_version < (3,0) or opt.import_io_open:
+        if not opt.no_import_io_open:
+            want.import_io_open = max(1, opt.import_io_open)
     if back_version < (3,3) or opt.import_pathlib2:
         if not opt.no_import_pathlib2:
             want.import_pathlib2 = max(1, opt.import_pathlib2)
@@ -1060,6 +1068,7 @@ class DetectImportedFunctionCalls(DetectImportsTransformer):
         DetectImportsTransformer.__init__(self)
         self.found: Dict[str, str] = {} # funcname to callname
         self.calls: Dict[str, str] = {} # callname to funcname
+        self.keywords: Dict[str, List[str]] = {} # funcname to union of keywords being used
         self.divs: int = 0
         self.replace = replace if replace is not None else {}
         self.noimport = noimport if noimport is not None else []
@@ -1079,6 +1088,12 @@ class DetectImportedFunctionCalls(DetectImportsTransformer):
             logg.debug("found call1: %s -> %s", callname, funcname)
             self.found[funcname] = callname
             self.calls[callname] = funcname
+            if calls.keywords:
+                if funcname not in self.keywords:
+                    self.keywords[funcname] = []
+                for keyword in calls.keywords:
+                    if keyword.arg not in self.keywords[funcname]:
+                        self.keywords[funcname].append(keyword.arg)
             if funcname in self.replace:
                 return ast.Call(func=ast.Name(self.replace[funcname]), args=calls.args, keywords=calls.keywords)
         elif isinstance(calls.func, ast.Attribute):
@@ -1092,6 +1107,12 @@ class DetectImportedFunctionCalls(DetectImportsTransformer):
                     logg.debug("found call2: %s -> %s", callname, funcname)
                     self.found[funcname] = callname
                     self.calls[callname] = funcname
+                    if calls.keywords:
+                        if funcname not in self.keywords:
+                            self.keywords[funcname] = []
+                        for keyword in calls.keywords:
+                            if keyword.arg not in self.keywords[funcname]:
+                                self.keywords[funcname].append(keyword.arg)
                     if funcname in self.replace:
                         return ast.Call(func=ast.Name(self.replace[funcname]), args=calls.args, keywords=calls.keywords)
                 else:
@@ -1108,6 +1129,12 @@ class DetectImportedFunctionCalls(DetectImportsTransformer):
                         logg.debug("found call3: %s -> %s", callname, funcname)
                         self.found[funcname] = callname
                         self.calls[callname] = funcname
+                        if calls.keywords:
+                            if funcname not in self.keywords:
+                                self.keywords[funcname] = []
+                            for keyword in calls.keywords:
+                                if keyword.arg not in self.keywords[funcname]:
+                                    self.keywords[funcname].append(keyword.arg)
                         if funcname in self.replace:
                             return ast.Call(func=ast.Name(self.replace[funcname]), args=calls.args, keywords=calls.keywords)
                     else:
@@ -1849,6 +1876,34 @@ def replace_time_monotonic_ns(tree: ast.AST, calls: Optional[DetectImportedFunct
                 # importrequiresfrom.remove(["time.monotonic_ns"])
                 requires += monotonicdef.requires
                 removed += ["time.monotonic_ns"]
+    return ReplaceCallResult(tree, requires, removed)
+
+def import_io_open(tree: ast.AST, calls: Optional[DetectImportedFunctionCalls] = None) -> ReplaceCallResult:
+    """ TODO: only replace if open() was called with an encoding="xy" parameter """
+    if calls is None:   # pragma: nocover
+        calls = DetectImportedFunctionCalls()
+        calls.visit(tree)
+    assert calls is not None
+    requires: List[str] = []
+    removed: List[str] = []
+    if "open" in calls.found:
+        if "open" in calls.keywords and "encoding" in calls.keywords["open"]:
+            if OK:
+                requires = []
+                if "io" in calls.imported:
+                    io_module = calls.imported["io"]
+                else:
+                    io_module = "io"
+                    requires += ["io"]
+                defname = io_module + "_open"
+                io_open_def = DefineIfPython3([F"{defname} = open"], # ..
+                   or_else=[F"{defname} = {io_module}.open"])
+                replace = DetectImportedFunctionCalls({"open": defname})
+                tree = io_open_def.visit(replace.visit(tree))
+                # importrequires.append(monotonicdef.requires)
+                # importrequiresfrom.remove(["time.monotonic"])
+                requires += io_open_def.requires
+                removed += []
     return ReplaceCallResult(tree, requires, removed)
 
 # ...................................................................................
@@ -2697,6 +2752,12 @@ class StripPythonTransformer:
                 tree = monotonicdef.tree
                 importrequires.append(monotonicdef.requires)
                 importrequiresfrom.remove(monotonicdef.removed)
+        if want.import_io_open:
+            if "open" in calls.found:
+                io_open = import_io_open(tree, calls)
+                tree = io_open.tree
+                importrequires.append(io_open.requires)
+                importrequiresfrom.remove(io_open.removed)
         if want.import_pathlib2:
             if "pathlib" in calls.imported:
                 logg.log(HINT, "detected pathlib")
